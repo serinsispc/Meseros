@@ -123,6 +123,7 @@
     <Compile Include="Funciones\TablaVentas_f.cs" />
     <Compile Include="Model\BaseCaja.cs" />
     <Compile Include="Model\ClienteDomicilio.cs" />
+    <Compile Include="Model\Clientes.cs" />
     <Compile Include="Model\ComandImpresaa.cs" />
     <Compile Include="Model\CuentaCliente.cs" />
     <Compile Include="Model\DetalleVenta.cs" />
@@ -130,6 +131,9 @@
     <Compile Include="Model\ImprecionComandaAdd.cs" />
     <Compile Include="Model\ImprimirCuenta.cs" />
     <Compile Include="Model\Mesas.cs" />
+    <Compile Include="Model\PagosVenta.cs" />
+    <Compile Include="Model\payment_forms.cs" />
+    <Compile Include="Model\payment_methods.cs" />
     <Compile Include="Model\R_CuentaCliente_DetalleVenta.cs" />
     <Compile Include="Model\R_VendedorUsuario.cs" />
     <Compile Include="Model\R_VentaClienteDomicilio.cs" />
@@ -145,6 +149,7 @@
     <Compile Include="Model\V_CuentasVenta.cs" />
     <Compile Include="Model\V_DetalleCaja.cs" />
     <Compile Include="Model\v_productoVenta.cs" />
+    <Compile Include="Model\V_R_MediosDePago_MediosDePagoInternos.cs" />
     <Compile Include="Model\V_ServicioMesa.cs" />
     <Compile Include="Model\V_TablaVentas.cs" />
     <Compile Include="Model\Zonas.cs" />

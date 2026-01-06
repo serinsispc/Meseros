@@ -289,13 +289,23 @@ namespace WebApplication
                     await btnCerrarCaja();
                     break;
 
+                case "btnCobrar":
+                    await btnCobrar();
+                    break;
+
 
                 default:
                     // otros eventos por nombre...
                     break;
             }
         }
+        private async Task btnCobrar()
+        {
 
+            GuardarModelsEnSesion();
+            BindProductos();
+            DataBind();
+        }
         private async Task btnBuscarProducto(string eventArgument)
         {
             // el valor que vino desde el input del buscador

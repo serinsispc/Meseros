@@ -604,11 +604,16 @@
                             <% if (Session["cajero"] != null && Convert.ToInt32(Session["cajero"]) == 1)
                                 { %>
 
-                            <div class="col-12 col-md-4">
-                                <button class="cta cta-green w-100" style="height: 80px;">
-                                    <i class="bi bi-cash-coin me-2"></i>Cobrar
-                                </button>
-                            </div>
+<div class="col-12 col-md-4">
+    <button type="button"
+            class="cta cta-green w-100"
+            id="btnCobrar"
+            style="height: 80px;"
+            onclick="__doPostBack('btnCobrar','')">
+        <i class="bi bi-cash-coin me-2"></i>Cobrar
+    </button>
+</div>
+
 
                             <% } %>
 
@@ -991,6 +996,8 @@
             </div>
         </div>
     </div>
+
+
 
     <script type="text/javascript">
         window.ListaClientesDomicilio = <%= Newtonsoft.Json.JsonConvert.SerializeObject(Models.clienteDomicilios) %>;

@@ -107,6 +107,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="About.aspx" />
+    <Content Include="Cobrar.aspx" />
     <Content Include="Content\bootstrap-grid.css" />
     <Content Include="Content\bootstrap-grid.min.css" />
     <Content Include="Content\bootstrap-grid.rtl.css" />
@@ -162,6 +163,7 @@
     <Content Include="Content\bootstrap-grid.min.css.map" />
     <Content Include="Content\bootstrap-grid.css.map" />
     <Content Include="Menu.Master" />
+    <Content Include="CobrarMaster.Master" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />
     <Content Include="Scripts\jquery-3.7.0.min.js" />
@@ -207,6 +209,20 @@
     <Compile Include="Class\AlertModerno.cs" />
     <Compile Include="Class\ClassImagenes.cs" />
     <Compile Include="Class\ClassPropina.cs" />
+    <Compile Include="Cobrar.aspx.cs">
+      <DependentUpon>Cobrar.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Cobrar.aspx.designer.cs">
+      <DependentUpon>Cobrar.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="CobrarMaster.Master.cs">
+      <DependentUpon>CobrarMaster.Master</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="CobrarMaster.Master.designer.cs">
+      <DependentUpon>CobrarMaster.Master</DependentUpon>
+    </Compile>
     <Compile Include="Default.aspx.cs">
       <DependentUpon>Default.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
