@@ -1,0 +1,169 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="WebApplication.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="es">
+<head runat="server">
+
+    <script>
+        (function () {
+            try {
+                if (sessionStorage.getItem('mi-scroll-pos') !== null) {
+                    document.documentElement.classList.add('restore-scroll');
+                }
+            } catch (e) { }
+        })();
+    </script>
+
+
+<style>
+    .restore-scroll body {
+        visibility: hidden !important;
+    }
+</style>
+
+
+    <script>
+        (function () {
+            const KEY = 'mi-scroll-pos';
+
+            function guardarPos() {
+                try {
+                    const y = Math.round(window.pageYOffset || document.documentElement.scrollTop || 0);
+                    sessionStorage.setItem(KEY, String(y));
+                } catch (e) { }
+            }
+
+            // 1) Interceptar __doPostBack (LinkButton y similares)
+            try {
+                const origPostBack = window.__doPostBack;
+                window.__doPostBack = function (eventTarget, eventArgument) {
+                    guardarPos();
+                    if (typeof origPostBack === 'function') return origPostBack.apply(this, arguments);
+                    // fallback: emular postback
+                    const theForm = document.forms && document.forms[0];
+                    if (!theForm) return;
+                    if (theForm.__EVENTTARGET) theForm.__EVENTTARGET.value = eventTarget;
+                    if (theForm.__EVENTARGUMENT) theForm.__EVENTARGUMENT.value = eventArgument;
+                    theForm.submit();
+                };
+            } catch (e) { }
+
+            // 2) Capturar submit (algún submit directo)
+            try {
+                const forms = document.getElementsByTagName('form');
+                if (forms && forms[0]) forms[0].addEventListener('submit', guardarPos, true);
+            } catch (e) { }
+
+            // 3) Click por si algún elemento no llega por submit/__doPostBack
+            document.addEventListener('click', function (e) {
+                try {
+                    const el = e.target.closest('a, button, input[type="submit"], [role="button"]');
+                    if (el) guardarPos();
+                } catch (e) { }
+            }, true);
+
+            // 4) beforeunload (fallback)
+            try { window.addEventListener('beforeunload', guardarPos, { passive: true }); } catch (e) { }
+
+            // 5) UpdatePanel (postbacks parciales): guardar en begin, restaurar en end
+            try {
+                if (window.Sys && window.Sys.WebForms && Sys.WebForms.PageRequestManager) {
+                    const prm = Sys.WebForms.PageRequestManager.getInstance();
+                    prm.add_beginRequest(function () { guardarPos(); });
+                    prm.add_endRequest(function () {
+                        try {
+                            const val = sessionStorage.getItem(KEY);
+                            if (val !== null) {
+                                const y = parseInt(val, 10) || 0;
+                                // Pequeño timeout para que el DOM finalice los cambios del UpdatePanel
+                                setTimeout(function () {
+                                    window.scrollTo(0, y);
+                                    sessionStorage.removeItem(KEY);
+                                    // quitar posible foco molesto
+                                    try { if (document.activeElement) document.activeElement.blur(); } catch (e) { }
+                                }, 40);
+                            }
+                        } catch (e) { }
+                    });
+                }
+            } catch (e) { }
+
+            // 6) Restauración en carga completa (full postback)
+            document.addEventListener('DOMContentLoaded', function () {
+                try {
+                    const val = sessionStorage.getItem(KEY);
+                    if (val !== null) {
+                        const y = parseInt(val, 10) || 0;
+                        // Evitar smooth
+                        const html = document.documentElement;
+                        const prevScrollBehavior = html.style.scrollBehavior;
+                        html.style.scrollBehavior = 'auto';
+
+                        // Fijar la posición antes del primer paint
+                        window.scrollTo(0, y);
+
+                        // en el siguiente frame, mostrar la página y limpiar
+                        requestAnimationFrame(function () {
+                            document.documentElement.classList.remove('restore-scroll');
+                            html.style.scrollBehavior = prevScrollBehavior || '';
+                            sessionStorage.removeItem(KEY);
+                            try { if (document.activeElement) document.activeElement.blur(); } catch (e) { }
+                        });
+                    } else {
+                        // no había nada que restaurar: asegurar que si la clase quedó por error se quite
+                        document.documentElement.classList.remove('restore-scroll');
+                    }
+                } catch (e) { }
+            });
+        })();
+    </script>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>
+      <%: Page.Title %> - <%: Convert.ToString(Session["NombreEmpresa"] ?? "Mi empresa") %>
+    </title>
+
+    <link rel="icon" type="image/png" href="<%:ResolveUrl($"~/Recursos/Imagenes/Logo/favicon-{Session["db"]}.png") %>" />
+
+
+
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet" crossorigin="anonymous" />
+
+    <!-- Bootstrap Icons opcional -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+
+    <!-- Tu JS de alertas -->
+    <script src="<%: ResolveUrl("~/Scripts/js/AlertModerno.js") %>"></script>
+
+
+    <link href="Content/css/site.master.css" rel="stylesheet" />
+
+
+</head>
+<body>
+  <form runat="server">
+    <asp:ScriptManager runat="server" />
+    <div class="page-wrapper">
+      <asp:ContentPlaceHolder ID="MainContent" runat="server" />
+    </div>
+  </form>
+
+  <!-- ================== CAMBIO IMPORTANTE AQUÍ ==================
+       Usa el BUNDLE de Bootstrap (incluye Popper y expone window.bootstrap)
+       y evita cargar Popper/Bootstrap por separado -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+          crossorigin="anonymous"></script>
+  <!-- ============================================================ -->
+</body>
+</html>

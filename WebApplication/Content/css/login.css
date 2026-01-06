@@ -1,0 +1,158 @@
+﻿/* ==========================================================
+   Login (WebForms + Bootstrap 5) — Fondo 100% + logo grande
+   ========================================================== */
+
+/* 1) Forzar que el área de contenido del master ocupe 100% de ancho */
+.container.body-content {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* 2) Fondo azul a pantalla completa */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    /* fondo global por si hay contenedores padres */
+    background: radial-gradient(1200px 600px at 20% 20%, #0f3866, #0e5ca6 55%, #1174cc 100%) fixed;
+}
+
+.login-page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(16px, 3vw, 48px);
+    /* mantener mismo degradado aquí para garantizar continuidad */
+    background: radial-gradient(1200px 600px at 20% 20%, #0f3866, #0e5ca6 55%, #1174cc 100%) fixed;
+}
+
+/* 3) Tarjeta */
+.login-card {
+    position: relative;
+    width: 100%;
+    max-width: clamp(360px, 82vw, 540px);
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid rgba(13,110,253,.06);
+    box-shadow: 0 24px 72px rgba(0,0,0,.22);
+    padding: 118px 28px 26px; /* espacio superior mayor por logo grande */
+}
+
+/* 4) Logo grande, visible y sin tapar contenido */
+.logo-badge {
+    position: absolute;
+    top: -68px; /* sobresale un poco por encima de la card */
+    left: 50%;
+    transform: translateX(-50%);
+    width: clamp(120px, 18vw, 160px);
+    height: clamp(120px, 18vw, 160px);
+    border-radius: 50%;
+    background: #fff;
+    border: 12px solid #fff; /* halo blanco que integra con la card */
+    box-shadow: 0 18px 46px rgba(0,0,0,.22);
+    display: grid;
+    place-items: center;
+}
+
+    .logo-badge img {
+        display: block;
+        max-width: 86%;
+        max-height: 86%;
+        object-fit: contain;
+    }
+
+/* 5) Títulos */
+.login-title {
+    color: #0d6efd;
+    font-weight: 800;
+    letter-spacing: .2px;
+    font-size: clamp(1.25rem, 2.6vw, 1.7rem);
+    margin: 8px 0 6px 0;
+}
+
+.login-subtitle {
+    color: #6c757d;
+    font-size: .96rem;
+    margin-bottom: 18px;
+}
+
+/* 6) Campos con icono */
+.input-icon {
+    position: relative;
+}
+
+    .input-icon .icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-6px);
+        color: #6b7a8a;
+        pointer-events: none;
+    }
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: .35rem;
+}
+
+.form-control {
+    min-height: 48px;
+    border-radius: 10px;
+    border-color: #dbe2ea;
+    box-shadow: inset 0 1px 0 rgba(0,0,0,.03);
+    padding-left: 44px; /* espacio para el icono */
+}
+
+    .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
+    }
+
+/* 7) Botón */
+.btn-login {
+    min-height: 50px;
+    font-weight: 700;
+    border-radius: 10px;
+    background: #0d6efd;
+    border: none;
+    transition: transform .06s ease, background .15s ease;
+}
+
+    .btn-login:hover {
+        background: #0b5ed7;
+    }
+
+    .btn-login:active {
+        transform: translateY(1px);
+    }
+
+/* 8) Pie */
+.login-foot {
+    color: #8a99a8;
+    font-size: .86rem;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* 9) Desktop finos */
+@media (min-width: 992px) {
+    .login-card {
+        padding-top: 116px;
+    }
+
+    .logo-badge {
+        top: -66px;
+    }
+}
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}

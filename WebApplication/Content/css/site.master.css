@@ -1,0 +1,86 @@
+﻿/* Contenedor a pantalla completa, móvil primero */
+.page-wrapper {
+    min-height: 100svh; /* mejor en móviles */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(16px, 2.5vw, 32px);
+    /* Gradiente suave, no pesado en móviles */
+    background: radial-gradient(1200px 600px at 20% 20%, #f8f9fa, #e9ecef 60%, #dee2e6 100%);
+    /* Respeta áreas seguras (notch) */
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Ancho máximo responsivo para formularios (login) */
+.container-responsive {
+    width: 100%;
+    max-width: clamp(320px, 92vw, 480px); /* crece de 320→480 según pantalla */
+    margin-inline: auto;
+}
+
+/* “Glass card” adaptable */
+.card-glass {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.brand-badge {
+    width: clamp(56px, 10vw, 72px);
+    height: clamp(56px, 10vw, 72px);
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #0d6efd 0%, #6ea8fe 100%);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(13,110,253,.25);
+}
+
+/* Campos flotantes: asegura lectura en pantallas chicas */
+.form-floating > label {
+    opacity: .85;
+}
+
+/* Aumenta zona táctil en móviles */
+.btn, .form-control, .form-select {
+    min-height: 44px; /* recomendado para dedo */
+}
+
+/* Modo oscuro automático (opcional) */
+@media (prefers-color-scheme: dark) {
+    .page-wrapper {
+        background: radial-gradient(1200px 600px at 20% 20%, #0b0f14, #11181f 60%, #0f141a 100%);
+    }
+
+    .card-glass {
+        background: rgba(22, 26, 30, 0.72);
+        border-color: rgba(255,255,255,0.06);
+    }
+
+    .form-control, .form-select {
+        color: #e9ecef;
+        background-color: #1a1f24;
+        border-color: #364150;
+    }
+
+        .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+    .text-muted {
+        color: #a8b3c1 !important;
+    }
+}
+
+/* Reduce animaciones si el usuario así lo prefiere */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F2CD9F68-DB7E-4FBB-B026-52B8D4674230}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>DAL</RootNamespace>
+    <AssemblyName>DAL</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.10.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.6.1\lib\net462\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IO.Pipelines.10.0.0\lib\net462\System.IO.Pipelines.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Memory, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.6.3\lib\net462\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.6.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.6.1\lib\net462\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.3.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.1.2\lib\net462\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Text.Encodings.Web, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encodings.Web.10.0.0\lib\net462\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Json.10.0.0\lib\net462\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.4.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.6.3\lib\net462\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AjustarJson.cs" />
+    <Compile Include="Conection_SQL.cs" />
+    <Compile Include="Controler\BaseCajaControler.cs" />
+    <Compile Include="Controler\ClienteDomicilioControler.cs" />
+    <Compile Include="Controler\ComandImpresaaControler.cs" />
+    <Compile Include="Controler\CuentaClienteControler.cs" />
+    <Compile Include="Controler\DetalleVentaControler.cs" />
+    <Compile Include="Controler\ImagenesControler.cs" />
+    <Compile Include="Controler\ImprecionComandaAddControler.cs" />
+    <Compile Include="Controler\ImprimirCuentaControler.cs" />
+    <Compile Include="Controler\MesasControler.cs" />
+    <Compile Include="Controler\R_CuentaCliente_DetalleVentaControler.cs" />
+    <Compile Include="Controler\R_VendedorUsuarioControler.cs" />
+    <Compile Include="Controler\R_VentaMesaControler.cs" />
+    <Compile Include="Controler\R_VentaVendedorControler.cs" />
+    <Compile Include="Controler\SedeControler.cs" />
+    <Compile Include="Controler\TablaVentasControler.cs" />
+    <Compile Include="Controler\VendedorControler.cs" />
+    <Compile Include="Controler\V_CatagoriaAdicionControler.cs" />
+    <Compile Include="Controler\V_CategoriaControler.cs" />
+    <Compile Include="Controler\V_CuentaClienteCotroler.cs" />
+    <Compile Include="Controler\V_CuentasControler.cs" />
+    <Compile Include="Controler\V_CuentasVentaControler.cs" />
+    <Compile Include="Controler\V_DetalleCajaControler.cs" />
+    <Compile Include="Controler\v_productoVentaControler.cs" />
+    <Compile Include="Controler\V_ServicioMesaControler.cs" />
+    <Compile Include="Controler\V_TablaVentasControler.cs" />
+    <Compile Include="Controler\ZonasControler.cs" />
+    <Compile Include="CrudSpHelper.cs" />
+    <Compile Include="Funciones\ComandImpresaa_f.cs" />
+    <Compile Include="Funciones\CuentaCliente_f.cs" />
+    <Compile Include="Funciones\DetalleVenta_f.cs" />
+    <Compile Include="Funciones\Mesas_f.cs" />
+    <Compile Include="Funciones\R_CuentaCliente_DetalleVenta_f.cs" />
+    <Compile Include="Funciones\R_VentaMesa_f.cs" />
+    <Compile Include="Funciones\R_VentaVendedor_f.cs" />
+    <Compile Include="Funciones\TablaVentas_f.cs" />
+    <Compile Include="Model\BaseCaja.cs" />
+    <Compile Include="Model\ClienteDomicilio.cs" />
+    <Compile Include="Model\ComandImpresaa.cs" />
+    <Compile Include="Model\CuentaCliente.cs" />
+    <Compile Include="Model\DetalleVenta.cs" />
+    <Compile Include="Model\Imagenes.cs" />
+    <Compile Include="Model\ImprecionComandaAdd.cs" />
+    <Compile Include="Model\ImprimirCuenta.cs" />
+    <Compile Include="Model\Mesas.cs" />
+    <Compile Include="Model\R_CuentaCliente_DetalleVenta.cs" />
+    <Compile Include="Model\R_VendedorUsuario.cs" />
+    <Compile Include="Model\R_VentaClienteDomicilio.cs" />
+    <Compile Include="Model\R_VentaMesa.cs" />
+    <Compile Include="Model\R_VentaVendedor.cs" />
+    <Compile Include="Model\Sede.cs" />
+    <Compile Include="Model\TablaVentas.cs" />
+    <Compile Include="Model\Vendedor.cs" />
+    <Compile Include="Model\V_CatagoriaAdicion.cs" />
+    <Compile Include="Model\V_Categoria.cs" />
+    <Compile Include="Model\V_CuentaCliente.cs" />
+    <Compile Include="Model\V_Cuentas.cs" />
+    <Compile Include="Model\V_CuentasVenta.cs" />
+    <Compile Include="Model\V_DetalleCaja.cs" />
+    <Compile Include="Model\v_productoVenta.cs" />
+    <Compile Include="Model\V_ServicioMesa.cs" />
+    <Compile Include="Model\V_TablaVentas.cs" />
+    <Compile Include="Model\Zonas.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RespuestaCRUD.cs" />
+    <Compile Include="RespuestaSQL.cs" />
+    <Compile Include="Respuesta_DAL.cs" />
+    <Compile Include="SqlAutoBuilder.cs" />
+    <Compile Include="SqlAutoDAL.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.Config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Use la restauración de paquetes NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+    <Error Condition="!Exists('..\packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
+  <Import Project="..\packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets" Condition="Exists('..\packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets')" />
+</Project>
