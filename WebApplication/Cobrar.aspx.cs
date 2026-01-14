@@ -1,19 +1,31 @@
-﻿using DAL.Controler;
+﻿using DAL;
+using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.UI;
+using WebApplication.Class;
 using WebApplication.ViewModels;
 
 namespace WebApplication
 {
     public partial class Cobrar : System.Web.UI.Page
     {
+        #region Constantes de sesión / claves
+        private const string SessionVendedorKey = "Vendedor";
+        private const string SessionZonaActivaKey = "zonaactiva";
+        private const string SessionModelsKey = "Models";
+        private const string SessionIdVendedorKey = "idvendedor";
+        #endregion
+
+        public MenuViewModels Models { get; private set; }
+
         private MenuViewModels ModelSesion
         {
             get
@@ -88,13 +100,17 @@ namespace WebApplication
                     break;
             }
         }
-
+        private void GuardarModelsEnSesion()
+        {
+            Session[SessionModelsKey] = ModelSesion;
+        }
         // ========= DESCUENTO =========
         // eventArgument: "valor|razon"
-        private Task btnGuardarDescuento(string eventArgument)
+        private async Task btnGuardarDescuento(string eventArgument)
         {
             try
             {
+               
                 int valor = 0;
                 string razon = "";
 
@@ -109,34 +125,69 @@ namespace WebApplication
                 Session["descuento_valor"] = valor;
                 Session["descuento_razon"] = razon;
 
-                // (Opcional) refrescar UI server-side si lo necesitas
-                // txtDescuento.Value = valor.ToString();
-                // txtRazonDescuento.Value = razon;
+                var descuento = new CargoDescuentoVentas
+                {
+                    id = 0,
+                    idVenta = ModelSesion.venta.id,
+                    tipo = false,
+                    codigo = 1,
+                    razon = razon,
+                    valor = valor,
+                    baseCD = ModelSesion.venta.totalVenta,
+                    descripcionCargoDescuento = razon
+                };
 
-                return Task.CompletedTask;
+                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(Session["db"].ToString(),descuento,0);
+
+                //en esta parte actualisamos la venta para que se refleje el descuento
+                if (!respuestaCRUD)
+                {
+                    AlertModerno.Error(this, "¡Error!", "No fue posible agregar el descuento.", true);
+                    return;
+                }
+
+                ModelSesion.venta = new V_TablaVentas();
+                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
+
+                AlertModerno.Success(this, "¡OK!", $"Descuento agregado con éxito", true, 800);
+
+                GuardarModelsEnSesion();
+                DataBind();
             }
             catch
             {
-                return Task.CompletedTask;
+                AlertModerno.Error(this, "¡Error!", "No fue posible crear la relación del vendedor con la venta.", true);
             }
         }
 
-        private Task btnEliminarDescuento(string eventArgument)
+        private async Task btnEliminarDescuento(string eventArgument)
         {
             try
             {
                 Session["descuento_valor"] = 0;
                 Session["descuento_razon"] = "";
 
-                // (Opcional) reflejar en UI
-                // txtDescuento.Value = "0";
-                // txtRazonDescuento.Value = "";
+                int idventa=ModelSesion.venta.id;
 
-                return Task.CompletedTask;
+                var dal = new SqlAutoDAL();
+                var r = await dal.EjecutarSQLObjeto<RespuestaCRUD>(Session["db"].ToString(), $"EXEC dbo.DELETE_CargoDescuentoVentas {idventa};");
+
+                if(r.estado==false)
+                {
+                    AlertModerno.Error(this, "¡Error!", "No fue posible eliminar el descuento.", true);
+                    return;
+                }
+
+                ModelSesion.venta = new V_TablaVentas();
+                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), idventa);
+                AlertModerno.Success(this, "¡OK!", $"Descuento eliminado con éxito", true, 800);
+                GuardarModelsEnSesion();
+                DataBind();
+
             }
             catch
             {
-                return Task.CompletedTask;
+                AlertModerno.Error(this, "¡Error!", "No fue posible eliminar el descuento.", true);
             }
         }
 

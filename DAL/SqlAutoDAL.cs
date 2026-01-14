@@ -51,5 +51,20 @@ namespace DAL
                 return lista ?? new List<T>();
             }
         }
+
+        public async Task<T> EjecutarSQLObjeto<T>(string db, string sql)
+    where T : class, new()
+        {
+            using (var cn = new Conection_SQL(db))
+            {
+                string json = await cn.EjecutarConsulta(sql, false);
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return null;
+
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+        }
+
     }
 }

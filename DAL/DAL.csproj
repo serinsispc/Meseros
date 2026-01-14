@@ -87,6 +87,7 @@
     <Compile Include="AjustarJson.cs" />
     <Compile Include="Conection_SQL.cs" />
     <Compile Include="Controler\BaseCajaControler.cs" />
+    <Compile Include="Controler\CargoDescuentoVentasControler.cs" />
     <Compile Include="Controler\ClienteDomicilioControler.cs" />
     <Compile Include="Controler\ComandImpresaaControler.cs" />
     <Compile Include="Controler\CuentaClienteControler.cs" />
@@ -124,6 +125,7 @@
     <Compile Include="Funciones\R_VentaVendedor_f.cs" />
     <Compile Include="Funciones\TablaVentas_f.cs" />
     <Compile Include="Model\BaseCaja.cs" />
+    <Compile Include="Model\CargoDescuentoVentas.cs" />
     <Compile Include="Model\ClienteDomicilio.cs" />
     <Compile Include="Model\Clientes.cs" />
     <Compile Include="Model\ComandImpresaa.cs" />
