@@ -301,11 +301,21 @@ namespace WebApplication
         }
         private async Task btnCobrar()
         {
-
+            Session["modelsJSON"]=JsonConvert.SerializeObject(Models);
+            // Guardas lo que necesites antes de ir a Cobrar
             GuardarModelsEnSesion();
-            BindProductos();
-            DataBind();
+
+            // ⚠️ Estas dos líneas NO son necesarias si vas a redirigir
+            // BindProductos();
+            // DataBind();
+
+            // Redirigir a la página Cobrar.aspx
+            Response.Redirect("~/Cobrar.aspx", false);
+
+            // Importante para métodos async
+            Context.ApplicationInstance.CompleteRequest();
         }
+
         private async Task btnBuscarProducto(string eventArgument)
         {
             // el valor que vino desde el input del buscador

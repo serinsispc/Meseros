@@ -95,6 +95,7 @@
     <Compile Include="Controler\ImprecionComandaAddControler.cs" />
     <Compile Include="Controler\ImprimirCuentaControler.cs" />
     <Compile Include="Controler\MesasControler.cs" />
+    <Compile Include="Controler\payment_methodsControler.cs" />
     <Compile Include="Controler\R_CuentaCliente_DetalleVentaControler.cs" />
     <Compile Include="Controler\R_VendedorUsuarioControler.cs" />
     <Compile Include="Controler\R_VentaMesaControler.cs" />
@@ -109,6 +110,7 @@
     <Compile Include="Controler\V_CuentasVentaControler.cs" />
     <Compile Include="Controler\V_DetalleCajaControler.cs" />
     <Compile Include="Controler\v_productoVentaControler.cs" />
+    <Compile Include="Controler\V_R_MediosDePago_MediosDePagoInternosControler.cs" />
     <Compile Include="Controler\V_ServicioMesaControler.cs" />
     <Compile Include="Controler\V_TablaVentasControler.cs" />
     <Compile Include="Controler\ZonasControler.cs" />

@@ -31,6 +31,8 @@ namespace WebApplication
                     var sede = await SedeControler.Consultar(db);
                     if (sede != null)
                     {
+                        Session["porpropina"]= sede.porcentaje_propina;
+                        Session["sede"] = JsonConvert.SerializeObject(sede);
                         Session["guidSede"] = sede.guidSede;
                     }
 
