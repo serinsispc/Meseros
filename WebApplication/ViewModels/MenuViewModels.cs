@@ -31,5 +31,6 @@ namespace WebApplication.ViewModels
         public List<ClienteDomicilio> clienteDomicilios { get; set; }
         public bool AbrirModalDomicilio { get; set; }
         public List<Vendedor> ListaVendedor { get; set; }
+        public List<CargoDescuentoVentas> cargoDescuentoVentas { get; set; }
     }
 }

@@ -49,5 +49,20 @@ namespace DAL.Controler
                 return JsonConvert.DeserializeObject<RespuestaCRUD>(json);
             }
         }
+        public static async Task<List<CargoDescuentoVentas>> ObtenerPorVenta(string db, int idVenta)
+        {
+            using (var cn = new Conection_SQL(db))
+            {
+                // OJO: como idVenta es int, no lleva comillas
+                string sql = $"select *from CargoDescuentoVentas where idVenta={idVenta}";
+                // true => lista de objetos
+                string json = await cn.EjecutarConsulta(sql, true);
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    return new List<CargoDescuentoVentas>();
+                }
+                return JsonConvert.DeserializeObject<List<CargoDescuentoVentas>>(json);
+            }
+        }
     }
 }

@@ -192,7 +192,7 @@
 
                             <div class="col-7">
                                 <input type="text" class="form-control" id="txtDescuento"
-                                       runat="server" ClientIDMode="Static" value="0" />
+                                       runat="server" ClientIDMode="Static" />
                                 <div class="hint mt-1">Valor descuento</div>
 
                                 <!-- ✅ Botones DESCUENTO -->
@@ -207,7 +207,7 @@
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label fw-bold mb-1 mt-2">Razón del descuento</label>
+                                <label class="form-label fw-bold mb-1 mt-2">Razon Descuento</label>
                                 <input type="text" class="form-control" id="txtRazonDescuento"
                                        runat="server" ClientIDMode="Static"
                                        placeholder="Ej: Cortesía / Promoción / Ajuste..." />
@@ -338,6 +338,55 @@
         </div>
     </div>
 
+
+    <!-- ==================== MODAL PAGO MIXTO ==================== -->
+<div class="modal fade" id="mdlPagoMixto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Pagos Internos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="fw-semibold" id="lblResumenMixto">Total: $0 - Pagado: $0 - Efectivo: $0</div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width:60%">Medio interno</th>
+                <th style="width:40%">Valor</th>
+              </tr>
+            </thead>
+            <tbody id="tblMixtoBody">
+              <!-- filas dinámicas -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="small text-muted mt-2">
+          Escribe el valor en cada medio. Se suma automáticamente.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmarPagoMixto">
+          <i class="bi bi-calculator"></i> Agregar Pagos
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -402,6 +451,7 @@
 
             const form = document.querySelector('form');
             if (!form) {
+                // ✅ IMPORTANTE: en WebForms NO se puede escribir "<form>" literal dentro de scripts
                 alert('No se encontró el formulario. El MasterPage debe tener &lt;form runat="server"&gt;.');
                 return;
             }
@@ -426,6 +476,32 @@
         // ====== Cálculos ======
         let lock = false;
 
+        // ==========================================================
+        // ✅ NUEVO: saldo en efectivo para "Mixto"
+        // ==========================================================
+        let sumMixtoInternos = 0; // suma digitada en el modal mixto
+        const esMixtoPorNombre = (nombre) => ((nombre || '').trim().toLowerCase() === 'mixto');
+
+        const aplicarReglaEfectivoPorMedio = () => {
+            const ddl_ = byId('ddlMedioPago');
+            const nombre_ = ddl_ ? (ddl_.options[ddl_.selectedIndex]?.text || '') : '';
+
+            if (!esMixtoPorNombre(nombre_)) {
+                // ✅ NO mixto => efectivo 0 y cambio 0
+                setVal('txtEfectivo', 0);
+                setVal('txtCambio', 0);
+                return;
+            }
+
+            // ✅ mixto => efectivo = saldo
+            const total = getTotalActual();
+            let saldo = total - (sumMixtoInternos || 0);
+            if (saldo < 0) saldo = 0;
+
+            setVal('txtEfectivo', saldo);
+            setVal('txtCambio', 0);
+        };
+
         const getSubTotal = () => getVal('txtSubTotal');
         const getIVA = () => getVal('txtIVA');
         const baseDescuento = () => getSubTotal() + getIVA(); // (SubTotal + IVA)
@@ -441,8 +517,8 @@
 
             setTotalText(total);
 
-            setVal('txtEfectivo', total);
-            setVal('txtCambio', 0);
+            // ✅ efectivo/cambio dependen del medio de pago
+            aplicarReglaEfectivoPorMedio();
         };
 
         // ====== Propina (% <-> valor) sobre SubTotal ======
@@ -522,10 +598,8 @@
 
         if (elSub) {
             elSub.addEventListener('input', () => {
-                // si hay porcentajes, recalcula valores
                 if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct();
                 if (getVal('txtDescuentoPorcentaje') > 0) descuentoDesdePct();
-                // si hay valores, recalcula porcentajes (solo si están editando valores)
                 if (getVal('txtPropina') > 0) pctDesdePropina();
                 if (getVal('txtDescuento') > 0) pctDesdeDescuento();
                 recalcularTotal();
@@ -606,11 +680,149 @@
             bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static' }).show();
         };
 
+        // ==========================================================
+        // ✅ MODAL PAGO MIXTO (ROBUSTO)
+        // ==========================================================
+        const cleanInt = (v) => {
+            const s = (v ?? '').toString().replace(/[^\d-]/g, '');
+            const n = parseInt(s || '0', 10);
+            return isNaN(n) ? 0 : n;
+        };
+
+        const encodeB64 = (str) => {
+            try { return btoa(unescape(encodeURIComponent(str))); }
+            catch { return btoa(str); }
+        };
+
+        const sumarValoresMixto = () => {
+            const body = byId('tblMixtoBody');
+            if (!body) return 0;
+
+            const inputs = body.querySelectorAll('input');
+            let sum = 0;
+            inputs.forEach(i => { sum += cleanInt(i.value); });
+
+            return sum;
+        };
+
+        const abrirModalMixto = (idMedioPago, nombreMedioPago) => {
+            const modalEl = byId('mdlPagoMixto');
+            const body = byId('tblMixtoBody');
+            const lbl = byId('lblResumenMixto');
+            const btnOk = byId('btnConfirmarPagoMixto');
+            if (!modalEl || !body || !btnOk) return;
+
+            const rel = getRel();
+            const id = parseInt(idMedioPago, 10);
+            const filtrados = rel.filter(x => parseInt(x.idMedioDePago, 10) === id);
+
+            if (!filtrados.length) return;
+
+            if (lbl) lbl.textContent = `Pago Mixto (${nombreMedioPago})`;
+
+            body.innerHTML = '';
+
+            filtrados.forEach(item => {
+                const tr = document.createElement('tr');
+
+                const nombre = (item.nombreRMPI || 'Sin nombre');
+                const reporte = (item.reporteRDIAN || '');
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="fw-bold">${nombre}</div>
+                        <div class="text-muted" style="font-size:12px;">${reporte}</div>
+                        <div class="text-muted" style="font-size:12px;">ID ${item.idMediosDePagoInternos}</div>
+                    </td>
+                    <td>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               data-id="${item.idMediosDePagoInternos}"
+                               placeholder="0" inputmode="numeric" />
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+
+            const recalcularResumenMixto = () => {
+                sumMixtoInternos = sumarValoresMixto();
+                if (lbl) lbl.textContent = `Pago Mixto - Total ingresado: ${formatCOP(sumMixtoInternos)}`;
+                aplicarReglaEfectivoPorMedio();
+            };
+
+            // ✅ Listener delegado
+            modalEl.oninput = (e) => {
+                const t = e.target;
+                if (t && t.tagName === 'INPUT') recalcularResumenMixto();
+            };
+            modalEl.onchange = (e) => {
+                const t = e.target;
+                if (t && t.tagName === 'INPUT') recalcularResumenMixto();
+            };
+
+            // ✅ Al cerrar modal, recalcula por si hubo cambios
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                recalcularResumenMixto();
+            }, { once: true });
+
+            btnOk.onclick = () => {
+                const ddl = byId('ddlMedioPago');
+                const idMetodoPago = ddl ? parseInt(ddl.value || '0', 10) : 0;
+
+                const inputs = body.querySelectorAll('input[data-id]');
+                const pagos = [];
+                inputs.forEach(i => {
+                    const idInterno = parseInt(i.getAttribute('data-id') || '0', 10);
+                    const val = cleanInt(i.value);
+                    if (idInterno > 0 && val > 0) {
+                        pagos.push({ idMedioInterno: idInterno, valor: val });
+                    }
+                });
+
+                if (!pagos.length) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Pago mixto vacío',
+                        text: 'Debes ingresar al menos un valor para agregar pagos.',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    return;
+                }
+
+                const payload = { idMetodoPago: idMetodoPago, pagos: pagos };
+                const arg = encodeB64(JSON.stringify(payload));
+                firePostBack('btnGuardarPagoMixto', arg);
+
+                bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            };
+
+            // ✅ Al abrir mixto: suma 0 => efectivo = total
+            sumMixtoInternos = 0;
+            aplicarReglaEfectivoPorMedio();
+
+            recalcularResumenMixto();
+            bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static' }).show();
+        };
+
+        // ==========================================================
+        // ✅ Cambio de medio de pago (Mixto vs normal)
+        // ==========================================================
         const ddl = byId('ddlMedioPago');
         if (ddl) {
             ddl.addEventListener('change', function () {
                 const idMedioPago = this.value;
                 const nombre = this.options[this.selectedIndex]?.text || '';
+
+                sumMixtoInternos = 0;
+
+                if (esMixtoPorNombre(nombre)) {
+                    aplicarReglaEfectivoPorMedio();
+                    abrirModalMixto(idMedioPago, nombre);
+                    return;
+                }
+
+                aplicarReglaEfectivoPorMedio();
                 abrirModalInternos(idMedioPago, nombre);
             });
         }
@@ -629,7 +841,6 @@
                 const razonEl = byId('txtRazonDescuento');
                 const razon = (razonEl ? (razonEl.value || '') : '').trim();
 
-                // ✅ obliga razón (SweetAlert2)
                 if (!razon) {
                     Swal.fire({
                         icon: 'warning',
@@ -643,7 +854,6 @@
                     return;
                 }
 
-                // argumento: "valor|pct|razon"
                 const arg = `${valor}|${pct}|${encodeURIComponent(razon)}`;
                 firePostBack('btnGuardarDescuento', arg);
             });
@@ -692,7 +902,6 @@
         }
 
         // ====== Inicializa ======
-        // 🔧 Asegura que los valores/porcentajes queden coherentes al cargar
         if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct();
         else if (getVal('txtPropina') > 0) pctDesdePropina();
 
@@ -703,5 +912,10 @@
 
     })();
 </script>
+
+
+
+
+
 
 </asp:Content>

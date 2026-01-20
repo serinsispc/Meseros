@@ -55,6 +55,32 @@ namespace WebApplication
                 CargarDatosVenta();
                 await CargarRelMediosInternos();
 
+                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
+                CargoDescuentoVentas descuento_ = new CargoDescuentoVentas();
+                descuento_ = ModelSesion.cargoDescuentoVentas.Where(X => X.tipo == false).FirstOrDefault();
+                if (descuento_ != null)
+                {
+                    Session["descuento_valor"] = descuento_.valor;
+                    Session["descuento_razon"] = descuento_.razon;
+                }
+                else
+                {
+                    Session["descuento_valor"] = 0;
+                    Session["descuento_razon"] = "";
+                }
+
+                descuento_ = new CargoDescuentoVentas();
+                descuento_ = ModelSesion.cargoDescuentoVentas.Where(X => X.tipo == true).FirstOrDefault();
+                if (descuento_ != null)
+                {
+                    Session["propina_valor"] = descuento_.valor;
+                }
+                else
+                {
+                    Session["propina_valor"] = 0;
+                }
+
+
                 hfIdVentaActual.Value = VentaActual.id.ToString();
             }
             else
@@ -62,6 +88,16 @@ namespace WebApplication
                 // ✅ Captura __EVENTTARGET/__EVENTARGUMENT desde __doPostBack
                 await ProcesarPostBack();
             }
+            int descu=Convert.ToInt32(Session["descuento_valor"]);
+            int pro=Convert.ToInt32(Session["propina_valor"]);
+            if (Session["saldo"] != null)
+            {
+                int saldo = Convert.ToInt32(Session["saldo"]);
+                txtEfectivo.Value = Convert.ToString(saldo);
+            }
+            txtRazonDescuento.Value= Session["descuento_razon"]?.ToString() ?? "";
+            txtDescuento.Value = Convert.ToString(descu);
+            txtPropina.Value = Convert.ToString(pro);
         }
 
         private async Task ProcesarPostBack()
@@ -94,6 +130,10 @@ namespace WebApplication
 
                 case "btnEliminarPropina":
                     await btnEliminarPropina(eventArgument);
+                    break;
+
+                case "btnGuardarPagoMixto":
+                    await btnGuardarPagoMixto(eventArgument);
                     break;
 
                 default:
@@ -148,6 +188,7 @@ namespace WebApplication
 
                 ModelSesion.venta = new V_TablaVentas();
                 ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
+                ModelSesion.cargoDescuentoVentas =await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
 
                 AlertModerno.Success(this, "¡OK!", $"Descuento agregado con éxito", true, 800);
 
@@ -166,11 +207,11 @@ namespace WebApplication
             {
                 Session["descuento_valor"] = 0;
                 Session["descuento_razon"] = "";
-
+                
                 int idventa=ModelSesion.venta.id;
 
                 var dal = new SqlAutoDAL();
-                var r = await dal.EjecutarSQLObjeto<RespuestaCRUD>(Session["db"].ToString(), $"EXEC dbo.DELETE_CargoDescuentoVentas {idventa};");
+                var r = await dal.EjecutarSQLObjeto<RespuestaCRUD>(Session["db"].ToString(), $"EXEC dbo.DELETE_CargoDescuentoVentas {idventa},0;");
 
                 if(r.estado==false)
                 {
@@ -193,40 +234,89 @@ namespace WebApplication
 
         // ========= PROPINA =========
         // eventArgument: "valor"
-        private Task btnGuardarPropina(string eventArgument)
+        private async Task btnGuardarPropina(string eventArgument)
         {
             try
             {
                 int valor = 0;
-                int.TryParse(eventArgument ?? "0", out valor);
+                int pct = 0;
+
+                if (!string.IsNullOrWhiteSpace(eventArgument))
+                {
+                    var parts = eventArgument.Split('|');
+                    if (parts.Length >= 1) int.TryParse(parts[0], out valor);
+                    if (parts.Length >= 2) int.TryParse(parts[1], out pct);
+                }
 
                 Session["propina_valor"] = valor;
+                Session["propina_pct"] = pct;
 
-                // (Opcional) reflejar en UI
-                // txtPropina.Value = valor.ToString();
 
-                return Task.CompletedTask;
+                var descuento = new CargoDescuentoVentas
+                {
+                    id = 0,
+                    idVenta = ModelSesion.venta.id,
+                    tipo = true,
+                    codigo = 1,
+                    razon = "propina",
+                    valor = valor,
+                    baseCD = ModelSesion.venta.totalVenta,
+                    descripcionCargoDescuento = "propina"
+                };
+
+                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(Session["db"].ToString(), descuento, 0);
+
+                //en esta parte actualisamos la venta para que se refleje el descuento
+                if (!respuestaCRUD)
+                {
+                    AlertModerno.Error(this, "¡Error!", "No fue posible agregar la propina.", true);
+                    return;
+                }
+
+                ModelSesion.venta = new V_TablaVentas();
+                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
+                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
+
+                AlertModerno.Success(this, "¡OK!", $"propina agregado con éxito", true, 800);
+
+                GuardarModelsEnSesion();
+                DataBind();
             }
             catch
             {
-                return Task.CompletedTask;
+                AlertModerno.Error(this, "¡Error!", "No fue posible agregar la propina.", true);
             }
         }
 
-        private Task btnEliminarPropina(string eventArgument)
+
+        private async Task btnEliminarPropina(string eventArgument)
         {
             try
             {
-                Session["propina_valor"] = 0;
+                Session["descuento_valor"] = 0;
+                Session["descuento_razon"] = "";
 
-                // (Opcional) reflejar en UI
-                // txtPropina.Value = "0";
+                int idventa = ModelSesion.venta.id;
 
-                return Task.CompletedTask;
+                var dal = new SqlAutoDAL();
+                var r = await dal.EjecutarSQLObjeto<RespuestaCRUD>(Session["db"].ToString(), $"EXEC dbo.DELETE_CargoDescuentoVentas {idventa},1;");
+
+                if (r.estado == false)
+                {
+                    AlertModerno.Error(this, "¡Error!", "No fue posible eliminar la propina.", true);
+                    return;
+                }
+
+                ModelSesion.venta = new V_TablaVentas();
+                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), idventa);
+                AlertModerno.Success(this, "¡OK!", $"Propina eliminado con éxito", true, 800);
+                GuardarModelsEnSesion();
+                DataBind();
+
             }
             catch
             {
-                return Task.CompletedTask;
+                AlertModerno.Error(this, "¡Error!", "No fue posible eliminar la propina.", true);
             }
         }
 
@@ -294,6 +384,115 @@ namespace WebApplication
             if (ddlMedioPago.Items.Count > 0)
                 ddlMedioPago.SelectedIndex = 0;
         }
+        private Task btnGuardarPagoMixto(string eventArgument)
+        {
+            try
+            {
+                if (VentaActual == null) return Task.CompletedTask;
+                if (string.IsNullOrWhiteSpace(eventArgument)) return Task.CompletedTask;
+
+                // 1) Base64 -> JSON (payload)
+                string json;
+                try
+                {
+                    var bytes = Convert.FromBase64String(eventArgument);
+                    json = System.Text.Encoding.UTF8.GetString(bytes);
+                }
+                catch
+                {
+                    json = eventArgument; // fallback
+                }
+
+                var payload = JsonConvert.DeserializeObject<PagoMixtoPayload>(json);
+                if (payload?.pagos == null || payload.pagos.Count == 0) return Task.CompletedTask;
+
+                int idMetodoPago = payload.idMetodoPago;
+
+                // 2) Construir lista de pagos y sumar internos
+                var listaPagos = new List<PagosVenta>();
+                decimal sumaInternos = 0;
+
+                foreach (var p in payload.pagos)
+                {
+                    if (p == null) continue;
+
+                    int idMedioInterno = p.idMedioInterno;
+                    int valor = p.valor;
+
+                    if (idMedioInterno <= 0) continue;
+                    if (valor <= 0) continue;
+
+                    sumaInternos += valor;
+
+                    listaPagos.Add(new PagosVenta
+                    {
+                        id = 0,
+                        idMedioDePagointerno = idMedioInterno,
+                        idVenta = VentaActual.id,
+                        payment_methods_id = idMetodoPago,
+                        valorPago = valor
+                    });
+                }
+
+                if (listaPagos.Count == 0) return Task.CompletedTask;
+
+                // 3) Calcular saldo y agregar EFECTIVO (restante)
+                decimal totalAPagar = Convert.ToDecimal(VentaActual.total_A_Pagar);
+                decimal saldo = totalAPagar - sumaInternos;
+                if (saldo < 0) saldo = 0;
+
+                // ⚠️ Necesitas el ID del medio interno EFECTIVO
+                // O lo guardas en Session, o lo pones fijo aquí temporalmente.
+                int idMedioInternoEfectivo = 0;
+
+                // opción: desde session
+                if (Session["idMedioInternoEfectivo"] != null)
+                    int.TryParse(Session["idMedioInternoEfectivo"].ToString(), out idMedioInternoEfectivo);
+
+                // opción temporal (AJUSTA)
+
+                if (saldo > 0)
+                {
+                    Session["saldo"] = Convert.ToInt32(Math.Round(saldo));
+                    listaPagos.Add(new PagosVenta
+                    {
+                        id = 0,
+                        idMedioDePagointerno = 1,
+                        idVenta = VentaActual.id,
+                        payment_methods_id = idMetodoPago,
+                        valorPago = Convert.ToInt32(Math.Round(saldo))
+                    });
+                }
+
+                // 4) Guardar TODO en la MISMA session
+                // ✅ Aquí va la clave: ahora guardamos una LISTA en el mismo key
+
+                var pagosJSON = JsonConvert.SerializeObject(listaPagos);
+
+                Session["PagoVentaJSON"] = pagosJSON;
+
+                return Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error btnGuardarPagoMixto: " + ex.Message);
+                return Task.CompletedTask;
+            }
+        }
+
+        // ====== Modelos para el payload ======
+        public class PagoMixtoPayload
+        {
+            public int idMetodoPago { get; set; }
+            public List<PagoMixtoItem> pagos { get; set; }
+        }
+        public class PagoMixtoItem
+        {
+            public int idMedioInterno { get; set; }
+            public int valor { get; set; }
+        }
+
+
 
         private void CargarDatosVenta()
         {

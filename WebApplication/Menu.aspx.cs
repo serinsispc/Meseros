@@ -179,6 +179,7 @@ namespace WebApplication
             Models.adiciones = await V_CatagoriaAdicionControler.Lista(db);
             Models.clienteDomicilios = await ClienteDomicilioControler.Lista(db);
             Models.AbrirModalDomicilio = false;
+            Models.cargoDescuentoVentas= await CargoDescuentoVentasControler.ObtenerPorVenta(db,idVenta);
 
 
             GuardarModelsEnSesion();
