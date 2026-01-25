@@ -102,6 +102,10 @@ body{ background: var(--bg); color: var(--text); }
     color: #fff;
 }
 
+.form-label{
+    font-weight: 600;
+}
+
 /* ===== Modal Cliente (Factura electrónica) ===== */
 .cliente-modal .modal-content{
     border-radius: 16px;
@@ -236,6 +240,9 @@ body{ background: var(--bg); color: var(--text); }
     .topbar{
         flex-wrap: wrap;
     }
+    body{
+        font-size: 16px;
+    }
 }
 
 @media (max-width: 768px){
@@ -244,6 +251,21 @@ body{ background: var(--bg); color: var(--text); }
     }
     .totalBox .val{
         font-size: 28px;
+    }
+    body{
+        font-size: 16px;
+    }
+    .form-control,
+    .form-select{
+        font-size: 16px;
+        padding: 10px 12px;
+    }
+    .form-label{
+        font-size: 14px;
+    }
+    .btnx{
+        font-size: 15px;
+        padding: 10px 14px;
     }
 }
 
@@ -262,11 +284,29 @@ body{ background: var(--bg); color: var(--text); }
     .brand .title b{
         font-size: 14px;
     }
+    .brand .title{
+        font-size: 14px;
+    }
+    .cardx .head b{
+        font-size: 16px;
+    }
     .totalBox .val{
-        font-size: 24px;
-        padding: 12px 8px;
+        font-size: 28px;
+        padding: 14px 10px;
     }
     .btnx{
+        font-size: 15px;
+    }
+    .hint{
+        font-size: 13px;
+    }
+    .form-check-label{
+        font-size: 14px;
+    }
+    .cliente-modal .modal-title{
+        font-size: 18px;
+    }
+    .cliente-modal .form-label{
         font-size: 13px;
     }
     .cliente-modal .modal-dialog{
@@ -289,10 +329,10 @@ body{ background: var(--bg); color: var(--text); }
         max-width: 100%;
     }
     .cliente-modal .tabla-clientes thead th{
-        font-size: 11px;
+        font-size: 12px;
     }
     .cliente-modal .tabla-clientes tbody td{
-        font-size: 12px;
+        font-size: 13px;
     }
     .cliente-modal .grid-shell{
         border-radius: 12px;
@@ -307,15 +347,18 @@ body{ background: var(--bg); color: var(--text); }
 
 @media (max-width: 420px){
     .totalBox .lbl{
-        font-size: 14px;
+        font-size: 15px;
     }
     .totalBox .val{
-        font-size: 22px;
+        font-size: 26px;
     }
     .cardx .head{
         padding: 10px 12px;
     }
     .cardx .body{
         padding: 10px;
+    }
+    .btnx{
+        font-size: 14px;
     }
 }
