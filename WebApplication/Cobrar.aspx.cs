@@ -2,6 +2,9 @@
 using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
+using RFacturacionElectronicaDIAN.Entities.Request;
+using RFacturacionElectronicaDIAN.Entities.Response;
+using RFacturacionElectronicaDIAN.Factories;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>RFacturacionElectronicaDIAN</RootNamespace>
+    <AssemblyName>RFacturacionElectronicaDIAN</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="FubarCoder.RestSharp.Portable.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=be81bb0f53eab22f, processorArchitecture=MSIL">
+      <HintPath>..\packages\FubarCoder.RestSharp.Portable.Core.4.0.8\lib\net45\FubarCoder.RestSharp.Portable.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="FubarCoder.RestSharp.Portable.HttpClient, Version=4.0.0.0, Culture=neutral, PublicKeyToken=be81bb0f53eab22f, processorArchitecture=MSIL">
+      <HintPath>..\packages\FubarCoder.RestSharp.Portable.HttpClient.4.0.8\lib\net45\FubarCoder.RestSharp.Portable.HttpClient.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonSubTypes, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\JsonSubTypes.1.2.0\lib\net46\JsonSubTypes.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.5.0.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="RestSharp, Version=109.0.0.0, Culture=neutral, PublicKeyToken=598062e77f915f75, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.109.0.0-preview.2\lib\netstandard2.0\RestSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="sib_api_v3_sdk, Version=3.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\sib_api_v3_sdk.3.3.0\lib\netstandard2.0\sib_api_v3_sdk.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.5.0.0\lib\net45\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Text.Encodings.Web, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Encodings.Web.5.0.0\lib\net461\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Json, Version=5.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Text.Json.5.0.1\lib\net461\System.Text.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net461\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Entities\Acceso.cs" />
+    <Compile Include="Entities\AccesoMeta.cs" />
+    <Compile Include="Entities\Request\Acquirer_Request.cs" />
+    <Compile Include="Entities\Request\ActualizarAmbienteRequest.cs" />
+    <Compile Include="Entities\Request\ConsultarEmail_Request.cs" />
+    <Compile Include="Entities\Request\ConsultarRUT_Request.cs" />
+    <Compile Include="Entities\Request\Consulta_uuid_Request.cs" />
+    <Compile Include="Entities\Request\CrearEmpresaRequest.cs" />
+    <Compile Include="Entities\Request\DocumentoSoportelRequest.cs" />
+    <Compile Include="Entities\Request\ListasRequest.cs" />
+    <Compile Include="Entities\Request\CorreoRequest.cs" />
+    <Compile Include="Entities\Request\FacturaNacionalRequest.cs" />
+    <Compile Include="Entities\Request\MultiTiendasRequest.cs" />
+    <Compile Include="Entities\Request\NotaCreditoPOSRequest.cs" />
+    <Compile Include="Entities\Request\NotaCreditoRequest.cs" />
+    <Compile Include="Entities\Request\NotaDebitoRequest.cs" />
+    <Compile Include="Entities\Request\POSRequest.cs" />
+    <Compile Include="Entities\Request\SMTP_Request.cs" />
+    <Compile Include="Entities\Request\SoftwareDIAN_Reguest.cs" />
+    <Compile Include="Entities\Request\WhatsAppRequest.cs" />
+    <Compile Include="Entities\Response\Acquirer_Response.cs" />
+    <Compile Include="Entities\Response\ActualizarAmbienteResponse.cs" />
+    <Compile Include="Entities\Response\ConsultarEmail_Response.cs" />
+    <Compile Include="Entities\Response\ConsultarEmpresaSoenacResponse.cs" />
+    <Compile Include="Entities\Response\ConsultarRUT_Response.cs" />
+    <Compile Include="Entities\Response\CrearEmpresaResponse.cs" />
+    <Compile Include="Entities\Response\DeleteSMTP_Response.cs" />
+    <Compile Include="Entities\Response\DocumentoSoporteResponse.cs" />
+    <Compile Include="Entities\Response\ListaImpresoras.cs" />
+    <Compile Include="Entities\Response\ListaResoluciones.cs" />
+    <Compile Include="Entities\Response\CorreoResponse.cs" />
+    <Compile Include="Entities\Response\FacturaNacionalResponse.cs" />
+    <Compile Include="Entities\Response\FacturaValidaResponse.cs" />
+    <Compile Include="Entities\Response\MultiTiendasResponse.cs" />
+    <Compile Include="Entities\Response\NotaCreditoPOSResponse.cs" />
+    <Compile Include="Entities\Response\NotaCreditoResponse.cs" />
+    <Compile Include="Entities\Response\NotaDebitoResponse.cs" />
+    <Compile Include="Entities\Response\POSJSON.cs" />
+    <Compile Include="Entities\Response\POSResponse.cs" />
+    <Compile Include="Entities\Response\SMTP_Response.cs" />
+    <Compile Include="Entities\Response\SoftwareDIAN_Response.cs" />
+    <Compile Include="Entities\Response\WhatsAppResponse.cs" />
+    <Compile Include="Factories\FacturacionElectronicaDIANFactory.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
