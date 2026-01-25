@@ -189,6 +189,13 @@
         .cliente-modal .cliente-row.selected{
             background: #dbeafe;
         }
+        .cliente-modal .cliente-row:focus{
+            outline: 2px solid #2563eb;
+            outline-offset: -2px;
+        }
+        .cliente-modal .cliente-row:hover{
+            background: #eff6ff;
+        }
         .cliente-modal .grid-footer{
             background: #d1d5db;
             border: 1px solid var(--border);
@@ -527,7 +534,7 @@
                                 <tbody>
                                     <asp:Repeater ID="rptClientesModal" runat="server">
                                         <ItemTemplate>
-                                            <tr class="cliente-row"
+                                            <tr class="cliente-row" tabindex="0"
                                                 data-type-doc-id='<%# Eval("TipoDocumentoId") %>'
                                                 data-nit='<%# HttpUtility.HtmlAttributeEncode(Eval("Nit")?.ToString() ?? "") %>'
                                                 data-nombre='<%# HttpUtility.HtmlAttributeEncode(Eval("NombreCliente")?.ToString() ?? "") %>'
@@ -1151,12 +1158,12 @@
         // ====== Inicializa ======
         const clienteTable = document.querySelector('#mdlCliente table');
         if (clienteTable) {
-            clienteTable.addEventListener('click', (event) => {
-                const row = event.target.closest('.cliente-row');
+            const seleccionarFila = (row) => {
                 if (!row) return;
 
                 clienteTable.querySelectorAll('.cliente-row').forEach(r => r.classList.remove('selected'));
                 row.classList.add('selected');
+                row.focus();
 
                 const setInput = (id, value) => {
                     const el = byId(id);
@@ -1166,11 +1173,20 @@
                 const setSelect = (id, value) => {
                     const el = byId(id);
                     if (!el) return;
-                    const val = (value ?? '').toString();
+                    const val = (value ?? '').toString().trim();
+                    if (!val) return;
+
                     const option = Array.from(el.options).find(o => o.value === val);
                     if (option) {
                         el.value = val;
+                        return;
                     }
+
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    el.appendChild(opt);
+                    el.value = val;
                 };
 
                 setSelect('ddlTipoDocumento', row.dataset.typeDocId);
@@ -1186,6 +1202,31 @@
                 setInput('txtDireccionCliente', row.dataset.direccion);
                 setInput('txtCorreoCliente', row.dataset.correo);
                 setInput('txtMatriculaCliente', row.dataset.matricula);
+            };
+
+            clienteTable.addEventListener('click', (event) => {
+                const row = event.target.closest('.cliente-row');
+                if (!row) return;
+                seleccionarFila(row);
+            });
+
+            clienteTable.addEventListener('keydown', (event) => {
+                const row = event.target.closest('.cliente-row');
+                if (!row) return;
+
+                const rows = Array.from(clienteTable.querySelectorAll('.cliente-row'));
+                const index = rows.indexOf(row);
+                if (index === -1) return;
+
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    seleccionarFila(rows[Math.min(index + 1, rows.length - 1)]);
+                }
+
+                if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    seleccionarFila(rows[Math.max(index - 1, 0)]);
+                }
             });
         }
 
