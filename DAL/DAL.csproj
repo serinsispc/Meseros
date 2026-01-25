@@ -153,7 +153,6 @@
     <Compile Include="Model\R_VentaVendedor.cs" />
     <Compile Include="Model\Sede.cs" />
     <Compile Include="Model\TablaVentas.cs" />
-    <Compile Include="Model\tokenEmpresa.cs" />
     <Compile Include="Model\type_document_identifications.cs" />
     <Compile Include="Model\type_organizations.cs" />
     <Compile Include="Model\type_liabilities.cs" />

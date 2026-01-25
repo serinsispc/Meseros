@@ -540,9 +540,9 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <div class="d-flex justify-content-end gap-2 flex-wrap">
-                                    <button type="button" class="btn btn-ghost">
-                                        <i class="bi bi-floppy2-fill me-1"></i> Guardar
-                                    </button>
+                                <button type="button" class="btn btn-ghost" id="btnGuardarCliente">
+                                    <i class="bi bi-floppy2-fill me-1"></i> <span id="lblGuardarCliente">Guardar</span>
+                                </button>
                                     <button type="button" class="btn btn-outline-ghost">
                                         <i class="bi bi-brush me-1"></i> Limpiar
                                     </button>
@@ -1251,6 +1251,11 @@
                 el.value = val;
             };
 
+            const setGuardarLabel = (label) => {
+                const lbl = byId('lblGuardarCliente');
+                if (lbl && label) lbl.textContent = label;
+            };
+
             const aplicarDatosCliente = (data) => {
                 if (!data) return;
                 setSelect('ddlTipoDocumento', data.typeDocId);
@@ -1268,6 +1273,10 @@
                 setInput('txtDireccionCliente', data.direccion);
                 setInput('txtCorreoCliente', data.correo);
                 setInput('txtMatriculaCliente', data.matricula);
+
+                if (data.actionLabel) {
+                    setGuardarLabel(data.actionLabel);
+                }
             };
 
             window.setClienteData = (data) => {
@@ -1294,7 +1303,8 @@
                     telefono: row.dataset.telefono,
                     direccion: row.dataset.direccion,
                     correo: row.dataset.correo,
-                    matricula: row.dataset.matricula
+                    matricula: row.dataset.matricula,
+                    actionLabel: 'Editar'
                 });
             };
 

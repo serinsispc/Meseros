@@ -170,17 +170,42 @@ namespace WebApplication
                     return;
                 }
 
-                //en esta parte consultamos si al nit se encuentra dentro de la base de datos
                 var clientes = ModelSesion?.clientes ?? new List<Clientes>();
                 var cliente = clientes.FirstOrDefault(x => x.identificationNumber == nit);
+                var encontradoEnBase = cliente != null;
 
                 if (cliente == null)
                 {
-                    //en esta parte consultamos el nit directamente en la api de la DIAN
                     cliente = new Clientes();
-                    Acquirer_Response acquirer_Response= await Consultar_NIT_DIAN(Convert.ToInt32(nit));
+                    var acquirer_Response = await Consultar_NIT_DIAN(Convert.ToInt32(nit));
 
-                    /*En esta parte cargamos toda la información al formulario*/
+                    if (acquirer_Response == null || string.IsNullOrWhiteSpace(acquirer_Response.name))
+                    {
+                        var limpiarPayload = new
+                        {
+                            typeDocId = "",
+                            nit = "",
+                            orgId = "",
+                            municipioId = "",
+                            regimenId = "",
+                            responsabilidadId = "",
+                            impuestoId = "",
+                            nombre = "",
+                            comercio = "",
+                            telefono = "",
+                            direccion = "",
+                            correo = "",
+                            matricula = "",
+                            actionLabel = "Guardar"
+                        };
+
+                        var limpiarJson = JsonConvert.SerializeObject(limpiarPayload);
+                        var limpiarScript = $"Swal.fire({{icon:'error',title:'¡Error!',text:'El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.',confirmButtonColor:'#2563eb'}}).then(function(){{if(window.setClienteData){{window.setClienteData({limpiarJson});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}}});";
+
+                        ClientScript.RegisterStartupScript(GetType(), "nitNoEncontrado", limpiarScript, true);
+                        return;
+                    }
+
                     cliente.typeDocumentIdentification_id = 6;
                     cliente.identificationNumber = nit;
                     cliente.typeOrganization_id = 2;
@@ -210,7 +235,8 @@ namespace WebApplication
                     telefono = cliente.phone,
                     direccion = cliente.adress,
                     correo = cliente.email,
-                    matricula = cliente.merchantRegistration
+                    matricula = cliente.merchantRegistration,
+                    actionLabel = encontradoEnBase ? "Editar" : "Guardar"
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
@@ -230,28 +256,9 @@ namespace WebApplication
             return;
         }
 
-        private async Task<Acquirer_Response> Consultar_NIT_DIAN(int NitEmpresa)
+        private Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
         {
-            //consultamos el token de muestra empresa SERINSIS PC SAS.. el cual siempre debe de estar disponible 
-            var TokenFE = await controlador_tokenEmpresa.ConsultarTokenSerinsisPC();
-
-            /* declaramos la url del json */
-            FacturacionElectronicaDIANFactory.urlJSON = "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/"; 
-            FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
-
-            Acquirer_Request acquirer_Request = new Acquirer_Request();
-
-            acquirer_Request.environment = new Acquirer_Request.Environment();
-            acquirer_Request.environment.type_environment_id = 1;
-
-            acquirer_Request.type_document_identification_id = 6;
-            acquirer_Request.identification_number = Convert.ToInt32(NitEmpresa);
-
-
-
-            Acquirer_Response response = await facturacionElectronica.ConsultarAcquirer(acquirer_Request, TokenFE);
-
-            return response;
+            return Task.FromResult<Acquirer_Response>(null);
         }
         // ========= DESCUENTO =========
         // eventArgument: "valor|razon"
