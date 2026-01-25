@@ -175,7 +175,7 @@ namespace WebApplication
                     ClientScript.RegisterStartupScript(
                         GetType(),
                         "nitNoEncontrado",
-                        "Swal.fire({icon:'error',title:'¡Error!',text:'El documento no se encontró.',confirmButtonColor:'#2563eb'});",
+                    "Swal.fire({icon:'error',title:'¡Error!',text:'El documento no se encontró.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlCliente'); if(modalEl){bootstrap.Modal.getOrCreateInstance(modalEl).show();}});",
                         true);
                     return Task.CompletedTask;
                 }
@@ -198,7 +198,7 @@ namespace WebApplication
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
-                var script = $"Swal.close(); if(window.setClienteData){{window.setClienteData({json});}}";
+                var script = $"Swal.close(); if(window.setClienteData){{window.setClienteData({json});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}";
 
                 ClientScript.RegisterStartupScript(GetType(), "nitEncontrado", script, true);
             }
@@ -207,7 +207,7 @@ namespace WebApplication
                 ClientScript.RegisterStartupScript(
                     GetType(),
                     "nitError",
-                    "Swal.fire({icon:'error',title:'¡Error!',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'});",
+                    "Swal.fire({icon:'error',title:'¡Error!',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlCliente'); if(modalEl){bootstrap.Modal.getOrCreateInstance(modalEl).show();}});",
                     true);
             }
 
