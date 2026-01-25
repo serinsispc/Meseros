@@ -24,6 +24,8 @@ namespace WebApplication
         private const string SessionIdVendedorKey = "idvendedor";
         #endregion
 
+        private List<type_document_identifications> _tiposDocumento;
+
         public MenuViewModels Models { get; private set; }
 
         private MenuViewModels ModelSesion
@@ -52,6 +54,13 @@ namespace WebApplication
                 }
 
                 await CargarMediosPago();
+                await CargarTiposDocumento();
+                await CargarTiposOrganizacion();
+                await CargarMunicipios();
+                await CargarTiposRegimen();
+                await CargarTiposResponsabilidad();
+                await CargarDetallesImpuesto();
+                await CargarClientesModal();
                 CargarDatosVenta();
                 await CargarRelMediosInternos();
 
@@ -136,6 +145,10 @@ namespace WebApplication
                     await btnGuardarPagoMixto(eventArgument);
                     break;
 
+                case "btnBuscarNIT":
+                    await btnBuscarNIT(eventArgument);
+                    break;
+
                 default:
                     break;
             }
@@ -143,6 +156,106 @@ namespace WebApplication
         private void GuardarModelsEnSesion()
         {
             Session[SessionModelsKey] = ModelSesion;
+        }
+
+        private async Task btnBuscarNIT(string nit)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(nit))
+                {
+                    return;
+                }
+
+                var clientes = ModelSesion?.clientes ?? new List<Clientes>();
+                var cliente = clientes.FirstOrDefault(x => x.identificationNumber == nit);
+                var encontradoEnBase = cliente != null;
+
+                if (cliente == null)
+                {
+                    cliente = new Clientes();
+                    var acquirer_Response = await Consultar_NIT_DIAN(Convert.ToInt32(nit));
+
+                    if (acquirer_Response == null || string.IsNullOrWhiteSpace(acquirer_Response.name))
+                    {
+                        var limpiarPayload = new
+                        {
+                            typeDocId = "",
+                            nit = "",
+                            orgId = "",
+                            municipioId = "",
+                            regimenId = "",
+                            responsabilidadId = "",
+                            impuestoId = "",
+                            nombre = "",
+                            comercio = "",
+                            telefono = "",
+                            direccion = "",
+                            correo = "",
+                            matricula = "",
+                            actionLabel = "Guardar"
+                        };
+
+                        var limpiarJson = JsonConvert.SerializeObject(limpiarPayload);
+                        var limpiarScript = $"Swal.fire({{icon:'error',title:'¡Error!',text:'El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.',confirmButtonColor:'#2563eb'}}).then(function(){{if(window.setClienteData){{window.setClienteData({limpiarJson});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}}});";
+
+                        ClientScript.RegisterStartupScript(GetType(), "nitNoEncontrado", limpiarScript, true);
+                        return;
+                    }
+
+                    cliente.typeDocumentIdentification_id = 6;
+                    cliente.identificationNumber = nit;
+                    cliente.typeOrganization_id = 2;
+                    cliente.municipality_id = 605;
+                    cliente.typeRegime_id = 2;
+                    cliente.typeLiability_id = 29;
+                    cliente.typeTaxDetail_id = 5;
+                    cliente.nameCliente = acquirer_Response.name;
+                    cliente.tradeName = "-";
+                    cliente.phone = "0";
+                    cliente.adress = "-";
+                    cliente.email = acquirer_Response.email;
+                    cliente.merchantRegistration = "0";
+                }
+
+                var payload = new
+                {
+                    typeDocId = cliente.typeDocumentIdentification_id,
+                    nit = cliente.identificationNumber,
+                    orgId = cliente.typeOrganization_id,
+                    municipioId = cliente.municipality_id,
+                    regimenId = cliente.typeRegime_id,
+                    responsabilidadId = cliente.typeLiability_id,
+                    impuestoId = cliente.typeTaxDetail_id,
+                    nombre = cliente.nameCliente,
+                    comercio = cliente.tradeName,
+                    telefono = cliente.phone,
+                    direccion = cliente.adress,
+                    correo = cliente.email,
+                    matricula = cliente.merchantRegistration,
+                    actionLabel = encontradoEnBase ? "Editar" : "Guardar"
+                };
+
+                var json = JsonConvert.SerializeObject(payload);
+                var script = $"Swal.close(); if(window.setClienteData){{window.setClienteData({json});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}";
+
+                ClientScript.RegisterStartupScript(GetType(), "nitEncontrado", script, true);
+            }
+            catch
+            {
+                ClientScript.RegisterStartupScript(
+                    GetType(),
+                    "nitError",
+                    "Swal.fire({icon:'error',title:'¡Error!',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlCliente'); if(modalEl){bootstrap.Modal.getOrCreateInstance(modalEl).show();}});",
+                    true);
+            }
+
+            return;
+        }
+
+        private Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
+        {
+            return Task.FromResult<Acquirer_Response>(null);
         }
         // ========= DESCUENTO =========
         // eventArgument: "valor|razon"
@@ -383,6 +496,177 @@ namespace WebApplication
 
             if (ddlMedioPago.Items.Count > 0)
                 ddlMedioPago.SelectedIndex = 0;
+        }
+
+        private async Task CargarTiposDocumento()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            _tiposDocumento = await type_document_identificationsControler.ListaTiposDocumento(db);
+
+            ddlTipoDocumento.DataSource = _tiposDocumento;
+            ddlTipoDocumento.DataTextField = "name";
+            ddlTipoDocumento.DataValueField = "id";
+            ddlTipoDocumento.DataBind();
+
+            if (ddlTipoDocumento.Items.Count == 0)
+            {
+                ddlTipoDocumento.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarMunicipios()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var municipios = await V_MunicipiosControler.ListaMunicipios(db);
+
+            ddlMunicipio.DataSource = municipios;
+            ddlMunicipio.DataTextField = "name";
+            ddlMunicipio.DataValueField = "idMunicipio";
+            ddlMunicipio.DataBind();
+
+            if (ddlMunicipio.Items.Count == 0)
+            {
+                ddlMunicipio.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarTiposRegimen()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_regimesControler.ListaTiposRegimen(db);
+
+            ddlTipoRegimen.DataSource = tipos;
+            ddlTipoRegimen.DataTextField = "name";
+            ddlTipoRegimen.DataValueField = "id";
+            ddlTipoRegimen.DataBind();
+
+            if (ddlTipoRegimen.Items.Count == 0)
+            {
+                ddlTipoRegimen.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarTiposResponsabilidad()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_liabilitiesControler.ListaTiposResponsabilidad(db);
+
+            ddlTipoResponsabilidad.DataSource = tipos;
+            ddlTipoResponsabilidad.DataTextField = "name";
+            ddlTipoResponsabilidad.DataValueField = "id";
+            ddlTipoResponsabilidad.DataBind();
+
+            if (ddlTipoResponsabilidad.Items.Count == 0)
+            {
+                ddlTipoResponsabilidad.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarDetallesImpuesto()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var detalles = await tax_detailsControler.ListaDetallesImpuesto(db);
+
+            ddlDetalleImpuesto.DataSource = detalles;
+            ddlDetalleImpuesto.DataTextField = "name";
+            ddlDetalleImpuesto.DataValueField = "id";
+            ddlDetalleImpuesto.DataBind();
+
+            if (ddlDetalleImpuesto.Items.Count == 0)
+            {
+                ddlDetalleImpuesto.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarTiposOrganizacion()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_organizationsControler.ListaTiposOrganizacion(db);
+
+            ddlTipoOrganizacion.DataSource = tipos;
+            ddlTipoOrganizacion.DataTextField = "name";
+            ddlTipoOrganizacion.DataValueField = "id";
+            ddlTipoOrganizacion.DataBind();
+
+            if (ddlTipoOrganizacion.Items.Count == 0)
+            {
+                ddlTipoOrganizacion.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarClientesModal()
+        {
+            var clientes = ModelSesion?.clientes ?? new List<Clientes>();
+
+            if (_tiposDocumento == null)
+            {
+                var db = Session["db"]?.ToString();
+                _tiposDocumento = string.IsNullOrWhiteSpace(db)
+                    ? new List<type_document_identifications>()
+                    : await type_document_identificationsControler.ListaTiposDocumento(db);
+            }
+
+            var tipoDocumentoPorId = (_tiposDocumento ?? new List<type_document_identifications>())
+                .Where(t => t != null && t.id.HasValue)
+                .ToDictionary(t => t.id.Value, t => t.name);
+
+            var items = clientes.Select(c =>
+            {
+                var tipoNombre = tipoDocumentoPorId.TryGetValue(c.typeDocumentIdentification_id, out var nombre)
+                    ? nombre
+                    : c.typeDocumentIdentification_id.ToString();
+
+                return new ClienteModalItem
+                {
+                    TipoDocumentoId = c.typeDocumentIdentification_id,
+                    TipoDocumento = tipoNombre,
+                    Nit = c.identificationNumber,
+                    NombreCliente = c.nameCliente,
+                    Correo = c.email,
+                    TipoOrganizacionId = c.typeOrganization_id,
+                    MunicipioId = c.municipality_id,
+                    TipoRegimenId = c.typeRegime_id,
+                    TipoResponsabilidadId = c.typeLiability_id,
+                    DetalleImpuestoId = c.typeTaxDetail_id,
+                    NombreComercio = c.tradeName,
+                    Telefono = c.phone,
+                    Direccion = c.adress,
+                    MatriculaMercantil = c.merchantRegistration
+                };
+            }).ToList();
+
+            rptClientesModal.DataSource = items;
+            rptClientesModal.DataBind();
+        }
+
+        private class ClienteModalItem
+        {
+            public int TipoDocumentoId { get; set; }
+            public string TipoDocumento { get; set; }
+            public string Nit { get; set; }
+            public string NombreCliente { get; set; }
+            public string Correo { get; set; }
+            public int TipoOrganizacionId { get; set; }
+            public int MunicipioId { get; set; }
+            public int TipoRegimenId { get; set; }
+            public int TipoResponsabilidadId { get; set; }
+            public int DetalleImpuestoId { get; set; }
+            public string NombreComercio { get; set; }
+            public string Telefono { get; set; }
+            public string Direccion { get; set; }
+            public string MatriculaMercantil { get; set; }
         }
         private Task btnGuardarPagoMixto(string eventArgument)
         {
