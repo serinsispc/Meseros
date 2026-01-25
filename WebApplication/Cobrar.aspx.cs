@@ -52,6 +52,7 @@ namespace WebApplication
                 }
 
                 await CargarMediosPago();
+                await CargarTiposDocumento();
                 CargarDatosVenta();
                 await CargarRelMediosInternos();
 
@@ -383,6 +384,24 @@ namespace WebApplication
 
             if (ddlMedioPago.Items.Count > 0)
                 ddlMedioPago.SelectedIndex = 0;
+        }
+
+        private async Task CargarTiposDocumento()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_document_identificationsControler.ListaTiposDocumento(db);
+
+            ddlTipoDocumento.DataSource = tipos;
+            ddlTipoDocumento.DataTextField = "name";
+            ddlTipoDocumento.DataValueField = "id";
+            ddlTipoDocumento.DataBind();
+
+            if (ddlTipoDocumento.Items.Count == 0)
+            {
+                ddlTipoDocumento.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
         }
         private Task btnGuardarPagoMixto(string eventArgument)
         {
