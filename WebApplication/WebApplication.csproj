@@ -284,6 +284,10 @@
       <Project>{f2cd9f68-db7e-4fbb-b026-52b8d4674230}</Project>
       <Name>DAL</Name>
     </ProjectReference>
+    <ProjectReference Include="..\RFacturacionElectronicaDIAN\3-RFacturacionElectronicaDIAN.csproj">
+      <Project>{dcb97e79-29a6-4bd1-aa9c-25a4bddf6d2c}</Project>
+      <Name>3-RFacturacionElectronicaDIAN</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

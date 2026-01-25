@@ -2,6 +2,9 @@
 using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
+using RFacturacionElectronicaDIAN.Entities.Request;
+using RFacturacionElectronicaDIAN.Entities.Response;
+using RFacturacionElectronicaDIAN.Factories;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,6 +15,7 @@ using System.Web;
 using System.Web.UI;
 using WebApplication.Class;
 using WebApplication.ViewModels;
+using Acquirer_Response = RFacturacionElectronicaDIAN.Entities.Response.Acquirer_Response;
 
 namespace WebApplication
 {
