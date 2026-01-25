@@ -166,6 +166,29 @@
             border-radius: 10px;
             padding: 10px;
         }
+        .cliente-modal .surface{
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .cliente-modal .grid-shell{
+            background: #d1d5db;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+        }
+        .cliente-modal .grid-shell .table-responsive{
+            background: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .cliente-modal .grid-footer{
+            background: #d1d5db;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            height: 240px;
+        }
     </style>
 </asp:Content>
 
@@ -378,119 +401,118 @@
                         </div>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-3">
-                            <label class="form-label">Tipo Documento *</label>
-                            <select class="form-select">
-                                <option>NIT</option>
-                                <option>Cédula de ciudadanía</option>
-                                <option>Cédula de extranjería</option>
-                                <option>Pasaporte</option>
-                            </select>
+                    <div class="surface mb-3">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo Documento *</label>
+                                <asp:DropDownList ID="ddlTipoDocumento" runat="server" CssClass="form-select">
+                                    <asp:ListItem Text="Seleccionar tipo" Value=""></asp:ListItem>
+                                </asp:DropDownList>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Número de identificación *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo Organización *</label>
+                                <select class="form-select">
+                                    <option>Persona natural</option>
+                                    <option>Persona jurídica</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Municipio *</label>
+                                <select class="form-select">
+                                    <option>Seleccionar municipio</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label">Número de identificación *</label>
-                            <input type="text" class="form-control" />
-                        </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label">Tipo Organización *</label>
-                            <select class="form-select">
-                                <option>Persona natural</option>
-                                <option>Persona jurídica</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label">Municipio *</label>
-                            <select class="form-select">
-                                <option>Seleccionar municipio</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-3">
-                            <label class="form-label">Tipo Régimen *</label>
-                            <select class="form-select">
-                                <option>Régimen ordinario</option>
-                                <option>Régimen simple</option>
-                            </select>
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo Régimen *</label>
+                                <select class="form-select">
+                                    <option>Régimen ordinario</option>
+                                    <option>Régimen simple</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo de responsabilidad *</label>
+                                <select class="form-select">
+                                    <option>Responsable IVA</option>
+                                    <option>No responsable</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Detalle de Impuesto *</label>
+                                <select class="form-select">
+                                    <option>IVA</option>
+                                    <option>IVA excluido</option>
+                                    <option>IVA exento</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <label class="form-label">Tipo de responsabilidad *</label>
-                            <select class="form-select">
-                                <option>Responsable IVA</option>
-                                <option>No responsable</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label">Detalle de Impuesto *</label>
-                            <select class="form-select">
-                                <option>IVA</option>
-                                <option>IVA excluido</option>
-                                <option>IVA exento</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-6">
-                            <label class="form-label">Nombre o razón social del empresa *</label>
-                            <input type="text" class="form-control" />
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Nombre o razón social del empresa *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Nombre comercio</label>
+                                <input type="text" class="form-control" />
+                            </div>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label">Nombre comercio</label>
-                            <input type="text" class="form-control" />
-                        </div>
-                    </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-2">
-                            <label class="form-label">Teléfono *</label>
-                            <input type="text" class="form-control" />
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-2">
+                                <label class="form-label">Teléfono *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Dirección *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Correo *</label>
+                                <input type="email" class="form-control" />
+                            </div>
                         </div>
-                        <div class="col-12 col-md-4">
-                            <label class="form-label">Dirección *</label>
-                            <input type="text" class="form-control" />
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label class="form-label">Correo *</label>
-                            <input type="email" class="form-control" />
-                        </div>
-                    </div>
 
-                    <div class="row g-2 mb-3 align-items-end">
-                        <div class="col-12 col-md-2">
-                            <label class="form-label">Matrícula mercantil</label>
-                            <input type="text" class="form-control" />
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <div class="d-flex gap-3 align-items-center pt-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="chkClientesModal" checked />
-                                    <label class="form-check-label" for="chkClientesModal">Clientes</label>
+                        <div class="row g-2 mt-1 align-items-end">
+                            <div class="col-12 col-md-2">
+                                <label class="form-label">Matrícula mercantil</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="d-flex gap-3 align-items-center pt-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="chkClientesModal" checked />
+                                        <label class="form-check-label" for="chkClientesModal">Clientes</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="chkProveedoresModal" />
+                                        <label class="form-check-label" for="chkProveedoresModal">Proveedores</label>
+                                    </div>
                                 </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="chkProveedoresModal" />
-                                    <label class="form-check-label" for="chkProveedoresModal">Proveedores</label>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-ghost">
+                                        <i class="bi bi-floppy2-fill me-1"></i> Guardar
+                                    </button>
+                                    <button type="button" class="btn btn-outline-ghost">
+                                        <i class="bi bi-brush me-1"></i> Limpiar
+                                    </button>
+                                    <button type="button" class="btn btn-outline-ghost">
+                                        <i class="bi bi-envelope-at me-1"></i> Correos
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <div class="d-flex justify-content-end gap-2 flex-wrap">
-                                <button type="button" class="btn btn-ghost">
-                                    <i class="bi bi-floppy2-fill me-1"></i> Guardar
-                                </button>
-                                <button type="button" class="btn btn-outline-ghost">
-                                    <i class="bi bi-brush me-1"></i> Limpiar
-                                </button>
-                                <button type="button" class="btn btn-outline-ghost">
-                                    <i class="bi bi-envelope-at me-1"></i> Correos
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="cliente-grid">
+                    <div class="grid-shell">
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered align-middle mb-0">
                                 <thead>
@@ -528,6 +550,7 @@
                             </table>
                         </div>
                     </div>
+                    <div class="grid-footer mt-2"></div>
                     <div class="text-center mt-3">
                         <button type="button" class="btn btnx px-4" disabled>
                             <i class="bi bi-check2-square me-1"></i> Seleccionar cliente
