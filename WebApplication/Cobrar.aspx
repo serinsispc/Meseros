@@ -405,7 +405,7 @@
                         <div class="row g-2">
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Documento *</label>
-                                <asp:DropDownList ID="ddlTipoDocumento" runat="server" CssClass="form-select">
+                                <asp:DropDownList ID="ddlTipoDocumento" runat="server" CssClass="form-select" AppendDataBoundItems="true">
                                     <asp:ListItem Text="Seleccionar tipo" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
