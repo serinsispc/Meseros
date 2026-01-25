@@ -91,6 +91,7 @@
     <Compile Include="Controler\ClienteDomicilioControler.cs" />
     <Compile Include="Controler\ClientesControler.cs" />
     <Compile Include="Controler\ComandImpresaaControler.cs" />
+    <Compile Include="Controler\controlador_tokenEmpresa.cs" />
     <Compile Include="Controler\CuentaClienteControler.cs" />
     <Compile Include="Controler\DetalleVentaControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
@@ -152,6 +153,7 @@
     <Compile Include="Model\R_VentaVendedor.cs" />
     <Compile Include="Model\Sede.cs" />
     <Compile Include="Model\TablaVentas.cs" />
+    <Compile Include="Model\tokenEmpresa.cs" />
     <Compile Include="Model\type_document_identifications.cs" />
     <Compile Include="Model\type_organizations.cs" />
     <Compile Include="Model\type_liabilities.cs" />

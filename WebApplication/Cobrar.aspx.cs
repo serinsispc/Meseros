@@ -2,6 +2,9 @@
 using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
+using RFacturacionElectronicaDIAN.Entities.Request;
+using RFacturacionElectronicaDIAN.Entities.Response;
+using RFacturacionElectronicaDIAN.Factories;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -158,26 +161,39 @@ namespace WebApplication
             Session[SessionModelsKey] = ModelSesion;
         }
 
-        private Task btnBuscarNIT(string nit)
+        private async Task btnBuscarNIT(string nit)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(nit))
                 {
-                    return Task.CompletedTask;
+                    return;
                 }
 
+                //en esta parte consultamos si al nit se encuentra dentro de la base de datos
                 var clientes = ModelSesion?.clientes ?? new List<Clientes>();
                 var cliente = clientes.FirstOrDefault(x => x.identificationNumber == nit);
 
                 if (cliente == null)
                 {
-                    ClientScript.RegisterStartupScript(
-                        GetType(),
-                        "nitNoEncontrado",
-                    "Swal.fire({icon:'error',title:'¡Error!',text:'El documento no se encontró.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlCliente'); if(modalEl){bootstrap.Modal.getOrCreateInstance(modalEl).show();}});",
-                        true);
-                    return Task.CompletedTask;
+                    //en esta parte consultamos el nit directamente en la api de la DIAN
+                    cliente = new Clientes();
+                    Acquirer_Response acquirer_Response= await Consultar_NIT_DIAN(Convert.ToInt32(nit));
+
+                    /*En esta parte cargamos toda la información al formulario*/
+                    cliente.typeDocumentIdentification_id = 6;
+                    cliente.identificationNumber = nit;
+                    cliente.typeOrganization_id = 2;
+                    cliente.municipality_id = 605;
+                    cliente.typeRegime_id = 2;
+                    cliente.typeLiability_id = 29;
+                    cliente.typeTaxDetail_id = 5;
+                    cliente.nameCliente = acquirer_Response.name;
+                    cliente.tradeName = "-";
+                    cliente.phone = "0";
+                    cliente.adress = "-";
+                    cliente.email = acquirer_Response.email;
+                    cliente.merchantRegistration = "0";
                 }
 
                 var payload = new
@@ -211,7 +227,31 @@ namespace WebApplication
                     true);
             }
 
-            return Task.CompletedTask;
+            return;
+        }
+
+        private async Task<Acquirer_Response> Consultar_NIT_DIAN(int NitEmpresa)
+        {
+            //consultamos el token de muestra empresa SERINSIS PC SAS.. el cual siempre debe de estar disponible 
+            var TokenFE = await controlador_tokenEmpresa.ConsultarTokenSerinsisPC();
+
+            /* declaramos la url del json */
+            FacturacionElectronicaDIANFactory.urlJSON = "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/"; 
+            FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
+
+            Acquirer_Request acquirer_Request = new Acquirer_Request();
+
+            acquirer_Request.environment = new Acquirer_Request.Environment();
+            acquirer_Request.environment.type_environment_id = 1;
+
+            acquirer_Request.type_document_identification_id = 6;
+            acquirer_Request.identification_number = Convert.ToInt32(NitEmpresa);
+
+
+
+            Acquirer_Response response = await facturacionElectronica.ConsultarAcquirer(acquirer_Request, TokenFE);
+
+            return response;
         }
         // ========= DESCUENTO =========
         // eventArgument: "valor|razon"
