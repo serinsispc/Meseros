@@ -15,10 +15,11 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
 
     <!-- Tu JS de alertas -->
-    <script src="Scripts/js/AlertModerno.js"></script>
+    <script src="<%: ResolveUrl("~/Scripts/js/AlertModerno.js") %>"></script>
 
             <!-- Estilos específicos de esta vista -->
-    <link href="Content/css/menu.css" rel="stylesheet" />
+    <link href="<%: ResolveUrl("~/Content/css/menu.css") %>" rel="stylesheet" />
+    <link href="<%: ResolveUrl("~/Content/css/cobrar.css") %>" rel="stylesheet" />
 
 
 </head>
