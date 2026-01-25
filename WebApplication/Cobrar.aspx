@@ -173,34 +173,67 @@
             padding: 12px;
         }
         .cliente-modal .grid-shell{
-            background: #d1d5db;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
         }
         .cliente-modal .grid-shell .table-responsive{
-            background: #fff;
-            border-radius: 6px;
+            background: transparent;
+            border-radius: 16px;
             overflow: hidden;
         }
         .cliente-modal .cliente-row{
             cursor: pointer;
         }
         .cliente-modal .cliente-row.selected{
-            background: #dbeafe;
+            background: #e0f2fe;
         }
         .cliente-modal .cliente-row:focus{
             outline: 2px solid #2563eb;
             outline-offset: -2px;
         }
         .cliente-modal .cliente-row:hover{
-            background: #eff6ff;
+            background: #f1f5ff;
         }
         .cliente-modal .grid-footer{
-            background: #d1d5db;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            height: 240px;
+            display: none;
+        }
+        .cliente-modal .tabla-clientes{
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .cliente-modal .tabla-clientes thead th{
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            padding: 10px 12px;
+        }
+        .cliente-modal .tabla-clientes tbody td{
+            padding: 10px 12px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 13px;
+        }
+        .cliente-modal .tabla-clientes tbody tr:nth-child(even){
+            background: #f8fafc;
+        }
+        .cliente-modal .tabla-clientes tbody tr.selected td{
+            border-top-color: #bae6fd;
+        }
+        .cliente-modal .tabla-clientes tbody tr:first-child td{
+            border-top: none;
+        }
+        .cliente-modal .tabla-clientes td:last-child,
+        .cliente-modal .tabla-clientes th:last-child{
+            padding-right: 16px;
+        }
+        .cliente-modal .tabla-clientes td:first-child,
+        .cliente-modal .tabla-clientes th:first-child{
+            padding-left: 16px;
         }
     </style>
 </asp:Content>
@@ -522,7 +555,7 @@
 
                     <div class="grid-shell">
                         <div class="table-responsive">
-                            <table class="table table-sm table-bordered align-middle mb-0">
+                            <table class="table tabla-clientes mb-0">
                                 <thead>
                                     <tr>
                                         <th style="width:16%">Tipo Documento</th>
