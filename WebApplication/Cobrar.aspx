@@ -528,19 +528,19 @@
                                     <asp:Repeater ID="rptClientesModal" runat="server">
                                         <ItemTemplate>
                                             <tr class="cliente-row"
-                                                data-type-doc-id="<%# Eval(\"TipoDocumentoId\") %>"
-                                                data-nit="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Nit\")?.ToString() ?? \"\") %>"
-                                                data-nombre="<%# HttpUtility.HtmlAttributeEncode(Eval(\"NombreCliente\")?.ToString() ?? \"\") %>"
-                                                data-correo="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Correo\")?.ToString() ?? \"\") %>"
-                                                data-org-id="<%# Eval(\"TipoOrganizacionId\") %>"
-                                                data-municipio-id="<%# Eval(\"MunicipioId\") %>"
-                                                data-regimen-id="<%# Eval(\"TipoRegimenId\") %>"
-                                                data-responsabilidad-id="<%# Eval(\"TipoResponsabilidadId\") %>"
-                                                data-impuesto-id="<%# Eval(\"DetalleImpuestoId\") %>"
-                                                data-comercio="<%# HttpUtility.HtmlAttributeEncode(Eval(\"NombreComercio\")?.ToString() ?? \"\") %>"
-                                                data-telefono="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Telefono\")?.ToString() ?? \"\") %>"
-                                                data-direccion="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Direccion\")?.ToString() ?? \"\") %>"
-                                                data-matricula="<%# HttpUtility.HtmlAttributeEncode(Eval(\"MatriculaMercantil\")?.ToString() ?? \"\") %>">
+                                                data-type-doc-id='<%# Eval("TipoDocumentoId") %>'
+                                                data-nit='<%# HttpUtility.HtmlAttributeEncode(Eval("Nit")?.ToString() ?? "") %>'
+                                                data-nombre='<%# HttpUtility.HtmlAttributeEncode(Eval("NombreCliente")?.ToString() ?? "") %>'
+                                                data-correo='<%# HttpUtility.HtmlAttributeEncode(Eval("Correo")?.ToString() ?? "") %>'
+                                                data-org-id='<%# Eval("TipoOrganizacionId") %>'
+                                                data-municipio-id='<%# Eval("MunicipioId") %>'
+                                                data-regimen-id='<%# Eval("TipoRegimenId") %>'
+                                                data-responsabilidad-id='<%# Eval("TipoResponsabilidadId") %>'
+                                                data-impuesto-id='<%# Eval("DetalleImpuestoId") %>'
+                                                data-comercio='<%# HttpUtility.HtmlAttributeEncode(Eval("NombreComercio")?.ToString() ?? "") %>'
+                                                data-telefono='<%# HttpUtility.HtmlAttributeEncode(Eval("Telefono")?.ToString() ?? "") %>'
+                                                data-direccion='<%# HttpUtility.HtmlAttributeEncode(Eval("Direccion")?.ToString() ?? "") %>'
+                                                data-matricula='<%# HttpUtility.HtmlAttributeEncode(Eval("MatriculaMercantil")?.ToString() ?? "") %>'>
                                                 <td><%# Eval("TipoDocumento") %></td>
                                                 <td><%# Eval("Nit") %></td>
                                                 <td><%# Eval("NombreCliente") %></td>
