@@ -418,7 +418,7 @@
                         <div class="row g-2">
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Documento *</label>
-                                <asp:DropDownList ID="ddlTipoDocumento" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                <asp:DropDownList ID="ddlTipoDocumento" runat="server" CssClass="form-select" AppendDataBoundItems="true" ClientIDMode="Static">
                                     <asp:ListItem Text="Seleccionar tipo" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
@@ -428,13 +428,13 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Organización *</label>
-                                <asp:DropDownList ID="ddlTipoOrganizacion" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                <asp:DropDownList ID="ddlTipoOrganizacion" runat="server" CssClass="form-select" AppendDataBoundItems="true" ClientIDMode="Static">
                                     <asp:ListItem Text="Seleccionar tipo" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Municipio *</label>
-                                <asp:DropDownList ID="ddlMunicipio" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                <asp:DropDownList ID="ddlMunicipio" runat="server" CssClass="form-select" AppendDataBoundItems="true" ClientIDMode="Static">
                                     <asp:ListItem Text="Seleccionar municipio" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
@@ -443,19 +443,19 @@
                         <div class="row g-2 mt-1">
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Régimen *</label>
-                                <asp:DropDownList ID="ddlTipoRegimen" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                <asp:DropDownList ID="ddlTipoRegimen" runat="server" CssClass="form-select" AppendDataBoundItems="true" ClientIDMode="Static">
                                     <asp:ListItem Text="Seleccionar régimen" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo de responsabilidad *</label>
-                                <asp:DropDownList ID="ddlTipoResponsabilidad" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                <asp:DropDownList ID="ddlTipoResponsabilidad" runat="server" CssClass="form-select" AppendDataBoundItems="true" ClientIDMode="Static">
                                     <asp:ListItem Text="Seleccionar responsabilidad" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label">Detalle de Impuesto *</label>
-                                <asp:DropDownList ID="ddlDetalleImpuesto" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                <asp:DropDownList ID="ddlDetalleImpuesto" runat="server" CssClass="form-select" AppendDataBoundItems="true" ClientIDMode="Static">
                                     <asp:ListItem Text="Seleccionar impuesto" Value=""></asp:ListItem>
                                 </asp:DropDownList>
                             </div>
