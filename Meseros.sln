@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36518.9 d17.14
+VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DAL", "DAL\DAL.csproj", "{F2CD9F68-DB7E-4FBB-B026-52B8D4674230}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication", "WebApplication\WebApplication.csproj", "{88D4D68E-0BDF-40D1-A2A3-7DABAA43C411}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "3-RFacturacionElectronicaDIAN", "RFacturacionElectronicaDIAN\3-RFacturacionElectronicaDIAN.csproj", "{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{88D4D68E-0BDF-40D1-A2A3-7DABAA43C411}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88D4D68E-0BDF-40D1-A2A3-7DABAA43C411}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88D4D68E-0BDF-40D1-A2A3-7DABAA43C411}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
