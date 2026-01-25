@@ -526,10 +526,20 @@ namespace WebApplication
 
                 return new ClienteModalItem
                 {
+                    TipoDocumentoId = c.typeDocumentIdentification_id,
                     TipoDocumento = tipoNombre,
                     Nit = c.identificationNumber,
                     NombreCliente = c.nameCliente,
-                    Correo = c.email
+                    Correo = c.email,
+                    TipoOrganizacionId = c.typeOrganization_id,
+                    MunicipioId = c.municipality_id,
+                    TipoRegimenId = c.typeRegime_id,
+                    TipoResponsabilidadId = c.typeLiability_id,
+                    DetalleImpuestoId = c.typeTaxDetail_id,
+                    NombreComercio = c.tradeName,
+                    Telefono = c.phone,
+                    Direccion = c.adress,
+                    MatriculaMercantil = c.merchantRegistration
                 };
             }).ToList();
 
@@ -539,10 +549,20 @@ namespace WebApplication
 
         private class ClienteModalItem
         {
+            public int TipoDocumentoId { get; set; }
             public string TipoDocumento { get; set; }
             public string Nit { get; set; }
             public string NombreCliente { get; set; }
             public string Correo { get; set; }
+            public int TipoOrganizacionId { get; set; }
+            public int MunicipioId { get; set; }
+            public int TipoRegimenId { get; set; }
+            public int TipoResponsabilidadId { get; set; }
+            public int DetalleImpuestoId { get; set; }
+            public string NombreComercio { get; set; }
+            public string Telefono { get; set; }
+            public string Direccion { get; set; }
+            public string MatriculaMercantil { get; set; }
         }
         private Task btnGuardarPagoMixto(string eventArgument)
         {

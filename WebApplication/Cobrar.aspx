@@ -183,6 +183,12 @@
             border-radius: 6px;
             overflow: hidden;
         }
+        .cliente-modal .cliente-row{
+            cursor: pointer;
+        }
+        .cliente-modal .cliente-row.selected{
+            background: #dbeafe;
+        }
         .cliente-modal .grid-footer{
             background: #d1d5db;
             border: 1px solid var(--border);
@@ -411,7 +417,7 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Número de identificación *</label>
-                                <input type="text" class="form-control" />
+                                <input type="text" class="form-control" id="txtIdentificacionCliente" />
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Organización *</label>
@@ -451,33 +457,33 @@
                         <div class="row g-2 mt-1">
                             <div class="col-12 col-md-6">
                                 <label class="form-label">Nombre o razón social del empresa *</label>
-                                <input type="text" class="form-control" />
+                                <input type="text" class="form-control" id="txtNombreRazonCliente" />
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label">Nombre comercio</label>
-                                <input type="text" class="form-control" />
+                                <input type="text" class="form-control" id="txtNombreComercioCliente" />
                             </div>
                         </div>
 
                         <div class="row g-2 mt-1">
                             <div class="col-12 col-md-2">
                                 <label class="form-label">Teléfono *</label>
-                                <input type="text" class="form-control" />
+                                <input type="text" class="form-control" id="txtTelefonoCliente" />
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label">Dirección *</label>
-                                <input type="text" class="form-control" />
+                                <input type="text" class="form-control" id="txtDireccionCliente" />
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label">Correo *</label>
-                                <input type="email" class="form-control" />
+                                <input type="email" class="form-control" id="txtCorreoCliente" />
                             </div>
                         </div>
 
                         <div class="row g-2 mt-1 align-items-end">
                             <div class="col-12 col-md-2">
                                 <label class="form-label">Matrícula mercantil</label>
-                                <input type="text" class="form-control" />
+                                <input type="text" class="form-control" id="txtMatriculaCliente" />
                             </div>
                             <div class="col-12 col-md-4">
                                 <div class="d-flex gap-3 align-items-center pt-2">
@@ -521,7 +527,20 @@
                                 <tbody>
                                     <asp:Repeater ID="rptClientesModal" runat="server">
                                         <ItemTemplate>
-                                            <tr>
+                                            <tr class="cliente-row"
+                                                data-type-doc-id="<%# Eval(\"TipoDocumentoId\") %>"
+                                                data-nit="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Nit\")?.ToString() ?? \"\") %>"
+                                                data-nombre="<%# HttpUtility.HtmlAttributeEncode(Eval(\"NombreCliente\")?.ToString() ?? \"\") %>"
+                                                data-correo="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Correo\")?.ToString() ?? \"\") %>"
+                                                data-org-id="<%# Eval(\"TipoOrganizacionId\") %>"
+                                                data-municipio-id="<%# Eval(\"MunicipioId\") %>"
+                                                data-regimen-id="<%# Eval(\"TipoRegimenId\") %>"
+                                                data-responsabilidad-id="<%# Eval(\"TipoResponsabilidadId\") %>"
+                                                data-impuesto-id="<%# Eval(\"DetalleImpuestoId\") %>"
+                                                data-comercio="<%# HttpUtility.HtmlAttributeEncode(Eval(\"NombreComercio\")?.ToString() ?? \"\") %>"
+                                                data-telefono="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Telefono\")?.ToString() ?? \"\") %>"
+                                                data-direccion="<%# HttpUtility.HtmlAttributeEncode(Eval(\"Direccion\")?.ToString() ?? \"\") %>"
+                                                data-matricula="<%# HttpUtility.HtmlAttributeEncode(Eval(\"MatriculaMercantil\")?.ToString() ?? \"\") %>">
                                                 <td><%# Eval("TipoDocumento") %></td>
                                                 <td><%# Eval("Nit") %></td>
                                                 <td><%# Eval("NombreCliente") %></td>
@@ -1130,6 +1149,46 @@
         }
 
         // ====== Inicializa ======
+        const clienteTable = document.querySelector('#mdlCliente table');
+        if (clienteTable) {
+            clienteTable.addEventListener('click', (event) => {
+                const row = event.target.closest('.cliente-row');
+                if (!row) return;
+
+                clienteTable.querySelectorAll('.cliente-row').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+
+                const setInput = (id, value) => {
+                    const el = byId(id);
+                    if (el) el.value = value ?? '';
+                };
+
+                const setSelect = (id, value) => {
+                    const el = byId(id);
+                    if (!el) return;
+                    const val = (value ?? '').toString();
+                    const option = Array.from(el.options).find(o => o.value === val);
+                    if (option) {
+                        el.value = val;
+                    }
+                };
+
+                setSelect('ddlTipoDocumento', row.dataset.typeDocId);
+                setInput('txtIdentificacionCliente', row.dataset.nit);
+                setSelect('ddlTipoOrganizacion', row.dataset.orgId);
+                setSelect('ddlMunicipio', row.dataset.municipioId);
+                setSelect('ddlTipoRegimen', row.dataset.regimenId);
+                setSelect('ddlTipoResponsabilidad', row.dataset.responsabilidadId);
+                setSelect('ddlDetalleImpuesto', row.dataset.impuestoId);
+                setInput('txtNombreRazonCliente', row.dataset.nombre);
+                setInput('txtNombreComercioCliente', row.dataset.comercio);
+                setInput('txtTelefonoCliente', row.dataset.telefono);
+                setInput('txtDireccionCliente', row.dataset.direccion);
+                setInput('txtCorreoCliente', row.dataset.correo);
+                setInput('txtMatriculaCliente', row.dataset.matricula);
+            });
+        }
+
         if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct();
         else if (getVal('txtPropina') > 0) pctDesdePropina();
 
