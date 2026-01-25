@@ -112,6 +112,83 @@
             border-color: var(--blue);
             color: #fff;
         }
+
+        /* ===== Modal Cliente (Factura electrónica) ===== */
+        .cliente-modal .modal-content{
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .cliente-modal .modal-header{
+            background: #1e293b;
+            color: #fff;
+        }
+        .cliente-modal .modal-title{
+            font-weight: 700;
+        }
+        .cliente-modal .section-title{
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 4px;
+        }
+        .cliente-modal .form-label{
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .cliente-modal .cliente-grid{
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .cliente-modal .cliente-grid thead th{
+            background: #e2e8f0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+        .cliente-modal .btn-ghost{
+            background: #0f172a;
+            border-color: #0f172a;
+            color: #fff;
+        }
+        .cliente-modal .btn-outline-ghost{
+            border-color: #0f172a;
+            color: #0f172a;
+            background: #fff;
+        }
+        .cliente-modal .toolbar{
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .cliente-modal .surface{
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .cliente-modal .grid-shell{
+            background: #d1d5db;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px;
+        }
+        .cliente-modal .grid-shell .table-responsive{
+            background: #fff;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .cliente-modal .grid-footer{
+            background: #d1d5db;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            height: 240px;
+        }
     </style>
 </asp:Content>
 
@@ -298,19 +375,187 @@
     </div>
 
     <!-- MODAL VACÍO: Agregar Cliente -->
-    <div class="modal fade" id="mdlCliente" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 16px;">
+    <div class="modal fade cliente-modal" id="mdlCliente" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> Agregar Cliente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    <h5 class="modal-title"><i class="bi bi-people-fill"></i> Gestionar Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="text-muted">Aquí irá el formulario del cliente (por ahora vacío).</div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btnx" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btnx btn-blue" disabled>Guardar Cliente</button>
+                    <div class="toolbar mb-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12 col-lg-7">
+                                <label class="form-label">Filtrar cliente por Nombre</label>
+                                <input type="text" class="form-control" placeholder="Buscar por nombre o razón social" />
+                            </div>
+                            <div class="col-12 col-lg-3">
+                                <label class="form-label">Buscar Documento</label>
+                                <input type="text" class="form-control" placeholder="Número de identificación" />
+                            </div>
+                            <div class="col-12 col-lg-2 d-grid">
+                                <button type="button" class="btn btn-ghost">
+                                    <i class="bi bi-search me-1"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="surface mb-3">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo Documento *</label>
+                                <asp:DropDownList ID="ddlTipoDocumento" runat="server" CssClass="form-select">
+                                    <asp:ListItem Text="Seleccionar tipo" Value=""></asp:ListItem>
+                                </asp:DropDownList>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Número de identificación *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo Organización *</label>
+                                <select class="form-select">
+                                    <option>Persona natural</option>
+                                    <option>Persona jurídica</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Municipio *</label>
+                                <select class="form-select">
+                                    <option>Seleccionar municipio</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo Régimen *</label>
+                                <select class="form-select">
+                                    <option>Régimen ordinario</option>
+                                    <option>Régimen simple</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Tipo de responsabilidad *</label>
+                                <select class="form-select">
+                                    <option>Responsable IVA</option>
+                                    <option>No responsable</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Detalle de Impuesto *</label>
+                                <select class="form-select">
+                                    <option>IVA</option>
+                                    <option>IVA excluido</option>
+                                    <option>IVA exento</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Nombre o razón social del empresa *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Nombre comercio</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-1">
+                            <div class="col-12 col-md-2">
+                                <label class="form-label">Teléfono *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Dirección *</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Correo *</label>
+                                <input type="email" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mt-1 align-items-end">
+                            <div class="col-12 col-md-2">
+                                <label class="form-label">Matrícula mercantil</label>
+                                <input type="text" class="form-control" />
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="d-flex gap-3 align-items-center pt-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="chkClientesModal" checked />
+                                        <label class="form-check-label" for="chkClientesModal">Clientes</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="chkProveedoresModal" />
+                                        <label class="form-check-label" for="chkProveedoresModal">Proveedores</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-ghost">
+                                        <i class="bi bi-floppy2-fill me-1"></i> Guardar
+                                    </button>
+                                    <button type="button" class="btn btn-outline-ghost">
+                                        <i class="bi bi-brush me-1"></i> Limpiar
+                                    </button>
+                                    <button type="button" class="btn btn-outline-ghost">
+                                        <i class="bi bi-envelope-at me-1"></i> Correos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-shell">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width:16%">Tipo Documento</th>
+                                        <th style="width:12%">NIT</th>
+                                        <th style="width:12%">Tercero</th>
+                                        <th style="width:30%">Nombre Cliente</th>
+                                        <th style="width:30%">Correo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Cédula de ciudadanía</td>
+                                        <td>2222222222</td>
+                                        <td></td>
+                                        <td>CONSUMIDOR FINAL</td>
+                                        <td>cliente@correo.com</td>
+                                    </tr>
+                                    <tr>
+                                        <td>NIT</td>
+                                        <td>1075241529</td>
+                                        <td></td>
+                                        <td>POLANIA CUELLAR EMILIANO</td>
+                                        <td>EMILIANO@GMAIL.COM</td>
+                                    </tr>
+                                    <tr>
+                                        <td>NIT</td>
+                                        <td>89006089</td>
+                                        <td></td>
+                                        <td>EXITO</td>
+                                        <td>-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="grid-footer mt-2"></div>
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btnx px-4" disabled>
+                            <i class="bi bi-check2-square me-1"></i> Seleccionar cliente
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
