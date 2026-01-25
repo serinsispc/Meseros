@@ -1192,6 +1192,7 @@
         // ====== Inicializa ======
         const clienteTable = document.querySelector('#mdlCliente table');
         if (clienteTable) {
+            const modalClienteEl = byId('mdlCliente');
             const filtroNombre = byId('txtFiltroClienteNombre');
             const filasClientes = () => Array.from(clienteTable.querySelectorAll('.cliente-row'));
 
@@ -1209,6 +1210,20 @@
                 filtroNombre.addEventListener('input', () => {
                     filtroNombre.value = filtroNombre.value.toUpperCase();
                     aplicarFiltroClientes();
+                });
+            }
+
+            if (modalClienteEl) {
+                modalClienteEl.addEventListener('shown.bs.modal', () => {
+                    const ddlTipoDocumento = byId('ddlTipoDocumento');
+                    if (!ddlTipoDocumento) return;
+
+                    const nitOption = Array.from(ddlTipoDocumento.options)
+                        .find(opt => (opt.textContent || '').trim().toUpperCase() === 'NIT');
+
+                    if (nitOption) {
+                        ddlTipoDocumento.value = nitOption.value;
+                    }
                 });
             }
 
@@ -1246,6 +1261,8 @@
                 setSelect('ddlTipoResponsabilidad', data.responsabilidadId);
                 setSelect('ddlDetalleImpuesto', data.impuestoId);
                 setInput('txtNombreRazonCliente', data.nombre);
+                setInput('txtFiltroClienteNombre', data.nombre);
+                aplicarFiltroClientes();
                 setInput('txtNombreComercioCliente', data.comercio);
                 setInput('txtTelefonoCliente', data.telefono);
                 setInput('txtDireccionCliente', data.direccion);
