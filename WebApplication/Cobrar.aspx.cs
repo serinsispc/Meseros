@@ -15,6 +15,7 @@ using System.Web;
 using System.Web.UI;
 using WebApplication.Class;
 using WebApplication.ViewModels;
+using Acquirer_Response = RFacturacionElectronicaDIAN.Entities.Response.Acquirer_Response;
 
 namespace WebApplication
 {
@@ -256,9 +257,26 @@ namespace WebApplication
             return;
         }
 
-        private Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
+        private async Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
         {
-            return Task.FromResult<Acquirer_Response>(null);
+            /* declaramos la url del json */
+            FacturacionElectronicaDIANFactory.urlJSON = "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/";
+            FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
+
+            Acquirer_Request acquirer_Request = new Acquirer_Request();
+
+            acquirer_Request.environment = new Acquirer_Request.Environment();
+            acquirer_Request.environment.type_environment_id = 1;
+
+            acquirer_Request.type_document_identification_id = 6;
+            acquirer_Request.identification_number = nit;
+
+            //consultamos el token de muestra empresa SERINSIS PC SAS.. el cual siempre debe de estar disponible 
+            string TokenFE = await controlador_tokenEmpresa.ConsultarTokenSerinsisPC();
+
+            Acquirer_Response response = await facturacionElectronica.ConsultarAcquirer(acquirer_Request, TokenFE);
+
+            return response;
         }
         // ========= DESCUENTO =========
         // eventArgument: "valor|razon"
