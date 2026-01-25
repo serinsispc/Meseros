@@ -207,6 +207,7 @@
     </Compile>
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="Class\AlertModerno.cs" />
+    <Compile Include="Class\Acquirer_Response.cs" />
     <Compile Include="Class\ClassImagenes.cs" />
     <Compile Include="Class\ClassPropina.cs" />
     <Compile Include="Cobrar.aspx.cs">
