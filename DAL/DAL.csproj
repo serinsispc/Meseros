@@ -105,6 +105,7 @@
     <Compile Include="Controler\SedeControler.cs" />
     <Compile Include="Controler\TablaVentasControler.cs" />
     <Compile Include="Controler\type_document_identificationsControler.cs" />
+    <Compile Include="Controler\type_organizationsControler.cs" />
     <Compile Include="Controler\VendedorControler.cs" />
     <Compile Include="Controler\V_CatagoriaAdicionControler.cs" />
     <Compile Include="Controler\V_CategoriaControler.cs" />
@@ -148,6 +149,7 @@
     <Compile Include="Model\Sede.cs" />
     <Compile Include="Model\TablaVentas.cs" />
     <Compile Include="Model\type_document_identifications.cs" />
+    <Compile Include="Model\type_organizations.cs" />
     <Compile Include="Model\Vendedor.cs" />
     <Compile Include="Model\V_CatagoriaAdicion.cs" />
     <Compile Include="Model\V_Categoria.cs" />

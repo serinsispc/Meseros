@@ -415,10 +415,9 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Organización *</label>
-                                <select class="form-select">
-                                    <option>Persona natural</option>
-                                    <option>Persona jurídica</option>
-                                </select>
+                                <asp:DropDownList ID="ddlTipoOrganizacion" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                    <asp:ListItem Text="Seleccionar tipo" Value=""></asp:ListItem>
+                                </asp:DropDownList>
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Municipio *</label>

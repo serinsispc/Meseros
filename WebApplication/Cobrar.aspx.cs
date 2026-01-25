@@ -53,6 +53,7 @@ namespace WebApplication
 
                 await CargarMediosPago();
                 await CargarTiposDocumento();
+                await CargarTiposOrganizacion();
                 CargarDatosVenta();
                 await CargarRelMediosInternos();
 
@@ -401,6 +402,24 @@ namespace WebApplication
             if (ddlTipoDocumento.Items.Count == 0)
             {
                 ddlTipoDocumento.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarTiposOrganizacion()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_organizationsControler.ListaTiposOrganizacion(db);
+
+            ddlTipoOrganizacion.DataSource = tipos;
+            ddlTipoOrganizacion.DataTextField = "name";
+            ddlTipoOrganizacion.DataValueField = "id";
+            ddlTipoOrganizacion.DataBind();
+
+            if (ddlTipoOrganizacion.Items.Count == 0)
+            {
+                ddlTipoOrganizacion.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
             }
         }
         private Task btnGuardarPagoMixto(string eventArgument)
