@@ -235,6 +235,64 @@
         .cliente-modal .tabla-clientes th:first-child{
             padding-left: 16px;
         }
+
+        @media (max-width: 576px){
+            .wrap{
+                padding: 12px;
+            }
+            .topbar{
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .brand .logo{
+                width: 34px;
+                height: 34px;
+            }
+            .brand .title b{
+                font-size: 14px;
+            }
+            .totalBox .val{
+                font-size: 26px;
+                padding: 12px 8px;
+            }
+            .btnx{
+                font-size: 13px;
+            }
+            .cliente-modal .modal-dialog{
+                max-width: 100%;
+                margin: .5rem;
+            }
+            .cliente-modal .modal-content{
+                height: calc(100vh - 1rem);
+            }
+            .cliente-modal .modal-body{
+                overflow-y: auto;
+            }
+            .cliente-modal .toolbar .row,
+            .cliente-modal .surface .row{
+                --bs-gutter-x: .5rem;
+            }
+            .cliente-modal .toolbar .row > [class*="col-"],
+            .cliente-modal .surface .row > [class*="col-"]{
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .cliente-modal .tabla-clientes thead th{
+                font-size: 11px;
+            }
+            .cliente-modal .tabla-clientes tbody td{
+                font-size: 12px;
+            }
+            .cliente-modal .grid-shell{
+                border-radius: 12px;
+            }
+            .cliente-modal .d-flex.justify-content-end{
+                justify-content: stretch !important;
+            }
+            .cliente-modal .d-flex.justify-content-end .btn{
+                flex: 1 1 100%;
+            }
+        }
     </style>
 </asp:Content>
 
