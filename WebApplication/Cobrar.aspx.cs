@@ -24,6 +24,8 @@ namespace WebApplication
         private const string SessionIdVendedorKey = "idvendedor";
         #endregion
 
+        private List<type_document_identifications> _tiposDocumento;
+
         public MenuViewModels Models { get; private set; }
 
         private MenuViewModels ModelSesion
@@ -54,6 +56,11 @@ namespace WebApplication
                 await CargarMediosPago();
                 await CargarTiposDocumento();
                 await CargarTiposOrganizacion();
+                await CargarMunicipios();
+                await CargarTiposRegimen();
+                await CargarTiposResponsabilidad();
+                await CargarDetallesImpuesto();
+                await CargarClientesModal();
                 CargarDatosVenta();
                 await CargarRelMediosInternos();
 
@@ -392,9 +399,9 @@ namespace WebApplication
             var db = Session["db"]?.ToString();
             if (string.IsNullOrWhiteSpace(db)) return;
 
-            var tipos = await type_document_identificationsControler.ListaTiposDocumento(db);
+            _tiposDocumento = await type_document_identificationsControler.ListaTiposDocumento(db);
 
-            ddlTipoDocumento.DataSource = tipos;
+            ddlTipoDocumento.DataSource = _tiposDocumento;
             ddlTipoDocumento.DataTextField = "name";
             ddlTipoDocumento.DataValueField = "id";
             ddlTipoDocumento.DataBind();
@@ -402,6 +409,78 @@ namespace WebApplication
             if (ddlTipoDocumento.Items.Count == 0)
             {
                 ddlTipoDocumento.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarMunicipios()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var municipios = await V_MunicipiosControler.ListaMunicipios(db);
+
+            ddlMunicipio.DataSource = municipios;
+            ddlMunicipio.DataTextField = "name";
+            ddlMunicipio.DataValueField = "idMunicipio";
+            ddlMunicipio.DataBind();
+
+            if (ddlMunicipio.Items.Count == 0)
+            {
+                ddlMunicipio.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarTiposRegimen()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_regimesControler.ListaTiposRegimen(db);
+
+            ddlTipoRegimen.DataSource = tipos;
+            ddlTipoRegimen.DataTextField = "name";
+            ddlTipoRegimen.DataValueField = "id";
+            ddlTipoRegimen.DataBind();
+
+            if (ddlTipoRegimen.Items.Count == 0)
+            {
+                ddlTipoRegimen.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarTiposResponsabilidad()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var tipos = await type_liabilitiesControler.ListaTiposResponsabilidad(db);
+
+            ddlTipoResponsabilidad.DataSource = tipos;
+            ddlTipoResponsabilidad.DataTextField = "name";
+            ddlTipoResponsabilidad.DataValueField = "id";
+            ddlTipoResponsabilidad.DataBind();
+
+            if (ddlTipoResponsabilidad.Items.Count == 0)
+            {
+                ddlTipoResponsabilidad.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task CargarDetallesImpuesto()
+        {
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db)) return;
+
+            var detalles = await tax_detailsControler.ListaDetallesImpuesto(db);
+
+            ddlDetalleImpuesto.DataSource = detalles;
+            ddlDetalleImpuesto.DataTextField = "name";
+            ddlDetalleImpuesto.DataValueField = "id";
+            ddlDetalleImpuesto.DataBind();
+
+            if (ddlDetalleImpuesto.Items.Count == 0)
+            {
+                ddlDetalleImpuesto.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
             }
         }
 
@@ -421,6 +500,49 @@ namespace WebApplication
             {
                 ddlTipoOrganizacion.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
             }
+        }
+
+        private async Task CargarClientesModal()
+        {
+            var clientes = ModelSesion?.clientes ?? new List<Clientes>();
+
+            if (_tiposDocumento == null)
+            {
+                var db = Session["db"]?.ToString();
+                _tiposDocumento = string.IsNullOrWhiteSpace(db)
+                    ? new List<type_document_identifications>()
+                    : await type_document_identificationsControler.ListaTiposDocumento(db);
+            }
+
+            var tipoDocumentoPorId = (_tiposDocumento ?? new List<type_document_identifications>())
+                .Where(t => t != null && t.id.HasValue)
+                .ToDictionary(t => t.id.Value, t => t.name);
+
+            var items = clientes.Select(c =>
+            {
+                var tipoNombre = tipoDocumentoPorId.TryGetValue(c.typeDocumentIdentification_id, out var nombre)
+                    ? nombre
+                    : c.typeDocumentIdentification_id.ToString();
+
+                return new ClienteModalItem
+                {
+                    TipoDocumento = tipoNombre,
+                    Nit = c.identificationNumber,
+                    NombreCliente = c.nameCliente,
+                    Correo = c.email
+                };
+            }).ToList();
+
+            rptClientesModal.DataSource = items;
+            rptClientesModal.DataBind();
+        }
+
+        private class ClienteModalItem
+        {
+            public string TipoDocumento { get; set; }
+            public string Nit { get; set; }
+            public string NombreCliente { get; set; }
+            public string Correo { get; set; }
         }
         private Task btnGuardarPagoMixto(string eventArgument)
         {

@@ -421,34 +421,30 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Municipio *</label>
-                                <select class="form-select">
-                                    <option>Seleccionar municipio</option>
-                                </select>
+                                <asp:DropDownList ID="ddlMunicipio" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                    <asp:ListItem Text="Seleccionar municipio" Value=""></asp:ListItem>
+                                </asp:DropDownList>
                             </div>
                         </div>
 
                         <div class="row g-2 mt-1">
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo Régimen *</label>
-                                <select class="form-select">
-                                    <option>Régimen ordinario</option>
-                                    <option>Régimen simple</option>
-                                </select>
+                                <asp:DropDownList ID="ddlTipoRegimen" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                    <asp:ListItem Text="Seleccionar régimen" Value=""></asp:ListItem>
+                                </asp:DropDownList>
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Tipo de responsabilidad *</label>
-                                <select class="form-select">
-                                    <option>Responsable IVA</option>
-                                    <option>No responsable</option>
-                                </select>
+                                <asp:DropDownList ID="ddlTipoResponsabilidad" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                    <asp:ListItem Text="Seleccionar responsabilidad" Value=""></asp:ListItem>
+                                </asp:DropDownList>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label">Detalle de Impuesto *</label>
-                                <select class="form-select">
-                                    <option>IVA</option>
-                                    <option>IVA excluido</option>
-                                    <option>IVA exento</option>
-                                </select>
+                                <asp:DropDownList ID="ddlDetalleImpuesto" runat="server" CssClass="form-select" AppendDataBoundItems="true">
+                                    <asp:ListItem Text="Seleccionar impuesto" Value=""></asp:ListItem>
+                                </asp:DropDownList>
                             </div>
                         </div>
 
@@ -518,33 +514,21 @@
                                     <tr>
                                         <th style="width:16%">Tipo Documento</th>
                                         <th style="width:12%">NIT</th>
-                                        <th style="width:12%">Tercero</th>
-                                        <th style="width:30%">Nombre Cliente</th>
+                                        <th style="width:42%">Nombre Cliente</th>
                                         <th style="width:30%">Correo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>Cédula de ciudadanía</td>
-                                        <td>2222222222</td>
-                                        <td></td>
-                                        <td>CONSUMIDOR FINAL</td>
-                                        <td>cliente@correo.com</td>
-                                    </tr>
-                                    <tr>
-                                        <td>NIT</td>
-                                        <td>1075241529</td>
-                                        <td></td>
-                                        <td>POLANIA CUELLAR EMILIANO</td>
-                                        <td>EMILIANO@GMAIL.COM</td>
-                                    </tr>
-                                    <tr>
-                                        <td>NIT</td>
-                                        <td>89006089</td>
-                                        <td></td>
-                                        <td>EXITO</td>
-                                        <td>-</td>
-                                    </tr>
+                                    <asp:Repeater ID="rptClientesModal" runat="server">
+                                        <ItemTemplate>
+                                            <tr>
+                                                <td><%# Eval("TipoDocumento") %></td>
+                                                <td><%# Eval("Nit") %></td>
+                                                <td><%# Eval("NombreCliente") %></td>
+                                                <td><%# Eval("Correo") %></td>
+                                            </tr>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
                                 </tbody>
                             </table>
                         </div>
