@@ -89,6 +89,7 @@
     <Compile Include="Controler\BaseCajaControler.cs" />
     <Compile Include="Controler\CargoDescuentoVentasControler.cs" />
     <Compile Include="Controler\ClienteDomicilioControler.cs" />
+    <Compile Include="Controler\ClientesControler.cs" />
     <Compile Include="Controler\ComandImpresaaControler.cs" />
     <Compile Include="Controler\CuentaClienteControler.cs" />
     <Compile Include="Controler\DetalleVentaControler.cs" />

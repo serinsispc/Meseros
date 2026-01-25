@@ -180,6 +180,7 @@ namespace WebApplication
             Models.clienteDomicilios = await ClienteDomicilioControler.Lista(db);
             Models.AbrirModalDomicilio = false;
             Models.cargoDescuentoVentas= await CargoDescuentoVentasControler.ObtenerPorVenta(db,idVenta);
+            Models.clientes = await ClientesControler.ListaClientes(db);
 
 
             GuardarModelsEnSesion();

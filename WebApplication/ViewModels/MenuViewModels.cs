@@ -8,10 +8,10 @@ namespace WebApplication.ViewModels
 {
     public class MenuViewModels
     {
-        public bool estadopropina {  get; set; }
+        public bool estadopropina { get; set; }
         public int porpropina { get; set; }
-        public int cajero {  get; set; }
-        public int IdMesero { get; set; }    
+        public int cajero { get; set; }
+        public int IdMesero { get; set; }
         public string NombreMesero { get; set; }
         public int IdCuentaActiva { get; set; }
         public int IdZonaActiva { get; set; }
@@ -32,5 +32,6 @@ namespace WebApplication.ViewModels
         public bool AbrirModalDomicilio { get; set; }
         public List<Vendedor> ListaVendedor { get; set; }
         public List<CargoDescuentoVentas> cargoDescuentoVentas { get; set; }
+        public List<Clientes> clientes { get; set; }
     }
 }
