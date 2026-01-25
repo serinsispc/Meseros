@@ -437,10 +437,11 @@
                             </div>
                             <div class="col-12 col-lg-3">
                                 <label class="form-label">Buscar Documento</label>
-                                <input type="text" class="form-control" placeholder="Número de identificación" />
+                                <input type="text" class="form-control" id="txtBuscarNIT" runat="server" ClientIDMode="Static"
+                                       placeholder="Número de identificación" />
                             </div>
                             <div class="col-12 col-lg-2 d-grid">
-                                <button type="button" class="btn btn-ghost">
+                                <button type="button" class="btn btn-ghost" id="btnBuscarNIT">
                                     <i class="bi bi-search me-1"></i> Buscar
                                 </button>
                             </div>
@@ -1211,6 +1212,51 @@
                 });
             }
 
+            const setInput = (id, value) => {
+                const el = byId(id);
+                if (el) el.value = value ?? '';
+            };
+
+            const setSelect = (id, value) => {
+                const el = byId(id);
+                if (!el) return;
+                const val = (value ?? '').toString().trim();
+                if (!val) return;
+
+                const option = Array.from(el.options).find(o => o.value === val);
+                if (option) {
+                    el.value = val;
+                    return;
+                }
+
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                el.appendChild(opt);
+                el.value = val;
+            };
+
+            const aplicarDatosCliente = (data) => {
+                if (!data) return;
+                setSelect('ddlTipoDocumento', data.typeDocId);
+                setInput('txtIdentificacionCliente', data.nit);
+                setSelect('ddlTipoOrganizacion', data.orgId);
+                setSelect('ddlMunicipio', data.municipioId);
+                setSelect('ddlTipoRegimen', data.regimenId);
+                setSelect('ddlTipoResponsabilidad', data.responsabilidadId);
+                setSelect('ddlDetalleImpuesto', data.impuestoId);
+                setInput('txtNombreRazonCliente', data.nombre);
+                setInput('txtNombreComercioCliente', data.comercio);
+                setInput('txtTelefonoCliente', data.telefono);
+                setInput('txtDireccionCliente', data.direccion);
+                setInput('txtCorreoCliente', data.correo);
+                setInput('txtMatriculaCliente', data.matricula);
+            };
+
+            window.setClienteData = (data) => {
+                aplicarDatosCliente(data);
+            };
+
             const seleccionarFila = (row) => {
                 if (!row) return;
 
@@ -1218,43 +1264,21 @@
                 row.classList.add('selected');
                 row.focus();
 
-                const setInput = (id, value) => {
-                    const el = byId(id);
-                    if (el) el.value = value ?? '';
-                };
-
-                const setSelect = (id, value) => {
-                    const el = byId(id);
-                    if (!el) return;
-                    const val = (value ?? '').toString().trim();
-                    if (!val) return;
-
-                    const option = Array.from(el.options).find(o => o.value === val);
-                    if (option) {
-                        el.value = val;
-                        return;
-                    }
-
-                    const opt = document.createElement('option');
-                    opt.value = val;
-                    opt.textContent = val;
-                    el.appendChild(opt);
-                    el.value = val;
-                };
-
-                setSelect('ddlTipoDocumento', row.dataset.typeDocId);
-                setInput('txtIdentificacionCliente', row.dataset.nit);
-                setSelect('ddlTipoOrganizacion', row.dataset.orgId);
-                setSelect('ddlMunicipio', row.dataset.municipioId);
-                setSelect('ddlTipoRegimen', row.dataset.regimenId);
-                setSelect('ddlTipoResponsabilidad', row.dataset.responsabilidadId);
-                setSelect('ddlDetalleImpuesto', row.dataset.impuestoId);
-                setInput('txtNombreRazonCliente', row.dataset.nombre);
-                setInput('txtNombreComercioCliente', row.dataset.comercio);
-                setInput('txtTelefonoCliente', row.dataset.telefono);
-                setInput('txtDireccionCliente', row.dataset.direccion);
-                setInput('txtCorreoCliente', row.dataset.correo);
-                setInput('txtMatriculaCliente', row.dataset.matricula);
+                aplicarDatosCliente({
+                    typeDocId: row.dataset.typeDocId,
+                    nit: row.dataset.nit,
+                    orgId: row.dataset.orgId,
+                    municipioId: row.dataset.municipioId,
+                    regimenId: row.dataset.regimenId,
+                    responsabilidadId: row.dataset.responsabilidadId,
+                    impuestoId: row.dataset.impuestoId,
+                    nombre: row.dataset.nombre,
+                    comercio: row.dataset.comercio,
+                    telefono: row.dataset.telefono,
+                    direccion: row.dataset.direccion,
+                    correo: row.dataset.correo,
+                    matricula: row.dataset.matricula
+                });
             };
 
             clienteTable.addEventListener('click', (event) => {
@@ -1280,6 +1304,38 @@
                     event.preventDefault();
                     seleccionarFila(rows[Math.max(index - 1, 0)]);
                 }
+            });
+        }
+
+        const btnBuscarNIT = byId('btnBuscarNIT');
+        if (btnBuscarNIT) {
+            btnBuscarNIT.addEventListener('click', () => {
+                const nitInput = byId('txtBuscarNIT');
+                const tipoDoc = byId('ddlTipoDocumento');
+
+                const nit = (nitInput ? nitInput.value : '').trim();
+                const tipoDocVal = tipoDoc ? (tipoDoc.value || '') : '';
+
+                if (!nit || !tipoDocVal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Falta información',
+                        text: 'Para buscar el NIT debes seleccionar el tipo de documento.',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Consultando...',
+                    text: 'Buscando cliente, por favor espera.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                firePostBack('btnBuscarNIT', nit);
             });
         }
 

@@ -150,6 +150,15 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.DropDownList ddlDetalleImpuesto;
 
         /// <summary>
+        /// Control txtBuscarNIT.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputText txtBuscarNIT;
+
+        /// <summary>
         /// Control rptClientesModal.
         /// </summary>
         /// <remarks>

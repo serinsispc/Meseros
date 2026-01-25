@@ -145,6 +145,10 @@ namespace WebApplication
                     await btnGuardarPagoMixto(eventArgument);
                     break;
 
+                case "btnBuscarNIT":
+                    await btnBuscarNIT(eventArgument);
+                    break;
+
                 default:
                     break;
             }
@@ -152,6 +156,62 @@ namespace WebApplication
         private void GuardarModelsEnSesion()
         {
             Session[SessionModelsKey] = ModelSesion;
+        }
+
+        private Task btnBuscarNIT(string nit)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(nit))
+                {
+                    return Task.CompletedTask;
+                }
+
+                var clientes = ModelSesion?.clientes ?? new List<Clientes>();
+                var cliente = clientes.FirstOrDefault(x => x.identificationNumber == nit);
+
+                if (cliente == null)
+                {
+                    ClientScript.RegisterStartupScript(
+                        GetType(),
+                        "nitNoEncontrado",
+                        "Swal.fire({icon:'error',title:'¡Error!',text:'El documento no se encontró.',confirmButtonColor:'#2563eb'});",
+                        true);
+                    return Task.CompletedTask;
+                }
+
+                var payload = new
+                {
+                    typeDocId = cliente.typeDocumentIdentification_id,
+                    nit = cliente.identificationNumber,
+                    orgId = cliente.typeOrganization_id,
+                    municipioId = cliente.municipality_id,
+                    regimenId = cliente.typeRegime_id,
+                    responsabilidadId = cliente.typeLiability_id,
+                    impuestoId = cliente.typeTaxDetail_id,
+                    nombre = cliente.nameCliente,
+                    comercio = cliente.tradeName,
+                    telefono = cliente.phone,
+                    direccion = cliente.adress,
+                    correo = cliente.email,
+                    matricula = cliente.merchantRegistration
+                };
+
+                var json = JsonConvert.SerializeObject(payload);
+                var script = $"Swal.close(); if(window.setClienteData){{window.setClienteData({json});}}";
+
+                ClientScript.RegisterStartupScript(GetType(), "nitEncontrado", script, true);
+            }
+            catch
+            {
+                ClientScript.RegisterStartupScript(
+                    GetType(),
+                    "nitError",
+                    "Swal.fire({icon:'error',title:'¡Error!',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'});",
+                    true);
+            }
+
+            return Task.CompletedTask;
         }
         // ========= DESCUENTO =========
         // eventArgument: "valor|razon"
