@@ -96,6 +96,33 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.DropDownList ddlMedioPago;
 
         /// <summary>
+        /// Control txtEfectivo.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputText txtEfectivo;
+
+        /// <summary>
+        /// Control txtCambio.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputText txtCambio;
+
+        /// <summary>
+        /// Control txtBuscarNIT.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputText txtBuscarNIT;
+
+        /// <summary>
         /// Control ddlTipoDocumento.
         /// </summary>
         /// <remarks>
@@ -150,15 +177,6 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.DropDownList ddlDetalleImpuesto;
 
         /// <summary>
-        /// Control txtBuscarNIT.
-        /// </summary>
-        /// <remarks>
-        /// Campo generado automáticamente.
-        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlInputText txtBuscarNIT;
-
-        /// <summary>
         /// Control rptClientesModal.
         /// </summary>
         /// <remarks>
@@ -166,23 +184,5 @@ namespace WebApplication
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater rptClientesModal;
-
-        /// <summary>
-        /// Control txtEfectivo.
-        /// </summary>
-        /// <remarks>
-        /// Campo generado automáticamente.
-        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlInputText txtEfectivo;
-
-        /// <summary>
-        /// Control txtCambio.
-        /// </summary>
-        /// <remarks>
-        /// Campo generado automáticamente.
-        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlInputText txtCambio;
     }
 }
