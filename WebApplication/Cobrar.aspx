@@ -433,7 +433,7 @@
                         <div class="row g-2 align-items-end">
                             <div class="col-12 col-lg-7">
                                 <label class="form-label">Filtrar cliente por Nombre</label>
-                                <input type="text" class="form-control" placeholder="Buscar por nombre o razón social" />
+                                <input type="text" class="form-control" id="txtFiltroClienteNombre" placeholder="Buscar por nombre o razón social" />
                             </div>
                             <div class="col-12 col-lg-3">
                                 <label class="form-label">Buscar Documento</label>
@@ -1191,6 +1191,26 @@
         // ====== Inicializa ======
         const clienteTable = document.querySelector('#mdlCliente table');
         if (clienteTable) {
+            const filtroNombre = byId('txtFiltroClienteNombre');
+            const filasClientes = () => Array.from(clienteTable.querySelectorAll('.cliente-row'));
+
+            const aplicarFiltroClientes = () => {
+                if (!filtroNombre) return;
+                const texto = (filtroNombre.value || '').toUpperCase().trim();
+                const rows = filasClientes();
+                rows.forEach(row => {
+                    const nombre = (row.dataset.nombre || '').toUpperCase();
+                    row.style.display = nombre.includes(texto) ? '' : 'none';
+                });
+            };
+
+            if (filtroNombre) {
+                filtroNombre.addEventListener('input', () => {
+                    filtroNombre.value = filtroNombre.value.toUpperCase();
+                    aplicarFiltroClientes();
+                });
+            }
+
             const seleccionarFila = (row) => {
                 if (!row) return;
 
