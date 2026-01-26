@@ -167,7 +167,46 @@ namespace WebApplication
         }
         private async Task btnSeleccionarCliente(string eventArgument)
         {
+            if (string.IsNullOrWhiteSpace(eventArgument))
+            {
+                AlertModerno.Warning(this, "Atención", "Debes seleccionar un cliente antes de continuar.", true, 2000);
+                return;
+            }
 
+            if (!int.TryParse(eventArgument, out var clienteId) || clienteId <= 0)
+            {
+                AlertModerno.Error(this, "Error", "ID de cliente inválido.", true);
+                return;
+            }
+
+            var clientes = ModelSesion?.clientes ?? new List<Clientes>();
+            var cliente = clientes.FirstOrDefault(c => c.id == clienteId);
+            if (cliente == null)
+            {
+                AlertModerno.Error(this, "Error", "No se encontró el cliente seleccionado.", true);
+                return;
+            }
+
+            Session["cliente_seleccionado_id"] = clienteId;
+            Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
+
+            AlertModerno.Success(this, "OK", $"Cliente seleccionado: {cliente.nameCliente}", true, 1500);
+
+            string scriptCerrar = @"
+(function(){
+    var modalEl = document.getElementById('mdlCliente');
+    if (modalEl && window.bootstrap) {
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
+    }
+})();
+";
+            ScriptManager.RegisterStartupScript(
+                this,
+                GetType(),
+                "CerrarModalClienteSeleccionado",
+                scriptCerrar,
+                true);
         }
         private async Task btnBuscarNIT(string nit)
         {
@@ -658,6 +697,7 @@ namespace WebApplication
 
                 return new ClienteModalItem
                 {
+                    ClienteId = c.id,
                     TipoDocumentoId = c.typeDocumentIdentification_id,
                     TipoDocumento = tipoNombre,
                     Nit = c.identificationNumber,
@@ -681,6 +721,7 @@ namespace WebApplication
 
         private class ClienteModalItem
         {
+            public int ClienteId { get; set; }
             public int TipoDocumentoId { get; set; }
             public string TipoDocumento { get; set; }
             public string Nit { get; set; }
