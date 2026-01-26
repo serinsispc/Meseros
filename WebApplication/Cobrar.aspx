@@ -336,6 +336,7 @@
                                     <asp:Repeater ID="rptClientesModal" runat="server">
                                         <ItemTemplate>
                                             <tr class="cliente-row" tabindex="0"
+                                                data-cliente-id='<%# Eval("ClienteId") %>'
                                                 data-type-doc-id='<%# Eval("TipoDocumentoId") %>'
                                                 data-nit='<%# HttpUtility.HtmlAttributeEncode(Eval("Nit")?.ToString() ?? "") %>'
                                                 data-nombre='<%# HttpUtility.HtmlAttributeEncode(Eval("NombreCliente")?.ToString() ?? "") %>'
@@ -1056,8 +1057,12 @@
                 clienteTable.querySelectorAll('.cliente-row').forEach(r => r.classList.remove('selected'));
                 row.classList.add('selected');
                 row.focus();
+                if (btnSeleccionarCliente) {
+                    btnSeleccionarCliente.disabled = !row.dataset.clienteId;
+                }
 
                 aplicarDatosCliente({
+                    clienteId: row.dataset.clienteId,
                     typeDocId: row.dataset.typeDocId,
                     nit: row.dataset.nit,
                     orgId: row.dataset.orgId,
@@ -1098,6 +1103,26 @@
                     event.preventDefault();
                     seleccionarFila(rows[Math.max(index - 1, 0)]);
                 }
+            });
+        }
+
+        const btnSeleccionarCliente = byId('btnSeleccionarCliente');
+        if (btnSeleccionarCliente) {
+            btnSeleccionarCliente.addEventListener('click', () => {
+                const selected = document.querySelector('#mdlCliente .cliente-row.selected');
+                const clienteId = selected?.dataset?.clienteId;
+
+                if (!clienteId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Selecciona un cliente',
+                        text: 'Debes seleccionar un cliente antes de continuar.',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    return;
+                }
+
+                firePostBack('btnSeleccionarCliente', clienteId);
             });
         }
 
