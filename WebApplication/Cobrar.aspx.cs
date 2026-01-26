@@ -153,6 +153,10 @@ namespace WebApplication
                     await btnBuscarNIT(eventArgument);
                     break;
 
+                case "btnSeleccionarCliente":
+                    await btnSeleccionarCliente(eventArgument);
+                    break;
+
                 default:
                     break;
             }
@@ -161,7 +165,10 @@ namespace WebApplication
         {
             Session[SessionModelsKey] = ModelSesion;
         }
+        private async Task btnSeleccionarCliente(string eventArgument)
+        {
 
+        }
         private async Task btnBuscarNIT(string nit)
         {
             try

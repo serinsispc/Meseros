@@ -362,7 +362,7 @@
                     </div>
                     <div class="grid-footer mt-2"></div>
                     <div class="text-center mt-3">
-                        <button type="button" class="btn btnx px-4" disabled>
+                        <button type="button" id="btnSeleccionarCliente" class="btn btnx px-4" disabled>
                             <i class="bi bi-check2-square me-1"></i> Seleccionar cliente
                         </button>
                     </div>
