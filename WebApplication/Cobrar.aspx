@@ -3,11 +3,6 @@
     MaintainScrollPositionOnPostback="false" Async="true"%>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
-
 </asp:Content>
 
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
@@ -28,8 +23,8 @@
                 </div>
             </div>
 
-            <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btnx px-3" id="btnVolver">
+            <div class="d-flex align-items-center gap-2 topbar-actions">
+                <button type="button" class="btn btnx px-3 w-100 w-sm-auto" id="btnVolver">
                     <i class="bi bi-arrow-left"></i> Volver
                 </button>
             </div>
@@ -91,7 +86,7 @@
                                 <div class="hint mt-1">Valor descuento</div>
 
                                 <!-- ✅ Botones DESCUENTO -->
-                                <div class="d-flex gap-2 mt-2">
+                                <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
                                     <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarDescuento">
                                         <i class="bi bi-check2-circle"></i> Guardar descuento
                                     </button>
@@ -129,7 +124,7 @@
                                 <div class="hint mt-1">Valor propina</div>
 
                                 <!-- ✅ Botones PROPINA -->
-                                <div class="d-flex gap-2 mt-2">
+                                <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
                                     <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarPropina">
                                         <i class="bi bi-check2-circle"></i> Guardar propina
                                     </button>
