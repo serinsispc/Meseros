@@ -167,7 +167,23 @@ namespace WebApplication
         }
         private async Task btnSeleccionarCliente(string eventArgument)
         {
+            if (string.IsNullOrWhiteSpace(eventArgument))
+            {
+                return;
+            }
 
+            if (!int.TryParse(eventArgument, out var idCliente))
+            {
+                return;
+            }
+
+            Session["cliente_seleccionado_id"] = idCliente;
+
+            if (ModelSesion?.venta != null)
+            {
+                ModelSesion.venta.idCliente = idCliente;
+                GuardarModelsEnSesion();
+            }
         }
         private async Task btnBuscarNIT(string nit)
         {
@@ -658,6 +674,7 @@ namespace WebApplication
 
                 return new ClienteModalItem
                 {
+                    Id = c.id,
                     TipoDocumentoId = c.typeDocumentIdentification_id,
                     TipoDocumento = tipoNombre,
                     Nit = c.identificationNumber,
@@ -681,6 +698,7 @@ namespace WebApplication
 
         private class ClienteModalItem
         {
+            public int Id { get; set; }
             public int TipoDocumentoId { get; set; }
             public string TipoDocumento { get; set; }
             public string Nit { get; set; }

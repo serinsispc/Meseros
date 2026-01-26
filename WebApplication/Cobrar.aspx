@@ -336,6 +336,7 @@
                                     <asp:Repeater ID="rptClientesModal" runat="server">
                                         <ItemTemplate>
                                             <tr class="cliente-row" tabindex="0"
+                                                data-cliente-id='<%# Eval("Id") %>'
                                                 data-type-doc-id='<%# Eval("TipoDocumentoId") %>'
                                                 data-nit='<%# HttpUtility.HtmlAttributeEncode(Eval("Nit")?.ToString() ?? "") %>'
                                                 data-nombre='<%# HttpUtility.HtmlAttributeEncode(Eval("NombreCliente")?.ToString() ?? "") %>'
@@ -1057,6 +1058,13 @@
                 row.classList.add('selected');
                 row.focus();
 
+                const btnSeleccionarCliente = byId('btnSeleccionarCliente');
+                const selectedId = row.dataset.clienteId;
+                if (btnSeleccionarCliente) {
+                    btnSeleccionarCliente.disabled = !(selectedId && selectedId !== '0');
+                    btnSeleccionarCliente.setAttribute('data-cliente-id', selectedId || '');
+                }
+
                 aplicarDatosCliente({
                     typeDocId: row.dataset.typeDocId,
                     nit: row.dataset.nit,
@@ -1098,6 +1106,24 @@
                     event.preventDefault();
                     seleccionarFila(rows[Math.max(index - 1, 0)]);
                 }
+            });
+        }
+
+        const btnSeleccionarCliente = byId('btnSeleccionarCliente');
+        if (btnSeleccionarCliente) {
+            btnSeleccionarCliente.addEventListener('click', () => {
+                const selectedId = btnSeleccionarCliente.getAttribute('data-cliente-id') || '';
+                if (!selectedId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Selecciona un cliente',
+                        text: 'Debes elegir un cliente de la lista.',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    return;
+                }
+
+                firePostBack('btnSeleccionarCliente', selectedId);
             });
         }
 
