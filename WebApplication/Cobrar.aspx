@@ -194,14 +194,19 @@
 
                 <!-- Efectivo / Cambio -->
                 <div class="row g-2 mb-3">
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold mb-1">Abono Efectivo</label>
+                        <input type="text" class="form-control" id="txtAbonoEfectivo" runat="server" clientidmode="Static" value="0" readonly />
+                        <div class="hint mt-1">Saldo pago efectivo</div>
+                    </div>
+                    <div class="col-12 col-md-4">
                         <label class="form-label fw-bold mb-1">Efectivo</label>
                         <input type="text" class="form-control" id="txtEfectivo" runat="server" ClientIDMode="Static" value="0" />
                         <div class="hint mt-1">Se auto completa igual al Total</div>
                     </div>
-                    <div class="col-12 col-md-6">
+                    <div class="col-12 col-md-4">
                         <label class="form-label fw-bold mb-1">Cambio</label>
-                        <input type="text" class="form-control" id="txtCambio" runat="server" ClientIDMode="Static" value="0" />
+                        <input type="text" class="form-control" id="txtCambio" runat="server" ClientIDMode="Static" value="0" readonly />
                         <div class="hint mt-1">Queda en 0</div>
                     </div>
                 </div>
@@ -541,7 +546,6 @@
 
             const form = document.querySelector('form');
             if (!form) {
-                // ✅ IMPORTANTE: en WebForms NO se puede escribir "<form>" literal dentro de scripts
                 alert('No se encontró el formulario. El MasterPage debe tener &lt;form runat="server"&gt;.');
                 return;
             }
@@ -570,26 +574,79 @@
         // ✅ NUEVO: saldo en efectivo para "Mixto"
         // ==========================================================
         let sumMixtoInternos = 0; // suma digitada en el modal mixto
-        const esMixtoPorNombre = (nombre) => ((nombre || '').trim().toLowerCase() === 'mixto');
+        const norm = (s) => (s || '').toString().trim().toLowerCase();
+        const esMixtoPorNombre = (nombre) => (norm(nombre) === 'mixto');
+        const esEfectivoPorNombre = (nombre) => (norm(nombre) === 'efectivo');
+
+        // ==========================================================
+        // ✅ NUEVO: control para no pisar el efectivo cuando el usuario lo edita
+        // ==========================================================
+        let lastMedioPagoNombre = '';
+        let efectivoTouched = false;
+
+        const calcularCambioDesdeEfectivo = () => {
+            const total = getTotalActual();
+            const efectivo = getVal('txtEfectivo');
+
+            let cambio = efectivo - total;
+            if (cambio < 0) cambio = 0;
+
+            setVal('txtCambio', cambio);
+        };
+
+        const getNombreMedioSeleccionado = () => {
+            const ddl_ = byId('ddlMedioPago');
+            return ddl_ ? (ddl_.options[ddl_.selectedIndex]?.text || '') : '';
+        };
 
         const aplicarReglaEfectivoPorMedio = () => {
-            const ddl_ = byId('ddlMedioPago');
-            const nombre_ = ddl_ ? (ddl_.options[ddl_.selectedIndex]?.text || '') : '';
+            const nombre_ = getNombreMedioSeleccionado();
 
-            if (!esMixtoPorNombre(nombre_)) {
-                // ✅ NO mixto => efectivo 0 y cambio 0
-                setVal('txtEfectivo', 0);
+            // Detectar cambio de medio
+            if (norm(nombre_) !== norm(lastMedioPagoNombre)) {
+                efectivoTouched = false;
+                sumMixtoInternos = 0;
+            }
+
+            // ✅ Mixto
+            if (esMixtoPorNombre(nombre_)) {
+                const total = getTotalActual();
+                let saldo = total - (sumMixtoInternos || 0);
+                if (saldo < 0) saldo = 0;
+
+                setVal('txtEfectivo', saldo);
                 setVal('txtCambio', 0);
+
+                lastMedioPagoNombre = nombre_;
                 return;
             }
 
-            // ✅ mixto => efectivo = saldo
-            const total = getTotalActual();
-            let saldo = total - (sumMixtoInternos || 0);
-            if (saldo < 0) saldo = 0;
+            // ✅ Efectivo
+            if (esEfectivoPorNombre(nombre_)) {
+                const total = getTotalActual();
 
-            setVal('txtEfectivo', saldo);
+                // Auto completa con Total solo si el usuario NO lo ha tocado
+                const efectivoActual = getVal('txtEfectivo');
+                if (!efectivoTouched) {
+                    setVal('txtEfectivo', total);
+                } else {
+                    // Si lo tocó, lo dejamos, pero si está en 0 y el total > 0, lo volvemos a setear.
+                    if (efectivoActual === 0 && total > 0) {
+                        setVal('txtEfectivo', total);
+                        efectivoTouched = false; // vuelve a estado "no tocado"
+                    }
+                }
+
+                calcularCambioDesdeEfectivo();
+                lastMedioPagoNombre = nombre_;
+                return;
+            }
+
+            // ✅ Otros medios (tarjeta/transferencia/etc.)
+            setVal('txtEfectivo', 0);
             setVal('txtCambio', 0);
+
+            lastMedioPagoNombre = nombre_;
         };
 
         const getSubTotal = () => getVal('txtSubTotal');
@@ -701,6 +758,24 @@
                 if (getVal('txtDescuento') > 0) pctDesdeDescuento();
                 recalcularTotal();
             });
+        }
+
+        // ==========================================================
+        // ✅ NUEVO: Cambio automático cuando se modifica el efectivo
+        // ==========================================================
+        const elEfectivo = byId('txtEfectivo');
+        if (elEfectivo) {
+            const onEfectivoChange = () => {
+                const nombre_ = getNombreMedioSeleccionado();
+                if (!esEfectivoPorNombre(nombre_)) return; // Solo aplica cuando es "Efectivo"
+
+                efectivoTouched = true;
+                calcularCambioDesdeEfectivo();
+            };
+
+            elEfectivo.addEventListener('input', onEfectivoChange);
+            elEfectivo.addEventListener('change', onEfectivoChange);
+            elEfectivo.addEventListener('keyup', onEfectivoChange);
         }
 
         // ====== Volver ======
@@ -904,11 +979,19 @@
                 const idMedioPago = this.value;
                 const nombre = this.options[this.selectedIndex]?.text || '';
 
+                // reset control
+                efectivoTouched = false;
                 sumMixtoInternos = 0;
 
                 if (esMixtoPorNombre(nombre)) {
                     aplicarReglaEfectivoPorMedio();
                     abrirModalMixto(idMedioPago, nombre);
+                    return;
+                }
+
+                // ✅ Si es efectivo: solo aplica regla (auto total + cambio)
+                if (esEfectivoPorNombre(nombre)) {
+                    aplicarReglaEfectivoPorMedio();
                     return;
                 }
 

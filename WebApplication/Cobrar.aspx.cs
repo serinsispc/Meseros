@@ -93,6 +93,19 @@ namespace WebApplication
                     Session["propina_valor"] = 0;
                 }
 
+                //verificar si la venta activa ya tiene un usuario relacionado
+                var cliente = await ClientesControler.Consultar_id(Session["db"].ToString(),ModelSesion.venta.idCliente);
+                if (cliente != null)
+                {
+                    Session["cliente_seleccionado_id"] = cliente.id;
+                    Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
+                    Session["cliente_seleccionado_nit"] = cliente.identificationNumber ?? "";
+                    Session["cliente_seleccionado_correo"] = cliente.email ?? "";
+
+                    cliente_seleccionado_nit.Text = cliente.identificationNumber ?? "";
+                    cliente_seleccionado_nombre.Text = cliente.nameCliente ?? "";
+                    cliente_seleccionado_correo.Text = cliente.email ?? "";
+                }
 
                 hfIdVentaActual.Value = VentaActual.id.ToString();
             }
@@ -220,6 +233,7 @@ namespace WebApplication
             cliente_seleccionado_nombre.Text= cliente.nameCliente ?? "";
             cliente_seleccionado_correo.Text= cliente.email ?? "";
 
+            Session["fe"] = true;
 
             AlertModerno.Success(this, "OK", $"Cliente seleccionado: {cliente.nameCliente}", true, 1500);
 

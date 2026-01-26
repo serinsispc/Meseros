@@ -23,5 +23,19 @@ namespace DAL.Controler
                 return new List<Clientes>();
             }
         }
+        public static async Task<Clientes> Consultar_id(string db,int id)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                var resp = await cn.ConsultarUno<Clientes>(db, x=>x.id==id);
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }
