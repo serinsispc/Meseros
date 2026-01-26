@@ -11,7 +11,15 @@ namespace WebApplication
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            var db = Session["db"].ToString();
+            string db;
+            if (Session["db"] != null)
+            {
+                db = Session["db"].ToString();
+            }
+            else
+            {
+                db = "-";
+            }
             // Limpia toda la sesión
             Session.Clear();
             Session.Abandon();

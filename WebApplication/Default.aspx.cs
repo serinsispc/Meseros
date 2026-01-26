@@ -19,7 +19,7 @@ namespace WebApplication
             if (!IsPostBack)
             {
                 string db = Request.QueryString["db"];
-
+                if (db == "-") return;
                 if (!string.IsNullOrEmpty(db))
                 {
                     // Sanitizar db (seguridad)

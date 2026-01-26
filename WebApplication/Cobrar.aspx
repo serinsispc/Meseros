@@ -157,16 +157,47 @@
                         <div class="hint">Si activas, se abrirá el modal para agregar cliente</div>
                     </div>
                     <div class="form-check form-switch m-0">
-                        <input class="form-check-input" type="checkbox" id="swFE" />
+                                        <%
+                                            if (Session["cliente_seleccionado_nit"] != null)
+                                            {
+                %>
+<input class="form-check-input" type="checkbox" id="swFE" checked="checked" />
+                <%
+                    }
+                    else
+                    {
+                %>
+                        <input class="form-check-input" type="checkbox" id="swFE"/>
+                        <%} %>
+                        
+                        
                     </div>
                 </div>
+
+               <%-- Información del cliente seleccionado --%>
+                <%
+                    if (Session["cliente_seleccionado_nit"] != null)
+                    {
+                %>
+                <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3" style="border-color: var(--border) !important;">
+                    <div>
+                        <div class="fw-bold">Cliente seleccionado</div>
+                        <div class="hint">NIT: <asp:Label ID="cliente_seleccionado_nit" runat="server"></asp:Label></div>
+                        <div class="hint">Nombre: <asp:Label ID="cliente_seleccionado_nombre" runat="server"></asp:Label></div>
+                        <div class="hint">Email: <asp:Label ID="cliente_seleccionado_correo" runat="server"></asp:Label></div>
+                    </div>
+                </div>
+                <%
+                    }
+                %>
+
 
                 <!-- Efectivo / Cambio -->
                 <div class="row g-2 mb-3">
                     <div class="col-12 col-md-6">
                         <label class="form-label fw-bold mb-1">Efectivo</label>
                         <input type="text" class="form-control" id="txtEfectivo" runat="server" ClientIDMode="Static" value="0" />
-                        <div class="hint mt-1">Se autocompleta igual al Total</div>
+                        <div class="hint mt-1">Se auto completa igual al Total</div>
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label fw-bold mb-1">Cambio</label>
@@ -174,6 +205,9 @@
                         <div class="hint mt-1">Queda en 0</div>
                     </div>
                 </div>
+
+
+
 
                 <!-- Guardar -->
                 <div class="d-grid">

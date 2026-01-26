@@ -96,6 +96,33 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.DropDownList ddlMedioPago;
 
         /// <summary>
+        /// Control cliente_seleccionado_nit.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label cliente_seleccionado_nit;
+
+        /// <summary>
+        /// Control cliente_seleccionado_nombre.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label cliente_seleccionado_nombre;
+
+        /// <summary>
+        /// Control cliente_seleccionado_correo.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label cliente_seleccionado_correo;
+
+        /// <summary>
         /// Control txtEfectivo.
         /// </summary>
         /// <remarks>

@@ -187,8 +187,6 @@ namespace WebApplication
                 return;
             }
 
-            Session["cliente_seleccionado_id"] = clienteId;
-            Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
 
             //relacionamos al cleinte con la venta
             int funcion = 0;
@@ -212,6 +210,15 @@ namespace WebApplication
                 AlertModerno.Error(this, "Error", "No se puso relacionar el cliente seleccionado.", true);
                 return;
             }
+
+            Session["cliente_seleccionado_id"] = clienteId;
+            Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
+            Session["cliente_seleccionado_nit"] = cliente.identificationNumber ?? "";
+            Session["cliente_seleccionado_correo"] = cliente.email ?? "";
+
+            cliente_seleccionado_nit.Text= cliente.identificationNumber ?? "";
+            cliente_seleccionado_nombre.Text= cliente.nameCliente ?? "";
+            cliente_seleccionado_correo.Text= cliente.email ?? "";
 
 
             AlertModerno.Success(this, "OK", $"Cliente seleccionado: {cliente.nameCliente}", true, 1500);

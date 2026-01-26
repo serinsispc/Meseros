@@ -59,7 +59,10 @@ namespace WebApplication
 
                 if (!IsPostBack)
                 {
-                    await InicializarPagina(Session["db"].ToString());
+                    if (Session["db"] != null)
+                    {
+                        await InicializarPagina(Session["db"].ToString());
+                    }
                 }
                 else
                 {
