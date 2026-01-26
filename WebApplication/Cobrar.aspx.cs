@@ -190,17 +190,41 @@ namespace WebApplication
             Session["cliente_seleccionado_id"] = clienteId;
             Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
 
+            //relacionamos al cleinte con la venta
+            int funcion = 0;
+            var relacion = await R_VentaCliente_Controler.ConsultarRelacion(Session["db"].ToString(),ModelSesion.venta.id);
+            if (relacion == null)
+            {
+                relacion = new R_VentaCliente();
+                relacion.id = 0;
+                relacion.idVenta = ModelSesion.venta.id;
+                relacion.idCliente = clienteId;
+                relacion.idSede = 0;
+            }
+            else
+            {
+                funcion = 1;
+                relacion.idCliente = clienteId;
+            }
+            var resul = await R_VentaCliente_Controler.CRUD(Session["db"].ToString(),relacion,funcion);
+            if (!resul)
+            {
+                AlertModerno.Error(this, "Error", "No se puso relacionar el cliente seleccionado.", true);
+                return;
+            }
+
+
             AlertModerno.Success(this, "OK", $"Cliente seleccionado: {cliente.nameCliente}", true, 1500);
 
             string scriptCerrar = @"
-(function(){
-    var modalEl = document.getElementById('mdlCliente');
-    if (modalEl && window.bootstrap) {
-        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.hide();
-    }
-})();
-";
+                (function(){
+                    var modalEl = document.getElementById('mdlCliente');
+                    if (modalEl && window.bootstrap) {
+                        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.hide();
+                    }
+                })();
+                ";
             ScriptManager.RegisterStartupScript(
                 this,
                 GetType(),

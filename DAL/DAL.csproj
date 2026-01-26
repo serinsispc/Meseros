@@ -101,6 +101,7 @@
     <Compile Include="Controler\payment_methodsControler.cs" />
     <Compile Include="Controler\R_CuentaCliente_DetalleVentaControler.cs" />
     <Compile Include="Controler\R_VendedorUsuarioControler.cs" />
+    <Compile Include="Controler\R_VentaCliente_Controler.cs" />
     <Compile Include="Controler\R_VentaMesaControler.cs" />
     <Compile Include="Controler\R_VentaVendedorControler.cs" />
     <Compile Include="Controler\SedeControler.cs" />
@@ -148,6 +149,7 @@
     <Compile Include="Model\payment_methods.cs" />
     <Compile Include="Model\R_CuentaCliente_DetalleVenta.cs" />
     <Compile Include="Model\R_VendedorUsuario.cs" />
+    <Compile Include="Model\R_VentaCliente.cs" />
     <Compile Include="Model\R_VentaClienteDomicilio.cs" />
     <Compile Include="Model\R_VentaMesa.cs" />
     <Compile Include="Model\R_VentaVendedor.cs" />
