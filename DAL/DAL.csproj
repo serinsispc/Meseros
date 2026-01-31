@@ -161,6 +161,7 @@
     <Compile Include="Model\type_liabilities.cs" />
     <Compile Include="Model\type_regimes.cs" />
     <Compile Include="Model\tax_details.cs" />
+    <Compile Include="Model\V_DetalleComandas.cs" />
     <Compile Include="Model\V_Municipios.cs" />
     <Compile Include="Model\Vendedor.cs" />
     <Compile Include="Model\V_CatagoriaAdicion.cs" />

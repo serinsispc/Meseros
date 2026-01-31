@@ -36,5 +36,6 @@ namespace DAL.Model
         public int idCategoria { get; set; }
         public int idCuentaCliente { get; set; }
         public string nombreCuenta { get; set; }
+        public int itemComandado { get; set; }
     }
 }

@@ -1322,23 +1322,32 @@ namespace WebApplication
         protected async void btnComandar_ServerClick(object sender, EventArgs e)
         {
             await CargarModelsDesdeSesion();
-            var comanda = new ImprecionComandaAdd
+            //lo primero es varificar si la cuenta tiene item pendientes por comandar
+            if (Models.detalleCaja.Where(x => x.itemComandado == 0).ToList().Count() == 0)
             {
-                id = 0,
-                idVenta = Models.IdCuentaActiva,
-                idMesa = Convert.ToString(Models.IdMesaActiva),
-                idMesero = Convert.ToString(Models.IdMesero),
-                estado = 1
-            };
-            var resp = await ImprecionComandaAddControler.CRUD(Session["db"].ToString(), comanda, 0);
-            if (resp.estado)
-            {
-                AlertModerno.Success(this, "Ok", "Comanda enviada correctamente.", true, 1500);
+                AlertModerno.Error(this, "Error", "No hay item pendientes por comandar.", true, 1500);
             }
             else
             {
-                AlertModerno.Error(this, "Error", "Comanda no enviada correctamente.", true, 1500);
+                var comanda = new ImprecionComandaAdd
+                {
+                    id = 0,
+                    idVenta = Models.IdCuentaActiva,
+                    idMesa = Convert.ToString(Models.IdMesaActiva),
+                    idMesero = Convert.ToString(Models.IdMesero),
+                    estado = 1
+                };
+                var resp = await ImprecionComandaAddControler.CRUD(Session["db"].ToString(), comanda, 0);
+                if (resp.estado)
+                {
+                    AlertModerno.Success(this, "Ok", "Comanda enviada correctamente.", true, 1500);
+                }
+                else
+                {
+                    AlertModerno.Error(this, "Error", "Comanda no enviada correctamente.", true, 1500);
+                }
             }
+
 
             GuardarModelsEnSesion();
             BindProductos();
