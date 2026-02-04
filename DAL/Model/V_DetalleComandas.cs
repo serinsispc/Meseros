@@ -15,5 +15,6 @@ namespace DAL.Model
         public string nota { get; set; }
         public string nombreCuenta {  get; set; }
         public int itemComandado { get; set; }
+        public string impresora {  get; set; }
     }
 }

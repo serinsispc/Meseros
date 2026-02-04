@@ -104,7 +104,7 @@ namespace WebApplication
                             if (baseActiva != null)
                             {
                                 Session["base_caja"] = JsonConvert.SerializeObject(baseActiva);
-
+                                Session["idBase"] = baseActiva.id;
                                 AlertModerno.SuccessGoTo(this, "Ok",
                                     $"Bienvenido {vendedor.nombreVendedor}",
                                     "~/menu.aspx", esToast: false, ms: 1200);
@@ -188,7 +188,7 @@ namespace WebApplication
             if (baseNueva != null)
             {
                 Session["base_caja"] = JsonConvert.SerializeObject(baseNueva);
-
+                Session["idBase"] = baseNueva.id;
                 AlertModerno.SuccessGoTo(this, "Ok",
                     "Caja aperturada correctamente.",
                     "~/menu.aspx", esToast: false, ms: 1200);

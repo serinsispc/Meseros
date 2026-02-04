@@ -80,5 +80,52 @@ namespace DAL.Controler
                 };
             }
         }
+
+        public static async Task<TablaVentas> ConsultarIdVenta(string db, int id)
+        {
+            try
+            {
+                var auto = new SqlAutoDAL();
+
+                // SELECT TOP 1 * FROM TablaVentas WHERE id = {id}
+                var venta = await auto.ConsultarUno<TablaVentas>(db, x => x.id == id);
+
+                if (venta == null)
+                {
+                    return null;
+                }
+                return venta;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
+        public static async Task<int> Consecutivo(string db, int idResolucion)
+        {
+            try
+            {
+                var auto = new SqlAutoDAL();
+
+                string sql = $@"
+            SELECT ISNULL(MAX(numeroVenta), 0) AS consecutivo
+            FROM TablaVentas
+            WHERE idResolucion = {idResolucion};";
+
+                var r = await auto.EjecutarSQLObjeto<V_ConsecutivoVenta>(db, sql);
+
+                // Si no hay registros, devuelve 0
+                if (r == null) return 0;
+
+                return r.consecutivo+1;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return 0;
+            }
+        }
+
     }
 }

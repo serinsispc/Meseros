@@ -97,7 +97,9 @@
     <Compile Include="Controler\ImagenesControler.cs" />
     <Compile Include="Controler\ImprecionComandaAddControler.cs" />
     <Compile Include="Controler\ImprimirCuentaControler.cs" />
+    <Compile Include="Controler\MediosDePagoInternos_Controler.cs" />
     <Compile Include="Controler\MesasControler.cs" />
+    <Compile Include="Controler\PagosVenta_controler.cs" />
     <Compile Include="Controler\payment_methodsControler.cs" />
     <Compile Include="Controler\R_CuentaCliente_DetalleVentaControler.cs" />
     <Compile Include="Controler\R_VendedorUsuarioControler.cs" />
@@ -120,6 +122,7 @@
     <Compile Include="Controler\V_CuentasVentaControler.cs" />
     <Compile Include="Controler\V_DetalleCajaControler.cs" />
     <Compile Include="Controler\v_productoVentaControler.cs" />
+    <Compile Include="Controler\V_Resoluciones_Controler.cs" />
     <Compile Include="Controler\V_R_MediosDePago_MediosDePagoInternosControler.cs" />
     <Compile Include="Controler\V_ServicioMesaControler.cs" />
     <Compile Include="Controler\V_TablaVentasControler.cs" />
@@ -143,6 +146,7 @@
     <Compile Include="Model\Imagenes.cs" />
     <Compile Include="Model\ImprecionComandaAdd.cs" />
     <Compile Include="Model\ImprimirCuenta.cs" />
+    <Compile Include="Model\MediosDePagoInternos.cs" />
     <Compile Include="Model\Mesas.cs" />
     <Compile Include="Model\PagosVenta.cs" />
     <Compile Include="Model\payment_forms.cs" />
@@ -171,6 +175,7 @@
     <Compile Include="Model\V_CuentasVenta.cs" />
     <Compile Include="Model\V_DetalleCaja.cs" />
     <Compile Include="Model\v_productoVenta.cs" />
+    <Compile Include="Model\V_Resoluciones.cs" />
     <Compile Include="Model\V_R_MediosDePago_MediosDePagoInternos.cs" />
     <Compile Include="Model\V_ServicioMesa.cs" />
     <Compile Include="Model\V_TablaVentas.cs" />
@@ -181,6 +186,7 @@
     <Compile Include="Respuesta_DAL.cs" />
     <Compile Include="SqlAutoBuilder.cs" />
     <Compile Include="SqlAutoDAL.cs" />
+    <Compile Include="V_ConsecutivoVenta.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.Config" />

@@ -76,6 +76,14 @@
         form.submit();
     };
 
+    // ==========================================================
+    // ✅ Base64 seguro UTF8 (lo usamos para enviar JSON al server)
+    // ==========================================================
+    const encodeB64 = (str) => {
+        try { return btoa(unescape(encodeURIComponent(str))); }
+        catch { return btoa(str); }
+    };
+
     // ====== Cálculos ======
     let lock = false;
 
@@ -329,6 +337,41 @@
         });
     }
 
+    // ==========================================================
+    // ✅ BOTÓN GUARDAR (NUEVO)
+    // Envia: efectivo, cambio, facturaElectronica (swFE)
+    // ==========================================================
+    const btnGuardar = byId('btnGuardar');
+    if (btnGuardar) {
+        btnGuardar.addEventListener('click', () => {
+            // asegurar cambio actualizado
+            calcularCambioDesdeEfectivo();
+
+            const efectivo = getVal('txtEfectivo');
+            const cambio = getVal('txtCambio');
+
+            const sw = byId('swFE');
+            const facturaElectronica = !!(sw && sw.checked);
+
+            const ddlMedio = byId('ddlMedioPago');
+            const idMetodoPago = ddlMedio ? parseInt(ddlMedio.value || '0', 10) : 0;
+
+            const hfVenta = byId('hfIdVentaActual');
+            const idVenta = hfVenta ? parseInt(hfVenta.value || '0', 10) : 0;
+
+            const payload = {
+                efectivo: efectivo,
+                cambio: cambio,
+                facturaElectronica: facturaElectronica,
+                idMetodoPago: idMetodoPago,   // opcional, pero útil
+                idVenta: idVenta              // opcional, pero útil
+            };
+
+            const arg = encodeB64(JSON.stringify(payload));
+            firePostBack('btnGuardar', arg);
+        });
+    }
+
     // ====== Factura electrónica ======
     const swFE = byId('swFE');
     const modalClienteEl = byId('mdlCliente');
@@ -395,11 +438,6 @@
         const s = (v ?? '').toString().replace(/[^\d-]/g, '');
         const n = parseInt(s || '0', 10);
         return isNaN(n) ? 0 : n;
-    };
-
-    const encodeB64 = (str) => {
-        try { return btoa(unescape(encodeURIComponent(str))); }
-        catch { return btoa(str); }
     };
 
     const sumarValoresMixto = () => {
@@ -546,6 +584,22 @@
 
             if (esEfectivoPorNombre(nombre)) {
                 aplicarReglaEfectivoPorMedio();
+
+                // ✅ setear PagoVentaJSON automáticamente (sin modal)
+                try {
+                    const rel = getRel();
+                    const idMetodoPago = parseInt(idMedioPago || '0', 10);
+                    const r = rel.find(x => parseInt(x.idMedioDePago, 10) === idMetodoPago);
+
+                    if (r) {
+                        const idMedioInterno = parseInt(r.idMediosDePagoInternos || '0', 10);
+                        if (idMedioInterno > 0) {
+                            const arg = `${idMedioInterno}|${idMetodoPago}`;
+                            firePostBack('btnSeleccionarPagoInterno', arg);
+                        }
+                    }
+                } catch { }
+
                 return;
             }
 
@@ -699,9 +753,9 @@
         });
     }
 
-    const btnSeleccionarCliente = byId('btnSeleccionarCliente');
-    if (btnSeleccionarCliente) {
-        btnSeleccionarCliente.addEventListener('click', () => {
+    const btnSeleccionarCliente2 = byId('btnSeleccionarCliente');
+    if (btnSeleccionarCliente2) {
+        btnSeleccionarCliente2.addEventListener('click', () => {
             const selected = document.querySelector('#mdlCliente .cliente-row.selected');
             const clienteId = selected?.dataset?.clienteId;
 
