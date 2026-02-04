@@ -46,12 +46,18 @@
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="QRCoder, Version=1.7.0.0, Culture=neutral, PublicKeyToken=c4ed5b9ae8358a28, processorArchitecture=MSIL">
+      <HintPath>..\packages\QRCoder.1.7.0\lib\net40\QRCoder.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.6.1\lib\net462\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Pipelines, Version=10.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.IO.Pipelines.10.0.0\lib\net462\System.IO.Pipelines.dll</HintPath>
     </Reference>
@@ -82,6 +88,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AjustarJson.cs" />
@@ -94,6 +101,7 @@
     <Compile Include="Controler\controlador_tokenEmpresa.cs" />
     <Compile Include="Controler\CuentaClienteControler.cs" />
     <Compile Include="Controler\DetalleVentaControler.cs" />
+    <Compile Include="Controler\FacturaElectronicaControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
     <Compile Include="Controler\ImprecionComandaAddControler.cs" />
     <Compile Include="Controler\ImprimirCuentaControler.cs" />
@@ -108,11 +116,13 @@
     <Compile Include="Controler\R_VentaVendedorControler.cs" />
     <Compile Include="Controler\SedeControler.cs" />
     <Compile Include="Controler\TablaVentasControler.cs" />
+    <Compile Include="Controler\tokenEmpresaControler.cs" />
     <Compile Include="Controler\type_document_identificationsControler.cs" />
     <Compile Include="Controler\type_organizationsControler.cs" />
     <Compile Include="Controler\type_liabilitiesControler.cs" />
     <Compile Include="Controler\type_regimesControler.cs" />
     <Compile Include="Controler\tax_detailsControler.cs" />
+    <Compile Include="Controler\V_CorreosClienteControler.cs" />
     <Compile Include="Controler\V_MunicipiosControler.cs" />
     <Compile Include="Controler\VendedorControler.cs" />
     <Compile Include="Controler\V_CatagoriaAdicionControler.cs" />
@@ -128,6 +138,7 @@
     <Compile Include="Controler\V_TablaVentasControler.cs" />
     <Compile Include="Controler\ZonasControler.cs" />
     <Compile Include="CrudSpHelper.cs" />
+    <Compile Include="Funciones\ClassFE.cs" />
     <Compile Include="Funciones\ComandImpresaa_f.cs" />
     <Compile Include="Funciones\CuentaCliente_f.cs" />
     <Compile Include="Funciones\DetalleVenta_f.cs" />
@@ -143,6 +154,7 @@
     <Compile Include="Model\ComandImpresaa.cs" />
     <Compile Include="Model\CuentaCliente.cs" />
     <Compile Include="Model\DetalleVenta.cs" />
+    <Compile Include="Model\FacturaElectronica.cs" />
     <Compile Include="Model\Imagenes.cs" />
     <Compile Include="Model\ImprecionComandaAdd.cs" />
     <Compile Include="Model\ImprimirCuenta.cs" />
@@ -165,6 +177,7 @@
     <Compile Include="Model\type_liabilities.cs" />
     <Compile Include="Model\type_regimes.cs" />
     <Compile Include="Model\tax_details.cs" />
+    <Compile Include="Model\V_CorreosCliente.cs" />
     <Compile Include="Model\V_DetalleComandas.cs" />
     <Compile Include="Model\V_Municipios.cs" />
     <Compile Include="Model\Vendedor.cs" />
@@ -195,7 +208,12 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\RFacturacionElectronicaDIAN\3-RFacturacionElectronicaDIAN.csproj">
+      <Project>{DCB97E79-29A6-4BD1-AA9C-25A4BDDF6D2C}</Project>
+      <Name>3-RFacturacionElectronicaDIAN</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

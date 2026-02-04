@@ -1,5 +1,6 @@
 ﻿using DAL;
 using DAL.Controler;
+using DAL.Funciones;
 using DAL.Model;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -188,18 +189,6 @@ namespace WebApplication
             }
         }
 
-        private async Task<string> TipoJson(string json)
-        {
-            var token = JToken.Parse(json);
-
-            if (token.Type == JTokenType.Array)
-                return "LISTA";
-
-            if (token.Type == JTokenType.Object)
-                return "OBJETO";
-
-            return "OTRO";
-        }
 
         private async Task btnGuardar(string eventArgument)
         {
@@ -272,7 +261,7 @@ namespace WebApplication
                 string tipoFactura = string.Empty;
                 if (payload.facturaElectronica)
                 {
-                    tipoFactura = "FACTURA ELÉTRONICA DE VENTA";
+                    tipoFactura = "FACTURA ELECTRÓNICA DE VENTA";
                 }
                 else
                 {
@@ -285,6 +274,7 @@ namespace WebApplication
                     AlertModerno.Warning(this, "Atención", "NO se encontro la resolución.", true, 2200);
                     return;
                 }
+
 
                 var venta = await TablaVentasControler.ConsultarIdVenta(Session["db"].ToString(), ModelSesion.IdCuentaActiva);
                 venta.fechaVenta = DateTime.Now;
@@ -316,10 +306,23 @@ namespace WebApplication
                     AlertModerno.Error(this, "Error", "No se proceso la venta.", true, 1200);
                 }
 
+
+                var tv= await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(),ModelSesion.IdCuentaActiva);
+
                 bool respPagos = await PagosVenta_controler.CRUD(Session["db"].ToString(), Pagos, 0);
 
                 if (payload.facturaElectronica)
                 {
+                    //procesamos la factura electronica
+                    var respfe = await ClassFE.FacturaElectronica(Session["db"].ToString(), tv, ModelSesion.detalleCaja, Session["TokenFE"].ToString());
+                    if (respfe)
+                    {
+                        AlertModerno.Success(this, "OK", "Factura electrónica enviada correctamente.", true, 1200);
+                    }
+                    else
+                    {
+                        AlertModerno.Error(this, "Error", "La factura electrónica no fue enviada.", true, 1200);
+                    }
                 }
 
                 AlertModerno.Success(this, "OK", "Datos de cobro recibidos: efectivo, cambio y FE.", true, 1200);

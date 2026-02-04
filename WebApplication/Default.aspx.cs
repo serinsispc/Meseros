@@ -98,6 +98,17 @@ namespace WebApplication
                         {
                             Session["usuario_caja"] = JsonConvert.SerializeObject(usuarioCaja);
 
+                            //consultamos el token de facturacion
+                            var tokem = await tokenEmpresaControler.ConsultarToken(Session["db"].ToString());
+                            if(tokem != null)
+                            {
+                                Session["TokenFE"] = tokem.token;
+                            }
+                            else
+                            {
+                                Session["TokenFE"] = null;
+                            }
+
                             // verificar base activa
                             var baseActiva = await BaseCajaControler.VerificarBaseCaja(db, usuarioCaja.id);
 

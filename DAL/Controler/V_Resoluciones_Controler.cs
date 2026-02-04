@@ -28,5 +28,24 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<V_Resoluciones> ConsultarID(string db, int id)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                var resp = await cn.ConsultarUno<V_Resoluciones>(db, x => x.idResolucion == id);
+                if (resp != null)
+                {
+                    return resp;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }
