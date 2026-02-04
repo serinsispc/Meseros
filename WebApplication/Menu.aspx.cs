@@ -117,7 +117,15 @@ namespace WebApplication
             }
 
             // Obtener cuentas del vendedor
-            var cuentas = await V_CuentasVentaControler.Lista_IdVendedor(db, vendedor.id) ?? new List<V_CuentasVenta>();
+            var cuentas = new List<V_CuentasVenta>();
+            if ((int)Session["cajero"] == 1)
+            {
+                cuentas = await V_CuentasVentaControler.Lista_Cajero(db) ?? new List<V_CuentasVenta>();
+            }
+            else 
+            {
+                cuentas=await V_CuentasVentaControler.Lista_IdVendedor(db, vendedor.id) ?? new List<V_CuentasVenta>();
+            }
             int idVenta;
 
             if (!cuentas.Any())

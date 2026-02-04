@@ -23,5 +23,20 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<List<V_CuentasVenta>> Lista_Cajero(string db)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x =>x.numeroVenta == 0);
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }
