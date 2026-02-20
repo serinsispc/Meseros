@@ -141,7 +141,7 @@
     <script src="Scripts/js/AlertModerno.js"></script>
 
             <!-- Estilos específicos de esta vista -->
-    <link href="Content/css/menu.css" rel="stylesheet" />
+    <link href="Content/css/menu.css?v=20260212_4" rel="stylesheet" />
 
 
 </head>
@@ -171,6 +171,12 @@
       <asp:ContentPlaceHolder ID="MainContent" runat="server" />
     </div>
 
+
+          <!-- Botones flotantes -->
+    <div class="scroll-buttons">
+        <button type="button" class="scroll-btn" onclick="scrollToTop()">▲</button>
+        <button type="button" class="scroll-btn" onclick="scrollToBottom()">▼</button>
+    </div>
 
   </form>
 

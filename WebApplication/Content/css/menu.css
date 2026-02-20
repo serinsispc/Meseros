@@ -365,8 +365,8 @@ input[type="button"], input[type="submit"], input[type="reset"] {
 
 /* Price badge */
 .price-badge {
-    background: #f1f3f5; /* gris claro */
-    color: #212529; /* negro suave (Bootstrap text color base) */
+    background: #f1f3f5;
+    color: #212529;
     font-weight: 700;
     padding: 6px 12px;
     border-radius: 999px;
@@ -375,7 +375,6 @@ input[type="button"], input[type="submit"], input[type="reset"] {
     min-width: 70px;
     text-align: center;
 }
-
 
 /* Utilidades */
 .btn-success-subtle {
@@ -525,9 +524,6 @@ input[type="button"], input[type="submit"], input[type="reset"] {
     }
 }
 
-
-
-
 .cuenta-card {
     transition: all 0.2s ease-in-out;
     cursor: pointer;
@@ -538,43 +534,34 @@ input[type="button"], input[type="submit"], input[type="reset"] {
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
     }
 
-
-
-
-
 /* Badge pequeño y discreto para el nombre de la cuenta */
 .account-badge {
-    display: inline-block; /* se comporta como una 'marquilla' sin romper el flujo */
-    font-size: 0.78rem; /* tamaño pequeño */
-    line-height: 1; /* compacto verticalmente */
-    color: rgba(33, 37, 41, 0.65); /* negro suave, semitransparente */
-    background: rgba(33, 37, 41, 0.03); /* fondo muy tenue para dar contraste (opcional) */
-    padding: 2px 8px; /* pequeño acolchado */
-    border-radius: 999px; /* forma pill */
-    font-weight: 600; /* ligeramente destacado sin ser pesado */
-    letter-spacing: 0.2px; /* opcional, mejora legibilidad */
-    white-space: nowrap; /* evita que se rompa si es corto */
-    vertical-align: middle; /* alinea con texto/elementos cercanos */
-    box-shadow: none; /* sin sombra para mantener discreción */
+    display: inline-block;
+    font-size: 0.78rem;
+    line-height: 1;
+    color: rgba(33, 37, 41, 0.65);
+    background: rgba(33, 37, 41, 0.03);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    vertical-align: middle;
+    box-shadow: none;
 }
 
-    /* Variante aún más tenue si la quieres menos visible */
     .account-badge.subtle {
         color: rgba(33,37,41,0.45);
         background: transparent;
         font-weight: 500;
     }
 
-/* Responsive: si hay poco espacio, reducir aún más */
 @media (max-width: 576px) {
     .account-badge {
         font-size: 0.72rem;
         padding: 1px 6px;
     }
 }
-
-
-
 
 /* ===== Estilos Modal Notas / Adiciones ===== */
 #modalNotasDetalle .modal-content {
@@ -583,20 +570,17 @@ input[type="button"], input[type="submit"], input[type="reset"] {
     border: none;
 }
 
-/* Título del modal */
 #modalNotasDetalle .modal-title {
     font-weight: 600;
-    color: #0d47a1; /* azul oscuro corporativo */
+    color: #0d47a1;
 }
 
-/* Contenedor de botones de adiciones */
 #notas-adiciones-list {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
 }
 
-/* Botones de adiciones */
 .adicion-btn {
     border-radius: 20px;
     border: 1px solid #0d47a1;
@@ -608,12 +592,11 @@ input[type="button"], input[type="submit"], input[type="reset"] {
 }
 
     .adicion-btn:hover {
-        background-color: #e3f2fd; /* azul claro hover */
+        background-color: #e3f2fd;
         color: #0d47a1;
         transform: scale(1.05);
     }
 
-    /* Botones activos (seleccionados) */
     .adicion-btn.active {
         background-color: #0d47a1;
         color: #fff;
@@ -621,7 +604,6 @@ input[type="button"], input[type="submit"], input[type="reset"] {
         box-shadow: 0 0 6px rgba(13, 71, 161, 0.5);
     }
 
-/* Textarea */
 #notas-adiciones-textarea {
     border-radius: 10px;
     border: 1px solid #90caf9;
@@ -634,7 +616,6 @@ input[type="button"], input[type="submit"], input[type="reset"] {
         box-shadow: 0 0 0 0.2rem rgba(13, 71, 161, 0.25);
     }
 
-/* Botón Limpiar */
 #btnNotasLimpiar {
     border-radius: 8px;
     border: 1px solid #90caf9;
@@ -647,7 +628,6 @@ input[type="button"], input[type="submit"], input[type="reset"] {
         background-color: #e3f2fd;
     }
 
-/* Botón Guardar */
 #btnNotasGuardar {
     border-radius: 8px;
     background-color: #0d47a1;
@@ -660,7 +640,6 @@ input[type="button"], input[type="submit"], input[type="reset"] {
         transform: scale(1.03);
     }
 
-/* Botón Cancelar */
 #modalNotasDetalle .btn-light {
     border-radius: 8px;
     transition: background-color 0.2s;
@@ -670,10 +649,93 @@ input[type="button"], input[type="submit"], input[type="reset"] {
         background-color: #f1f1f1;
     }
 
-
-
 .service-chip.active {
     background: #90caf9;
     color: #fff !important;
     border-color: #0b5ed7 !important;
+}
+
+
+
+
+
+
+
+/* =========================================
+   Botones flotantes (subir / bajar) - FIX REAL MOBILE
+   Funciona incluso si hay padres con transform
+========================================= */
+
+:root {
+    --sb-size: 46px;
+    --sb-gap: 10px;
+    --sb-gutter: 12px; /* margen al borde */
+}
+
+@media (max-width: 576px) {
+    :root {
+        --sb-size: 42px;
+        --sb-gutter: 10px;
+    }
+}
+
+.scroll-buttons {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--sb-gap) !important;
+    position: fixed !important;
+    z-index: 99999 !important;
+    /* 🔥 CLAVE: NO usamos right. Calculamos LEFT con el ancho real del viewport */
+    left: calc(100vw - var(--sb-size) - var(--sb-gutter) - env(safe-area-inset-right)) !important;
+    bottom: calc(var(--sb-gutter) + env(safe-area-inset-bottom)) !important;
+    /* Evita que un estilo externo lo “corra” */
+    right: auto !important;
+    top: auto !important;
+    transform: none !important;
+    pointer-events: auto !important;
+}
+
+.scroll-btn {
+    width: var(--sb-size) !important;
+    height: var(--sb-size) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    border: none !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    background: #0d6efd !important;
+    color: #fff !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25) !important;
+    cursor: pointer !important;
+    transition: transform .15s ease, background .15s ease !important;
+}
+
+    .scroll-btn:hover {
+        transform: scale(1.08) !important;
+        background: #0b5ed7 !important;
+    }
+
+
+
+/* =========================================================
+   FIX: Acciones superiores (Domicilio/Nuevo/Liberar/Cerrar) en móvil
+   - Evita que se salga "Cerrar Caja"
+========================================================= */
+@media (max-width: 576px) {
+    /* Este es EXACTAMENTE tu contenedor de botones */
+    .row.g-3.align-items-center.mb-3 .col-12.col-xl-auto > .d-flex.gap-2.justify-content-start.justify-content-xl-end {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+
+        /* Botones: no se rompen raro y se adaptan */
+        .row.g-3.align-items-center.mb-3 .col-12.col-xl-auto > .d-flex.gap-2.justify-content-start.justify-content-xl-end > .btn {
+            white-space: nowrap !important;
+            flex: 0 1 auto !important;
+            max-width: 100% !important;
+        }
 }

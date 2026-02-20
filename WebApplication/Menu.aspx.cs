@@ -954,17 +954,24 @@ namespace WebApplication
                 return;
             }
 
-            var txt = e.Item.FindControl("txtCantidad") as TextBox;
-            int cantidad = 0;
-            if (txt != null) int.TryParse(txt.Text, out cantidad);
+            //consultamos el producto para verificar la gramera
+            var producto=await v_productoVentaControler.Consultar_idpresentacion(Session["db"].ToString(), idPresentacion);
 
-            if (cantidad <= 0)
+            var txt = e.Item.FindControl("txtCantidad") as TextBox;
+            decimal cantidad = 0;
+            if (txt.Text != null) cantidad= Convert.ToDecimal(txt.Text.Replace(".",","));
+
+            if (producto.gramera == 0)
             {
-                AlertModerno.Error(this, "¡Error!", $"la cantidad reportada es ({cantidad})", true);
-                BindProductos();
-                DataBind();
-                return;
+                if (cantidad <= 0)
+                {
+                    AlertModerno.Error(this, "¡Error!", $"la cantidad reportada es ({cantidad})", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
             }
+
 
             var resp = await DetalleVenta_f.AgregarProducto(Session["db"].ToString(), idPresentacion, cantidad, Models.IdCuentaActiva);
             if (resp.estado)
@@ -1000,6 +1007,21 @@ namespace WebApplication
             DataBind();
         }
 
+        protected string FormatearNumero3Dec(object valor)
+        {
+            if (valor == null) return "0";
+
+            decimal d;
+            if (!decimal.TryParse(valor.ToString(), out d))
+                return "0";
+
+            d = Math.Round(d, 3);
+
+            if (d % 1 == 0)
+                return ((int)d).ToString();
+
+            return d.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        }
 
         #endregion
 

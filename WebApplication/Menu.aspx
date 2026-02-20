@@ -122,12 +122,6 @@
     </script>
 
 
-    <!-- Botones flotantes -->
-    <div class="scroll-buttons">
-        <button type="button" class="scroll-btn" onclick="scrollToTop()">▲</button>
-        <button type="button" class="scroll-btn" onclick="scrollToBottom()">▼</button>
-    </div>
-
     <!-- Hidden fields / botones ocultos para postback -->
     <asp:HiddenField ID="hfMesaId" runat="server" />
     <asp:HiddenField ID="hfServicioId" runat="server" />
@@ -192,6 +186,7 @@
 
             <div class="col-12 col-xl-auto">
                 <div class="d-flex gap-2 justify-content-start justify-content-xl-end">
+
                     <%-- btnDomicilio --%>
                     <button type="button"
                         class="btn btn-success btn-sm"
@@ -239,6 +234,8 @@
         <!-- 3 columnas -->
         <div class="row g-3">
             <!-- Columna 1: Zonas / Mesas -->
+            <% if (Models.zonas.Count > 0)
+            {%>
             <div class="col-12 col-lg-6 col-xl-4">
                 <div class="card h-100">
                     <div class="card-body">
@@ -288,9 +285,14 @@
                     </div>
                 </div>
             </div>
+            <% } %>
 
-            <!-- Columna 2: Productos -->
-            <div class="col-12 col-lg-6 col-xl-4">
+
+<!-- Columna 2: Productos -->
+<div class='col-12 <%= (Models != null && Models.zonas != null && Models.zonas.Count > 0)
+        ? "col-lg-6 col-xl-4"
+        : "col-lg-12 col-xl-8" %>'>
+
                 <div class="card h-100">
                     <div class="card-body">
                         <!-- Buscador -->
@@ -477,7 +479,15 @@
                                                     <i class="bi bi-dash"></i>
                                                 </button>
 
-                                                <input type="number" class="form-control quantity-input text-center" value='<%# Convert.ToInt32(Eval("unidad")) %>' min="1" style="width: 100px;" />
+                                                <asp:TextBox ID="txtCantidad"
+    runat="server"
+    CssClass="form-control quantity-input text-center"
+    Text='<%# FormatearNumero3Dec(Eval("unidad")) %>'
+    TextMode="Number"
+    step="0.001"
+    min="1"
+    style="width:100px;" />
+
 
                                                 <button type="button" class="btn btn-light btn-qty btn-square btn-increase">
                                                     <i class="bi bi-plus"></i>
@@ -1254,10 +1264,10 @@
                         var id = guardar.getAttribute('data-id');
                         var row = guardar.closest('.pedido-item');
                         var inputCantidad = row ? row.querySelector('.quantity-input') : null;
-                        if (!inputCantidad || parseInt(inputCantidad.value || '0') < 1) {
-                            alert('Ingrese una cantidad válida.');
-                            return;
-                        }
+                        //if (!inputCantidad || parseInt(inputCantidad.value || '0') < 1) {
+                        //    alert('Ingrese una cantidad válida.');
+                        //    return;
+                        //}
                         // Llamada estándar al server; el code-behind debe manejar el target "ActualizarCantidad"
                         __doPostBack('ActualizarCantidad', id + '|' + inputCantidad.value);
                         return;
@@ -1815,7 +1825,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             const contenedor = document.querySelector('.lista-mesas');
             if (!contenedor) {
-                Swal.fire('Error', 'No se encontró el contenedor .lista-mesas', 'error');
+                /*Swal.fire('Error', 'No se encontró el contenedor .lista-mesas', 'error');*/
                 return;
             }
 

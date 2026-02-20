@@ -12,7 +12,7 @@ namespace DAL.Funciones
 {
     public class DetalleVenta_f
     {
-        public static async Task<Respuesta_DAL> AgregarProducto(string db,int idpresentacion,int cantidad,int idventa)
+        public static async Task<Respuesta_DAL> AgregarProducto(string db,int idpresentacion,decimal cantidad,int idventa)
         {
             try
             {
