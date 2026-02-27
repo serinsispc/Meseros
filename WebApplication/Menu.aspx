@@ -215,12 +215,7 @@
                         <i class="bi bi-x-circle me-1"></i>Liberar mesa
                     </button>
 
-                   <%-- btnCerrarCaja --%>
-                    <button type="button"
-                        class="btn btn-outline-danger btn-sm"
-                        id="btnCerrarCaja">
-                        <i class="bi bi-x-circle me-1"></i>Cerrar Caja
-                    </button>
+
                 </div>
             </div>
 
@@ -2216,12 +2211,12 @@
     </script>
 
 
-<%--    <script>
+   <script>
         document.getElementById('btnNuevoServicio').addEventListener('click', function (e) {
             e.preventDefault();
             __doPostBack('btnNuevoServicio', '');
         });
-    </script>--%>
+    </script>
 
 
     <script>

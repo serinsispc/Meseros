@@ -1,7 +1,9 @@
 ﻿using DAL;          // CrudSpHelper, SqlAutoDAL
 using DAL.Model;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 
 namespace DAL.Controler
 {
@@ -58,6 +60,25 @@ namespace DAL.Controler
                     db,
                     x => x.idVenta == idventa && x.idMesa == idmesa
                 );
+
+                return relacion; // puede ser null si no existe
+            }
+            catch (Exception ex)
+            {
+                string error = ex.Message;
+                return null;
+            }
+        }
+
+        public static async Task<List<R_VentaMesa>> ListaRelacion(string db, int idventa)
+        {
+            try
+            {
+                var auto = new SqlAutoDAL();
+
+                // Genera y ejecuta:
+                // SELECT * FROM R_VentaMesa WHERE idVenta = idventa
+                var relacion = await auto.ConsultarLista<R_VentaMesa>(db,x=>x.idVenta==idventa);
 
                 return relacion; // puede ser null si no existe
             }

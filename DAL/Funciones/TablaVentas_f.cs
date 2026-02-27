@@ -21,7 +21,6 @@ namespace DAL.Funciones
                 var tablaVentas = new TablaVentas
                 {
                     id = 0,
-                    aliasVenta = "--",
                     fechaVenta = DateTime.Now,
                     numeroVenta = 0,
                     descuentoVenta = 0,
@@ -41,8 +40,9 @@ namespace DAL.Funciones
                     idFormaDePago = 1,
                     razonDescuento = "-",
                     idBaseCaja = 0,
-                    eliminada = false,
-                    porpropina = Convert.ToDecimal(porpro) / 100m
+                    aliasVenta = "--",
+                    porpropina = Convert.ToDecimal(porpro) / 100m,
+                    eliminada = false
                 };
 
                 // 2. INSERT usando SP CRUD_TablaVentas (funcion = 0)

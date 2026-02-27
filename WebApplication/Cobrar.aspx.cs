@@ -394,6 +394,22 @@ namespace WebApplication
                     return;
                 }
 
+                //antes de terminar liberamos las mesas que estén ancladas a esta cuenta
+                var relaciones = await R_VentaMesaControler.ListaRelacion(db,venta.id);
+                if (relaciones.Count > 0)
+                {
+                    foreach (var rec in relaciones) 
+                    {
+                        //recorremos la lista de las relaciones y vamos liberando las mesas
+                        var mesa = await MesasControler.Consultar_id(db,rec.idMesa);
+                        if (mesa != null)
+                        {
+                            mesa.estadoMesa = 0;
+                            var respCRUD = await MesasControler.CRUD(db,mesa,1);
+                        }
+                    }
+                }
+
                 // ==========================================================
                 // 12) Final OK
                 // ==========================================================

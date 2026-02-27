@@ -107,6 +107,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="About.aspx" />
+    <Content Include="CerrarCaja.aspx" />
     <Content Include="Cobrar.aspx" />
     <Content Include="Content\bootstrap-grid.css" />
     <Content Include="Content\bootstrap-grid.min.css" />
@@ -132,6 +133,7 @@
     <Content Include="Default.aspx" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
+    <Content Include="HVentas.aspx" />
     <Content Include="Menu.aspx" />
     <Content Include="Recursos\Imagenes\Logo\Logo.png" />
     <Content Include="Salir.aspx" />
@@ -171,6 +173,7 @@
     <Content Include="Scripts\jquery-3.7.0.slim.js" />
     <Content Include="Scripts\jquery-3.7.0.slim.min.js" />
     <Content Include="Scripts\js\AlertModerno.js" />
+    <Content Include="Scripts\js\cerrar-caja.js" />
     <Content Include="Scripts\js\cobrar.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
     <Content Include="Scripts\WebForms\DetailsView.js" />
@@ -208,6 +211,13 @@
       <DependentUpon>About.aspx</DependentUpon>
     </Compile>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="CerrarCaja.aspx.cs">
+      <DependentUpon>CerrarCaja.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="CerrarCaja.aspx.designer.cs">
+      <DependentUpon>CerrarCaja.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Class\AlertModerno.cs" />
     <Compile Include="Class\Acquirer_Response.cs" />
     <Compile Include="Class\ClassImagenes.cs" />
@@ -235,6 +245,14 @@
     </Compile>
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="Helpers\EventArgumentParser.cs" />
+    <Compile Include="HVentas.aspx.cs">
+      <DependentUpon>HVentas.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HVentas.aspx.designer.cs">
+      <DependentUpon>HVentas.aspx</DependentUpon>
     </Compile>
     <Compile Include="Menu.aspx.cs">
       <DependentUpon>Menu.aspx</DependentUpon>
