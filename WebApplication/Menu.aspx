@@ -201,6 +201,7 @@
 
                     <%-- btnNuevoServicio --%>
                     <button id="btnNuevoServicio"
+                        type="button"
                         class="btn btn-primary btn-sm">
                         <i class="bi bi-plus-circle me-1"></i>Nuevo servicio
                     </button>
@@ -264,7 +265,9 @@
                          : new System.Collections.Generic.List<DAL.Model.Mesas>()) %>'>
                                 <ItemTemplate>
                                     <div class="col-2 col-lg-6 col-xl-4" style="min-width: 100px; max-width: 110px">
-                                        <button id="lnkMesa"
+                                        <button 
+                                            id="lnkMesa"
+                                            type="button"
                                             data-id='<%# Eval("id") %>'
                                             data-name='<%# Eval("nombreMesa") %>'
                                             class='<%# (Convert.ToInt32(Eval("estadoMesa")) == 1)
@@ -511,6 +514,15 @@
                                             <button type="button" class="icon-btn btn-anclar" title="Anclar" data-id='<%# Eval("id") %>'><i class="bi bi-link-45deg"></i></button>
                                             <button type="button" class="icon-btn btn-eliminar danger" title="Eliminar" data-id='<%# Eval("id") %>'><i class="bi bi-trash"></i></button>
                                             <button type="button" class="icon-btn btn-dividir" title="Dividir" data-id='<%# Eval("id") %>' data-cantidadactual='<%# Eval("unidad") %>'><i class="bi bi-scissors"></i></button>
+
+                                            <% if (Session["cajero"] != null && Convert.ToInt32(Session["cajero"]) == 1)
+                                                { %>
+
+                                            <button type="button" class="icon-btn btn-EditarPrecio" title="Editar Precio" data-id='<%# Eval("id") %>' data-valor='<%# Eval("precioVenta") %>'><i class="bi bi-cash-coin"></i></button>
+                                            <button type="button" class="icon-btn btn-EditarProducto" title="Editar Producto" data-id='<%# Eval("id") %>' data-descripcion='<%# Eval("nombreProducto") %>'><i class="bi bi-pencil-square"></i></button>
+
+
+                                            <% } %>
                                         </div>
 
 
@@ -583,7 +595,9 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span>Servicio (<%= totales.por_propina %>%)</span>
                             <div>
-                                <button id="btnEditarPropina"
+                                <button 
+                                    type="button"
+                                    id="btnEditarPropina"
                                     class="badge bg-primary-subtle text-primary fw-semibold me-2"
                                     data-porcentaje='<%= totales.por_propina %>'
                                     data-propina='<%= Convert.ToInt32(totales.propina) %>'
@@ -603,10 +617,10 @@
 
                         <div class="row g-3">
                             <div class="col-12 col-md-4">
-                                <button runat="server" id="btnComandar" onserverclick="btnComandar_ServerClick" class="cta cta-orange w-100" style="height: 80px;"><i class="bi bi-send me-2"></i>Comandar</button>
+                                <button type="button" runat="server" id="btnComandar" onserverclick="btnComandar_ServerClick" class="cta cta-orange w-100" style="height: 80px;"><i class="bi bi-send me-2"></i>Comandar</button>
                             </div>
                             <div class="col-12 col-md-4">
-                                <button runat="server" id="btnCuenta" onserverclick="btnCuenta_ServerClick" class="cta cta-purple w-100" style="height: 80px;">
+                                <button type="button" runat="server" id="btnCuenta" onserverclick="btnCuenta_ServerClick" class="cta cta-purple w-100" style="height: 80px;">
                                     <i class="bi bi-chat-left-text me-2"></i>Solicitar<br />
                                     Cuenta</button>
                             </div>
@@ -641,6 +655,114 @@
         <!-- /row 3 cols -->
     </div>
     <!-- /container-fluid -->
+
+
+        <!-- Modal: Editar Producto -->
+<div class="modal fade" id="mdlEditarProducto" tabindex="-1" aria-hidden="true">
+
+    <input type="hidden"
+       id="hfIdEditarProducto"
+       runat="server"
+       ClientIDMode="Static" />
+
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Editar producto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+                    <label for="txtEditarValor" class="form-label fw-semibold">
+                        Nuevo producto
+                    </label>
+
+                    <input type="text"
+                           id="txtNuevaDescripcion"
+                           class="form-control"
+                           runat="server"
+                           ClientIDMode="Static"
+                           placeholder="Ingrese el nuevo producto" />
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <button type="button"
+                        id="btnConfirmarEdicionProducto"
+                        class="btn btn-primary">
+                    Editar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+    <!-- Modal: Editar valor -->
+<div class="modal fade" id="mdlEditar" tabindex="-1" aria-hidden="true">
+
+    <input type="hidden"
+       id="hfIdEditar"
+       runat="server"
+       ClientIDMode="Static" />
+
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Editar valor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+                    <label for="txtEditarValor" class="form-label fw-semibold">
+                        Nuevo valor
+                    </label>
+
+                    <input type="number"
+                           id="txtEditarValor"
+                           class="form-control"
+                           runat="server"
+                           ClientIDMode="Static"
+                           placeholder="Ingrese el nuevo valor" />
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <button type="button"
+                        id="btnConfirmarEdicion"
+                        class="btn btn-primary">
+                    Editar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
 
     <!-- Modal: seleccionar servicio existente -->
     <div class="modal fade" id="mdlServicios" tabindex="-1" aria-hidden="true">
@@ -1007,6 +1129,321 @@
         </div>
     </div>
 
+
+
+    <script>
+        // ==========================================================
+        // ✅ ACTIBAR EBENTO CLIC AL PRECIONAR ENTER EN txtEditarValor
+        // ==========================================================
+        (function () {
+            const byId = (id) => document.getElementById(id);
+
+            const input = byId('txtEditarValor'); // ⚠️ ID real (ideal con ClientIDMode="Static")
+            if (!input) return;
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // ✅ Aquí dispara el botón que tú quieres (ej: confirmar edición)
+                    const btnOk = byId('btnConfirmarEdicion');
+                    if (btnOk) btnOk.click();
+                }
+            });
+        })();
+    </script>
+
+
+        <script>
+            // ==========================================================
+            // ✅ ACTIBAR EBENTO CLIC AL PRECIONAR ENTER EN txtNuevaDescripcion
+            // ==========================================================
+            (function () {
+                const byId = (id) => document.getElementById(id);
+
+                const input = byId('txtNuevaDescripcion'); // ⚠️ ID real (ideal con ClientIDMode="Static")
+                if (!input) return;
+
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // ✅ Aquí dispara el botón que tú quieres (ej: confirmar edición)
+                        const btnOk = byId('btnConfirmarEdicionProducto');
+                        if (btnOk) btnOk.click();
+                    }
+                });
+            })();
+        </script>
+
+
+
+<script>
+    // ==========================================================
+    // ✅ BOTÓN EDITAR PRECIO (abre modal, pasa ID y deja foco listo)
+    // ==========================================================
+    (function () {
+        const byId = (id) => document.getElementById(id);
+
+        document.addEventListener('click', function (e) {
+
+            const btn = e.target.closest('.btn-EditarPrecio');
+            if (!btn) return;
+
+            // 1️⃣ Obtener ID desde data-id
+            const id = (btn.getAttribute('data-id') || '').trim();
+            if (!id) return;
+
+            // 2️⃣ Obtener valor desde data-valor
+            const valor = (btn.getAttribute('data-valor') || '').trim();
+            const valorDecimal = Number(valor.replace(',', '.')); // si viene "1500,5"
+
+            // 3️⃣ Guardar ID en hidden del modal
+            const hf = byId('hfIdEditar');
+            if (hf) hf.value = id;
+
+            // 4️⃣ Abrir modal
+            const modalEl = byId('mdlEditar');
+            if (!modalEl) return;
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static' });
+            modal.show();
+
+            // 5️⃣ Cuando el modal YA esté visible: poner foco y preparar el input
+            //    { once: true } evita que se acumulen listeners con cada click
+            modalEl.addEventListener('shown.bs.modal', function () {
+
+                const txt = byId('txtEditarValor');
+                if (!txt) return;
+
+                // ✅ Si quieres que aparezca el valor pero quede listo para escribir encima:
+                txt.value = Number.isFinite(valorDecimal) ? valorDecimal.toString() : '';
+                txt.focus();
+                txt.select(); // así escribes y reemplaza de una
+
+                // ✅ Si lo quieres borrar automáticamente en vez de seleccionar, usa esto:
+                // txt.value = '';
+                // txt.focus();
+
+            }, { once: true });
+
+        });
+    })();
+</script>
+
+
+<script>
+    // ==========================================================
+    // ✅ BOTÓN EDITAR PRODUCTO (abre modal, pasa ID y deja foco listo)
+    // ==========================================================
+
+    // Helpers globales
+    window.byId = (id) => document.getElementById(id);
+    window.getValue = (id) => (window.byId(id)?.value ?? '').trim();
+
+    (function () {
+
+        document.addEventListener('click', function (e) {
+
+            const btn = e.target.closest('.btn-EditarProducto');
+            if (!btn) return;
+
+            // 1️⃣ Obtener ID desde data-id
+            const id = (btn.getAttribute('data-id') || '').trim();
+            if (!id) return;
+
+            // 2️⃣ Obtener descripción desde data-descripcion
+            const descripcion = (btn.getAttribute('data-descripcion') || '').trim();
+
+            // 3️⃣ Guardar ID en hidden
+            const hf = byId('hfIdEditarProducto');
+            if (hf) hf.value = id;
+
+            // 4️⃣ Abrir modal
+            const modalEl = byId('mdlEditarProducto');
+            if (!modalEl) return;
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static' });
+            modal.show();
+
+            // 5️⃣ Cuando el modal YA esté visible → foco + preparar input
+            modalEl.addEventListener('shown.bs.modal', function () {
+
+                const txt = byId('txtNuevaDescripcion'); // ID exacto
+                if (!txt) return;
+
+                // OPCIÓN A: mostrar valor y dejar listo para escribir encima (recomendado)
+                txt.value = descripcion;
+                txt.focus();
+                txt.select();
+
+                // OPCIÓN B: borrar y escribir directo (si prefieres)
+                // txt.value = '';
+                // txt.focus();
+
+            }, { once: true });
+
+        });
+
+    })();
+</script>
+
+
+<script>
+    // ==========================================================
+    // ✅ CONFIRMAR EDICIÓN VALOR (Modal) - Versión ASPX (sin getVal)
+    // ==========================================================
+    (function () {
+        const byId = (id) => document.getElementById(id);
+
+        // PostBack seguro: usa __doPostBack si existe, si no, fallback con hidden
+        const firePostBack = (target, argument) => {
+            if (typeof window.__doPostBack === 'function') {
+                window.__doPostBack(target, argument);
+                return;
+            }
+
+            const form = document.querySelector('form');
+            if (!form) {
+                alert('No se encontró el formulario en el MasterPage.');
+                return;
+            }
+
+            const ensureHidden = (name) => {
+                let input = form.querySelector(`input[name="${name}"]`);
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = name;
+                    form.appendChild(input);
+                }
+                return input;
+            };
+
+            ensureHidden('__EVENTTARGET').value = target;
+            ensureHidden('__EVENTARGUMENT').value = argument;
+            form.submit();
+        };
+
+        const btnConfirmarEdicion = byId('btnConfirmarEdicion');
+        if (!btnConfirmarEdicion) return;
+
+        btnConfirmarEdicion.addEventListener('click', () => {
+
+            const id = (byId('hfIdEditar')?.value || '').trim();
+
+            // ✅ Leer valor del input sin getVal()
+            const raw = (byId('txtEditarValor')?.value || '').toString();
+            const valor = parseInt(raw.replace(/[^\d]/g, ''), 10) || 0;
+
+            if (!id) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Falta el ID',
+                    text: 'No se pudo identificar el registro a editar.',
+                    confirmButtonColor: '#2563eb'
+                });
+                return;
+            }
+
+            if (valor <= 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Valor inválido',
+                    text: 'Debe ingresar un valor válido.',
+                    confirmButtonColor: '#2563eb'
+                });
+                return;
+            }
+
+            firePostBack('btnEditarValor', `${id}|${valor}`);
+
+            const modalEl = byId('mdlEditar');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        });
+
+    })();
+</script>
+
+
+<script>
+    // ==========================================================
+    // ✅ CONFIRMAR EDICIÓN PRODUCTO (Modal) - Versión ASPX (sin getVal)
+    // ==========================================================
+    (function () {
+
+        const byId = (id) => document.getElementById(id);
+        const getValue = (id) => (byId(id)?.value ?? '').trim();
+
+        // PostBack seguro: usa __doPostBack si existe, si no, fallback con hidden
+        const firePostBack = (target, argument) => {
+            if (typeof window.__doPostBack === 'function') {
+                window.__doPostBack(target, argument);
+                return;
+            }
+
+            const form = document.querySelector('form');
+            if (!form) {
+                alert('No se encontró el formulario en el MasterPage.');
+                return;
+            }
+
+            const ensureHidden = (name) => {
+                let input = form.querySelector(`input[name="${name}"]`);
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = name;
+                    form.appendChild(input);
+                }
+                return input;
+            };
+
+            ensureHidden('__EVENTTARGET').value = target;
+            ensureHidden('__EVENTARGUMENT').value = argument;
+            form.submit();
+        };
+
+        const btnConfirmarEdicion = byId('btnConfirmarEdicionProducto');
+        if (!btnConfirmarEdicion) return;
+
+        btnConfirmarEdicion.addEventListener('click', () => {
+
+            const id = (byId('hfIdEditarProducto')?.value ?? '').trim();
+
+            // ✅ OJO: confirma que el ID sea el mismo que tienes en el input real
+            const descripcion = getValue('txtNuevaDescripcion'); // o 'txtNuevaDescriccion' si ese es el real
+
+            if (!id) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Falta el ID',
+                    text: 'No se pudo identificar el registro a editar.',
+                    confirmButtonColor: '#2563eb'
+                });
+                return;
+            }
+
+            if (!descripcion) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Campo vacío',
+                    text: 'Debe ingresar un nombre de producto.',
+                    confirmButtonColor: '#2563eb'
+                });
+                return;
+            }
+
+            firePostBack('btnEditarProducto', `${id}|${descripcion}`);
+
+            const modalEl = byId('mdlEditarProducto');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        });
+
+    })();
+</script>
 
 
     <script type="text/javascript">
@@ -1779,12 +2216,12 @@
     </script>
 
 
-    <script>
+<%--    <script>
         document.getElementById('btnNuevoServicio').addEventListener('click', function (e) {
             e.preventDefault();
             __doPostBack('btnNuevoServicio', '');
         });
-    </script>
+    </script>--%>
 
 
     <script>

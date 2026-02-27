@@ -342,7 +342,7 @@ namespace DAL.Funciones
                         CorreoResponse correoResponse = await facturacionElectronica.FacturaMail(correoRequest, uuid);
                         if (correoResponse != null)
                         {
-                            return false;
+                            return true;
                         }
                     }
                     else

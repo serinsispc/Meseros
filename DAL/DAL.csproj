@@ -105,6 +105,7 @@
     <Compile Include="Controler\ImagenesControler.cs" />
     <Compile Include="Controler\ImprecionComandaAddControler.cs" />
     <Compile Include="Controler\ImprimirCuentaControler.cs" />
+    <Compile Include="Controler\ImprimirFacturaControler.cs" />
     <Compile Include="Controler\MediosDePagoInternos_Controler.cs" />
     <Compile Include="Controler\MesasControler.cs" />
     <Compile Include="Controler\PagosVenta_controler.cs" />
@@ -158,6 +159,7 @@
     <Compile Include="Model\Imagenes.cs" />
     <Compile Include="Model\ImprecionComandaAdd.cs" />
     <Compile Include="Model\ImprimirCuenta.cs" />
+    <Compile Include="Model\ImprimirFactura.cs" />
     <Compile Include="Model\MediosDePagoInternos.cs" />
     <Compile Include="Model\Mesas.cs" />
     <Compile Include="Model\PagosVenta.cs" />

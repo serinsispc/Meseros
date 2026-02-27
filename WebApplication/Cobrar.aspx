@@ -488,4 +488,31 @@
     <!-- ✅ TU JS EXTERNO -->
     <script src="<%: ResolveUrl("~/Scripts/js/cobrar.js") %>"></script>
 
+
+
+
+
+
+    
+    <script>
+        const mostrarProcesando = () => {
+            const el = document.getElementById('overlayProcesando');
+            if (el) el.style.display = 'block';
+        };
+
+        const ocultarProcesando = () => {
+            const el = document.getElementById('overlayProcesando');
+            if (el) el.style.display = 'none';
+        };
+    </script>
+
+
 </asp:Content>
+
+
+
+
+
+
+
+

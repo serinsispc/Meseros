@@ -306,10 +306,169 @@ namespace WebApplication
                     await btnCobrar();
                     break;
 
+                case "btnEditarValor":
+                    await btnEditarValor(eventArgument);
+                    break;
+
+                case "btnEditarProducto":
+                    await btnEditarProducto(eventArgument);
+                    break;
 
                 default:
                     // otros eventos por nombre...
                     break;
+            }
+        }
+        private async Task btnEditarProducto(string eventArgument)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(eventArgument))
+                {
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el producto", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                // 1️⃣ Separar datos
+                var partes = eventArgument.Split('|');
+                if (partes.Length != 2)
+                {
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el producto", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                int id = Convert.ToInt32(partes[0]);
+                string descripcion = Convert.ToString(partes[1]);
+
+                var detalle = await DetalleVentaControler.ConsultarId(Convert.ToString(Session["db"]), id);
+                if (detalle == null)
+                {
+                    // Ejemplo: mostrar mensaje de error
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el producto", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                detalle.nombreProducto = descripcion;
+
+                // 2️⃣ Llamar a tu capa de datos / controlador
+                // ⚠️ Ajusta el nombre del método/SP según tu proyecto
+                var resp = await DetalleVentaControler.CRUD(Convert.ToString(Session["db"]), detalle, 1);
+
+                // 3️⃣ Respuesta estándar
+                if (!resp.estado)
+                {
+                    // Ejemplo: mostrar mensaje de error
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el producto", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                // 4️⃣ Éxito
+                ScriptManager.RegisterStartupScript(
+                    this,
+                    GetType(),
+                    "okEditar",
+                    $"Swal.fire('Correcto', '{resp.mensaje}', 'success');",
+                    true
+                );
+
+                Models.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), Models.IdCuentaActiva);
+                Models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), Models.IdCuentaActiva, Models.IdCuenteClienteActiva);
+                Models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(Session["db"].ToString(), false);
+                Models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(Session["db"].ToString(), Models.IdCuenteClienteActiva);
+                GuardarModelsEnSesion();
+                BindProductos();
+                DataBind();
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "¡Error!", $"No fue posible editar el producto", true);
+                BindProductos();
+                DataBind();
+                return;
+            }
+        }
+        private async Task btnEditarValor(string eventArgument)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(eventArgument))
+                {
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el precio", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                // 1️⃣ Separar datos
+                var partes = eventArgument.Split('|');
+                if (partes.Length != 2)
+                {
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el precio", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                int id = Convert.ToInt32(partes[0]);
+                decimal valor = Convert.ToDecimal(partes[1]);
+
+                var detalle = await DetalleVentaControler.ConsultarId(Convert.ToString(Session["db"]), id);
+                if (detalle == null)
+                {
+                    // Ejemplo: mostrar mensaje de error
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el precio", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                detalle.precioVenta = valor;
+
+                // 2️⃣ Llamar a tu capa de datos / controlador
+                // ⚠️ Ajusta el nombre del método/SP según tu proyecto
+                var resp = await DetalleVentaControler.CRUD(Convert.ToString(Session["db"]),detalle,1);
+
+                // 3️⃣ Respuesta estándar
+                if (!resp.estado)
+                {
+                    // Ejemplo: mostrar mensaje de error
+                    AlertModerno.Error(this, "¡Error!", $"No fue posible editar el precio", true);
+                    BindProductos();
+                    DataBind();
+                    return;
+                }
+
+                // 4️⃣ Éxito
+                ScriptManager.RegisterStartupScript(
+                    this,
+                    GetType(),
+                    "okEditar",
+                    $"Swal.fire('Correcto', '{resp.mensaje}', 'success');",
+                    true
+                );
+
+                Models.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), Models.IdCuentaActiva);
+                Models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), Models.IdCuentaActiva, Models.IdCuenteClienteActiva);
+                Models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(Session["db"].ToString(), false);
+                Models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(Session["db"].ToString(), Models.IdCuenteClienteActiva);
+                GuardarModelsEnSesion();
+                BindProductos();
+                DataBind();
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "¡Error!", $"No fue posible editar el precio", true);
+                BindProductos();
+                DataBind();
+                return;
             }
         }
         private async Task btnCobrar()
@@ -1280,6 +1439,7 @@ namespace WebApplication
             catch (Exception ex)
             {
                 AlertModerno.Error(this, "Error", ex.Message, true);
+            
             }
         }
 

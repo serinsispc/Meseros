@@ -52,8 +52,7 @@ namespace DAL
             }
         }
 
-        public async Task<T> EjecutarSQLObjeto<T>(string db, string sql)
-    where T : class, new()
+        public async Task<T> EjecutarSQLObjeto<T>(string db, string sql) where T : class, new()
         {
             using (var cn = new Conection_SQL(db))
             {

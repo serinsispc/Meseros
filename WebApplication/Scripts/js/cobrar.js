@@ -368,9 +368,50 @@
             };
 
             const arg = encodeB64(JSON.stringify(payload));
+            mostrarProcesando();
             firePostBack('btnGuardar', arg);
         });
     }
+
+
+
+    // ==========================================================
+    // ✅ BOTÓN GUARDAR PROPINA (NUEVO)
+    // Envía: valorPropina (txtPropina) al servidor
+    // ==========================================================
+    const btnGuardarPropina = byId("btnGuardarPropina");
+    const txtPropina = byId("txtPropina");
+
+    if (btnGuardarPropina) {
+        btnGuardarPropina.addEventListener("click", function () {
+
+            // 1️⃣ Obtener valor
+            let valorPropina = txtPropina ? txtPropina.value : "0";
+
+            // 2️⃣ Limpiar formato si viene con $ o comas
+            valorPropina = valorPropina.replace(/\./g, "").replace(",", ".");
+
+            // 3️⃣ Enviar al servidor
+            firePostBack('btnGuardarPropina', valorPropina);
+
+        });
+    }
+
+
+    // ==========================================================
+    // ✅ BOTÓN ELIMINAR PROPINA
+    // ==========================================================
+    const btnEliminarPropina = byId("btnEliminarPropina");
+
+    if (btnEliminarPropina) {
+        btnEliminarPropina.addEventListener("click", function () {
+
+            // 3️⃣ Enviar al servidor
+            firePostBack('btnEliminarPropina');
+
+        });
+    }
+
 
     // ====== Factura electrónica ======
     const swFE = byId('swFE');
