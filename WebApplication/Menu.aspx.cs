@@ -96,6 +96,16 @@ namespace WebApplication
                 System.Diagnostics.Debug.WriteLine("Page_Load error: " + ex);
                 AlertModerno.Error(this, "¡Error!", "Ocurrió un error inesperado al cargar la página.", true);
             }
+
+            // Luego vuelves a enfocar el buscador
+            ScriptManager.RegisterStartupScript(
+                this,
+                this.GetType(),
+                "enfocar",
+                "EnfocarBuscador();",
+                true
+            );
+
         }
         protected List<ClienteDomicilio> ClientesDomicilio = new List<ClienteDomicilio>();
         protected string ListaClientesDomicilioJson
@@ -314,9 +324,96 @@ namespace WebApplication
                     await btnEditarProducto(eventArgument);
                     break;
 
+                case "BuscarCodigoProducto":
+                    await BuscarCodigoProducto(eventArgument);
+                    break;
+
                 default:
                     // otros eventos por nombre...
                     break;
+            }
+        }
+        private async Task BuscarCodigoProducto(string eventArgument)
+        {
+            try
+            {
+                string texto = (eventArgument ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(texto))
+                {
+                    // Si está vacío solo reenfoca
+                    ScriptManager.RegisterStartupScript(
+                        this,
+                        this.GetType(),
+                        "focus",
+                        "EnfocarBuscador();",
+                        true
+                    );
+                    return;
+                }
+
+                // 🔥 Aquí haces tu búsqueda real
+                // Ejemplo:
+                 var producto = Models.productos.Where(x=>x.codigoProducto==texto).FirstOrDefault();
+
+                if (producto != null)
+                {
+                    var resp = await DetalleVenta_f.AgregarProducto(Session["db"].ToString(), producto.idPresentacion, 1, Models.IdCuentaActiva);
+                    if (resp.estado)
+                    {
+                        //como si se creo el produto ahora verificamos si esta activa una cuenta de cleinte
+                        if (Models.IdCuenteClienteActiva > 0)
+                        {
+                            var ralacion = new R_CuentaCliente_DetalleVenta
+                            {
+                                id = 0,
+                                fecha = DateTime.Now,
+                                idCuentaCliente = Models.IdCuenteClienteActiva,
+                                idDetalleVenta = (int)resp.data,
+                                eliminada = false
+                            };
+                            var crudrelacion = await R_CuentaCliente_DetalleVentaControler.CRUD(Session["db"].ToString(), ralacion, 0);
+                        }
+                        AlertModerno.Success(this, "¡OK!", $"{resp.mensaje}", true, 800);
+                    }
+                    else
+                    {
+                        AlertModerno.Error(this, "¡Error!", $"{resp.mensaje}", true);
+                    }
+                }
+                else
+                {
+                    AlertModerno.Warning(this, "Atención", "Producto no encontrado", true, 2000);
+                }
+
+                Models.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), Models.IdCuentaActiva);
+                Models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), Models.IdCuentaActiva, Models.IdCuenteClienteActiva);
+                Models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(Session["db"].ToString(), false);
+                Models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(Session["db"].ToString(), Models.IdCuenteClienteActiva);
+                GuardarModelsEnSesion();
+                BindProductos();
+                DataBind();
+
+                // 🔥 Limpia y vuelve a enfocar
+                ScriptManager.RegisterStartupScript(
+                    this,
+                    this.GetType(),
+                    "focus",
+                    "document.getElementById('buscador-productos').value=''; EnfocarBuscador();",
+                    true
+                );
+            }
+            catch (Exception ex)
+            {
+                string error = ex.Message;
+
+                ScriptManager.RegisterStartupScript(
+                    this,
+                    this.GetType(),
+                    "focus",
+                    "EnfocarBuscador();",
+                    true
+                );
             }
         }
         private async Task btnEditarProducto(string eventArgument)

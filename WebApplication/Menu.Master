@@ -170,6 +170,13 @@
                 </a>
 
 
+                <a href="PGastos.aspx"
+                   class="btn shadow rounded-pill px-4"
+                   style="background: linear-gradient(135deg,#e74a3b,#be2617); color:#fff;">
+                    <i class="bi bi-cash-coin me-2"></i>
+                    Gastos
+                </a>
+
             </div>
 
             <div>

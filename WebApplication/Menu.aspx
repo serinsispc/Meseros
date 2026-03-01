@@ -301,8 +301,9 @@
                                 inputmode="search"
                                 id="buscador-productos"
                                 class="form-control"
-                                placeholder="Buscar producto por nombre..."
-                                autocomplete="off" />
+                                placeholder="Buscar código / nombre"
+                                autocomplete="on"
+                                 autofocus  />
                             <button type="button" id="limpiar-buscador" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-lg"></i>
                             </button>
@@ -2950,7 +2951,44 @@
 </script>
 
 
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function () {
 
+            const input = document.getElementById('buscador-productos');
+            if (!input) return;
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const valor = (input.value || '').trim();
+                    if (!valor) return;
+
+                    // 🔥 Llama tu switch: case "BuscarCodigoProducto"
+                    __doPostBack('BuscarCodigoProducto', valor);
+                }
+            });
+
+        });
+    </script>
+
+
+<script>
+    function EnfocarBuscador() {
+        const input = document.getElementById('buscador-productos');
+        if (!input) return;
+
+        setTimeout(() => {
+            input.focus();
+            input.select();
+        }, 50);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        EnfocarBuscador();
+    });
+</script>
 
 
 </asp:Content>
