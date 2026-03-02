@@ -59,7 +59,7 @@ namespace DAL.Controler
                 // SELECT TOP 1 * FROM V_CuentaCliente WHERE id = {id}
                 var cuenta = await cn.ConsultarUno<V_CuentaCliente>(
                     db,
-                    x => x.id == id
+                    x => x.idVenta == id
                 );
 
                 return cuenta; // puede ser null si no existe

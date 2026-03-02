@@ -30,6 +30,15 @@ namespace WebApplication.Class
                                 bool esToast = false, int ms = 3000, string posicion = "center")
             => Show(page, "info", titulo, mensaje, ms, posicion, esToast);
 
+        public static void ErrorRedirect(Page page, string titulo, string mensaje, string url)
+        {
+            Show(page, "error", titulo, mensaje, 3000, "center", false, url);
+        }
+
+        public static void SuccessRedirect(Page page, string titulo, string mensaje, string url)
+        {
+            Show(page, "success", titulo, mensaje, 3000, "center", false, url);
+        }
         // =====================================================
         // CONFIRMACIÓN (SweetAlert2)
         // =====================================================
@@ -131,10 +140,42 @@ Swal.fire({{
 
         /// <summary>Método base: invoca AlertModerno._toast(...)</summary>
         private static void Show(Page page, string tipo, string titulo, string mensaje,
-                                 int ms, string posicion, bool esToast)
+                                 int ms, string posicion, bool esToast,
+                                 string redirectUrl = null)
         {
-            string script =
-                $"AlertModerno._toast('{Escape(tipo)}','{Escape(titulo)}','{Escape(mensaje)}',{ms},'{Escape(posicion)}',{esToast.ToString().ToLower()});";
+            string script;
+
+            if (!string.IsNullOrEmpty(redirectUrl))
+            {
+                script = $@"
+Swal.fire({{
+  icon: '{Escape(tipo)}',
+  title: '{Escape(titulo)}',
+  text: '{Escape(mensaje)}',
+  toast: {esToast.ToString().ToLower()},
+  position: '{Escape(posicion)}',
+  showConfirmButton: {(esToast ? "false" : "true")},
+  timer: {ms},
+  timerProgressBar: true
+}}).then(() => {{
+    window.location.href = '{Escape(redirectUrl)}';
+}});";
+            }
+            else
+            {
+                script = $@"
+Swal.fire({{
+  icon: '{Escape(tipo)}',
+  title: '{Escape(titulo)}',
+  text: '{Escape(mensaje)}',
+  toast: {esToast.ToString().ToLower()},
+  position: '{Escape(posicion)}',
+  showConfirmButton: {(esToast ? "false" : "true")},
+  timer: {ms},
+  timerProgressBar: true
+}});";
+            }
+
             Register(page, script);
         }
 

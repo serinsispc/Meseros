@@ -9,11 +9,13 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Web.UI;
 using WebApplication.Class;
+using WebApplication.ViewModels;
 
 namespace WebApplication
 {
     public partial class _Default : Page
     {
+        protected MenuViewModels models =new MenuViewModels();
         protected async void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -25,15 +27,13 @@ namespace WebApplication
                     // Sanitizar db (seguridad)
                     db = db.Replace("/", "").Replace("\\", "").Replace("..", "").Trim();
 
-                    Session["db"] = db;
+                    models.db = db;
 
                     // consultar sede (para usarla luego si hace falta)
                     var sede = await SedeControler.Consultar(db);
                     if (sede != null)
                     {
-                        Session["porpropina"]= sede.porcentaje_propina;
-                        Session["sede"] = JsonConvert.SerializeObject(sede);
-                        Session["guidSede"] = sede.guidSede;
+                        models.Sede =sede;
                     }
 
                     // logo
@@ -58,19 +58,38 @@ namespace WebApplication
                         rptUsuarios.DataSource = vendedores;
                         rptUsuarios.DataBind();
                     }
+                    await SerialisarModels();
                 }
                 else
                 {
                     AlertModerno.Error(this, "Error", "No se encuentra la base de datos.", true);
                 }
             }
+            else
+            {
+                //en esta parte Deserialisamos el models
+                await DeserializarModels();
+            }
+        }
+        private async Task DeserializarModels()
+        {
+            if (Session["ModelsJson"] != null)
+            {
+                var modelJson = Session["ModelsJson"].ToString();
+                models = JsonConvert.DeserializeObject<MenuViewModels>(modelJson);
+            }
+
+        }
+        private async Task SerialisarModels()
+        {
+            Session["ModelsJson"]=JsonConvert.SerializeObject(models);
         }
 
         protected async void btnIngresar_Click(object sender, EventArgs e)
         {
             if (txtCelular.Text != string.Empty && txtContrasena.Text != string.Empty)
             {
-                string db = Session["db"]?.ToString();
+                string db = models.db;
                 if (string.IsNullOrEmpty(db))
                 {
                     AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesión.", true);
@@ -84,11 +103,7 @@ namespace WebApplication
 
                 if (vendedor != null)
                 {
-                    Session["cajero"] = vendedor.cajaMovil;
-                    Session["idvendedor"] = vendedor.id;
-                    Session["NombreMesero"] = vendedor.nombreVendedor;
-                    Session["vendedor"] = JsonConvert.SerializeObject(vendedor);
-
+                    models.vendedor = vendedor;
                     // si tiene permiso de caja
                     if (vendedor.cajaMovil == 1)
                     {
@@ -96,29 +111,22 @@ namespace WebApplication
                         var usuarioCaja = await R_VendedorUsuarioControler.ConsultarRelacion(db, vendedor.id);
                         if (usuarioCaja != null)
                         {
-                            Session["usuario_caja"] = JsonConvert.SerializeObject(usuarioCaja);
-
                             //consultamos el token de facturacion
-                            var tokem = await tokenEmpresaControler.ConsultarToken(Session["db"].ToString());
+                            var tokem = await tokenEmpresaControler.ConsultarToken(db);
                             if(tokem != null)
                             {
-                                Session["TokenFE"] = tokem.token;
-                            }
-                            else
-                            {
-                                Session["TokenFE"] = null;
+                                models.TokenEmpresa = tokem.token;
                             }
 
                             // verificar base activa
                             var baseActiva = await BaseCajaControler.VerificarBaseCaja(db, usuarioCaja.id);
-
                             if (baseActiva != null)
                             {
-                                Session["base_caja"] = JsonConvert.SerializeObject(baseActiva);
-                                Session["idBase"] = baseActiva.id;
+                                models.BaseCaja = baseActiva;
+                                await SerialisarModels();
                                 AlertModerno.SuccessGoTo(this, "Ok",
                                     $"Bienvenido {vendedor.nombreVendedor}",
-                                    "~/menu.aspx", esToast: false, ms: 1200);
+                                    "~/caja.aspx", esToast: false, ms: 1200);
                             }
                             else
                             {
@@ -135,9 +143,10 @@ namespace WebApplication
                     }
                     else
                     {
+                        await SerialisarModels();
                         AlertModerno.SuccessGoTo(this, "Ok",
                             $"Bienvenido {vendedor.nombreVendedor}",
-                            "~/menu.aspx", esToast: false, ms: 1200);
+                            "~/caja.aspx", esToast: false, ms: 1200);
                     }
                 }
                 else
@@ -149,7 +158,7 @@ namespace WebApplication
 
         protected async void btnAperturarBase_Click(object sender, EventArgs e)
         {
-            string db = Session["db"]?.ToString();
+            string db = models.db;
             if (string.IsNullOrEmpty(db))
             {
                 AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesión.", true);
@@ -178,7 +187,7 @@ namespace WebApplication
             }
 
             // guidSede si lo necesitas
-            var guidSede = Session["guidSede"] != null ? Session["guidSede"].ToString() : null;
+            var guidSede = models.Sede.guidSede;
 
             // ✅ AQUÍ APERTURAS LA BASE
             // Ajusta este llamado al método real de tu DAL/Controler:
@@ -198,8 +207,8 @@ namespace WebApplication
 
             if (baseNueva != null)
             {
-                Session["base_caja"] = JsonConvert.SerializeObject(baseNueva);
-                Session["idBase"] = baseNueva.id;
+                models.BaseCaja=baseNueva;
+                await SerialisarModels();
                 AlertModerno.SuccessGoTo(this, "Ok",
                     "Caja aperturada correctamente.",
                     "~/menu.aspx", esToast: false, ms: 1200);

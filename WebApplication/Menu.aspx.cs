@@ -177,12 +177,7 @@ namespace WebApplication
 
             // Construir ViewModel
             Models = new MenuViewModels();
-            if (Session["estadopropina"] == null) Session["estadopropina"] = false;
-            Models.estadopropina = (bool)Session["estadopropina"];
-            if (Session["porpropina"] == null) Session["porpropina"] = 0;
-            Models.porpropina = (int)Session["porpropina"];
-            Models.IdMesero = Convert.ToInt32(Session["idvendedor"].ToString());
-            Models.NombreMesero = Session["NombreMesero"].ToString();
+
             Models.IdCuentaActiva = idVenta;
             Models.IdZonaActiva = idZonaActiva;
             Models.IdMesaActiva = 0;
@@ -754,7 +749,7 @@ namespace WebApplication
 
             AlertModerno.Success(this, "Ok", $"mesa {nombreMesa} liberada");
             Models.Mesas = await MesasControler.Lista(Session["db"].ToString());
-            Models.cuentas = await V_CuentasVentaControler.Lista_IdVendedor(Session["db"].ToString(), Models.IdMesero);
+            Models.cuentas = await V_CuentasVentaControler.Lista_IdVendedor(Session["db"].ToString(), Models.vendedor.id);
             GuardarModelsEnSesion();
             BindProductos();
             DataBind();
@@ -1062,7 +1057,7 @@ namespace WebApplication
             if (cuentasMesa.Any())
             {
                 // La mesa ya está asociada a una cuenta
-                if (cuentasMesa.FirstOrDefault().idVendedor != Models.IdMesero)
+                if (cuentasMesa.FirstOrDefault().idVendedor != Models.vendedor.id)
                 {
                     AlertModerno.Error(this, "Error", $"la mesa {mesa.nombreMesa} pertenece a otro mesero.", true);
                     GuardarModelsEnSesion();
@@ -1453,6 +1448,7 @@ namespace WebApplication
             Models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), Models.IdCuentaActiva, Models.IdCuenteClienteActiva);
             Models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(Session["db"].ToString(), false, Models.IdCuentaActiva);
             Models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(Session["db"].ToString(), Models.IdCuenteClienteActiva);
+
             GuardarModelsEnSesion();
             BindProductos();
             DataBind();
@@ -1621,7 +1617,7 @@ namespace WebApplication
                     id = 0,
                     idVenta = Models.IdCuentaActiva,
                     idMesa = Convert.ToString(Models.IdMesaActiva),
-                    idMesero = Convert.ToString(Models.IdMesero),
+                    idMesero = Convert.ToString(Models.vendedor.id),
                     estado = 1
                 };
                 var resp = await ImprecionComandaAddControler.CRUD(Session["db"].ToString(), comanda, 0);
@@ -1881,7 +1877,7 @@ namespace WebApplication
             );
 
             //aquí, si quieres, recargas datos de la venta
-            Models.cuentas = await V_CuentasVentaControler.Lista_IdVendedor(Session["db"].ToString(),Models.IdMesero);
+            Models.cuentas = await V_CuentasVentaControler.Lista_IdVendedor(Session["db"].ToString(),Models.vendedor.id);
             GuardarModelsEnSesion();
             BindProductos();
             DataBind();

@@ -177,6 +177,8 @@
     <Content Include="Scripts\jquery-3.7.0.slim.js" />
     <Content Include="Scripts\jquery-3.7.0.slim.min.js" />
     <Content Include="Scripts\js\AlertModerno.js" />
+    <Content Include="Scripts\js\app-modal.js" />
+    <Content Include="Scripts\js\caja.js" />
     <Content Include="Scripts\js\cerrar-caja.js" />
     <Content Include="Scripts\js\cobrar.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
@@ -265,6 +267,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helpers\EventArgumentParser.cs" />
+    <Compile Include="Helpers\ModalHelper.cs" />
     <Compile Include="HVentas.aspx.cs">
       <DependentUpon>HVentas.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

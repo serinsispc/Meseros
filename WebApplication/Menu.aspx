@@ -223,7 +223,7 @@
 
         <!-- banner servicio activo -->
         <div class="alert alert-primary-soft d-flex align-items-center justify-content-between px-3 py-2 mb-3">
-            <div class="fw-semibold">Mesero Activo: <%# Models.NombreMesero %> </div>
+            <div class="fw-semibold">Mesero Activo: <%: Models.vendedor.nombreVendedor %> </div>
             <div class="small text-muted"></div>
         </div>
 

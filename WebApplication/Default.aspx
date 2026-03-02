@@ -36,7 +36,7 @@
         <div class="login-card">
 
             <div class="logo-badge">
-                <img src="<%:ResolveUrl($"~/Recursos/Imagenes/Logo/{Session["db"]}.png") %>" alt="Logo" />
+                <img src="<%:ResolveUrl($"~/Recursos/Imagenes/Logo/{models.db}.png") %>" alt="Logo" />
             </div>
 
             <h2 class="login-title">Iniciar Sesión</h2>

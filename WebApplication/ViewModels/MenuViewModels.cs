@@ -8,30 +8,32 @@ namespace WebApplication.ViewModels
 {
     public class MenuViewModels
     {
-        public bool estadopropina { get; set; }
-        public int porpropina { get; set; }
-        public int cajero { get; set; }
-        public int IdMesero { get; set; }
-        public string NombreMesero { get; set; }
-        public int IdCuentaActiva { get; set; }
-        public int IdZonaActiva { get; set; }
-        public int IdMesaActiva { get; set; }
-        public int IdCategoriaActiva { get; set; }
-        public int IdCuenteClienteActiva { get; set; }
-        public List<V_CuentasVenta> cuentas { get; set; }
-        public List<Zonas> zonas { get; set; }
-        public List<Mesas> Mesas { get; set; }
-        public List<V_Categoria> categorias { get; set; }
-        public List<v_productoVenta> productos { get; set; }
-        public V_TablaVentas venta { get; set; }
-        public List<V_DetalleCaja> detalleCaja { get; set; }
-        public List<V_CuentaCliente> v_CuentaClientes { get; set; }
-        public List<V_CatagoriaAdicion> adiciones { get; set; }
-        public V_CuentaCliente ventaCuenta { get; set; }
-        public List<ClienteDomicilio> clienteDomicilios { get; set; }
-        public bool AbrirModalDomicilio { get; set; }
-        public List<Vendedor> ListaVendedor { get; set; }
-        public List<CargoDescuentoVentas> cargoDescuentoVentas { get; set; }
-        public List<Clientes> clientes { get; set; }
+        public string db=string.Empty;
+        public string TokenEmpresa=string.Empty;
+        public int IdCuentaActiva { get; set; } = 0;
+        public int IdZonaActiva { get; set; } = 0;
+        public int IdMesaActiva { get; set; } = 0;
+        public int IdCategoriaActiva { get; set; } = 0;
+        public int IdCuenteClienteActiva { get; set; } = 0;
+        public BaseCaja BaseCaja { get; set; } = new BaseCaja();
+        public Sede Sede { get; set; } = new Sede();
+        public List<V_CuentasVenta> cuentas { get; set; } = new List<V_CuentasVenta>();
+        public List<Zonas> zonas { get; set; }=new List<Zonas>();
+        public List<Mesas> Mesas { get; set; } = new List<Mesas>();
+        public List<Mesas> MesasLista { get; set; } = new List<Mesas>();
+        public List<V_Categoria> categorias { get; set; } = new List<V_Categoria>();
+        public List<v_productoVenta> productos { get; set; } = new List<v_productoVenta>();
+        public List<v_productoVenta> productosLista { get; set; } = new List<v_productoVenta>();
+        public V_TablaVentas venta { get; set; } = new V_TablaVentas();
+        public List<V_DetalleCaja> detalleCaja { get; set; } = new List<V_DetalleCaja>();
+        public List<V_CuentaCliente> v_CuentaClientes { get; set; } = new List<V_CuentaCliente>();
+        public List<V_CatagoriaAdicion> adiciones { get; set; } = new List<V_CatagoriaAdicion>();
+        public V_CuentaCliente ventaCuenta { get; set; } = new V_CuentaCliente();
+        public List<ClienteDomicilio> clienteDomicilios { get; set; } = new List<ClienteDomicilio>();
+        public bool AbrirModalDomicilio { get; set; } = false;
+        public List<Vendedor> ListaVendedor { get; set; } = new List<Vendedor>();
+        public Vendedor vendedor { get; set; }= new Vendedor();
+        public List<CargoDescuentoVentas> cargoDescuentoVentas { get; set; } = new List<CargoDescuentoVentas>();
+        public List<Clientes> clientes { get; set; } = new List<Clientes>();
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DAL;          // CrudSpHelper, SqlAutoDAL
 using DAL.Model;
+using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
 
@@ -65,7 +66,7 @@ namespace DAL.Controler
 
                 return new Respuesta_DAL
                 {
-                    data = venta,
+                    data = JsonConvert.SerializeObject(venta),
                     estado = true,
                     mensaje = "ok"
                 };

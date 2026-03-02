@@ -211,9 +211,9 @@ body {
     }
 
 .cuenta-num {
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1.05;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--primary);
     margin-bottom: 6px;
 }
@@ -228,8 +228,8 @@ body {
 
 .cuenta-edit {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 6px;
+    right: 6px;
     width: 28px;
     height: 28px;
     border-radius: 10px;
@@ -239,7 +239,13 @@ body {
     color: #f5b000;
     background: transparent;
     font-size: 14px;
-    pointer-events: none;
+    pointer-events: auto; /* ✅ CLAVE */
+    cursor: pointer;
+    z-index: 20;
+}
+
+.cuenta-body {
+    cursor: pointer;
 }
 
 /* Responsive cuentas */
@@ -635,9 +641,16 @@ body {
     }
 }
 
+
+
+
+
+
 /* =========================================================
-   13) PRODUCTOS (listado central)
-   ========================================================= */
+   PRODUCTOS: tarjetas SIEMPRE al 100% de ancho
+   + botones fijos + nombre multilinea
+========================================================= */
+
 .productos-box {
     justify-content: flex-start !important;
     align-items: flex-start !important;
@@ -651,23 +664,22 @@ body {
 }
 
 .productos-list {
-    width: 100%;
+    width: 100% !important;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
+/* ✅ tarjeta full ancho SIEMPRE */
 .producto-item {
-    width: 100%;
+    width: 100% !important;
+    min-width: 100% !important; /* 🔥 clave para que no se encoja */
+    display: block;
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 14px;
     padding: 10px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     box-shadow: var(--shadow-sm);
-    margin-bottom: 6px;
     transition: transform .12s ease, box-shadow .12s ease;
 }
 
@@ -676,17 +688,38 @@ body {
         box-shadow: var(--shadow-md);
     }
 
+    /* ✅ bootstrap row/cols dentro: ocupar todo el ancho */
+    .producto-item .row {
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .producto-item [class*="col-"] {
+        width: 100% !important; /* col-12 siempre full */
+        max-width: 100% !important;
+    }
+
+    /* ✅ Evita que algo herede centrado */
+    .producto-item,
+    .producto-item * {
+        text-align: left;
+    }
+
+/* 3) Nombre completo y multilinea */
 .producto-nombre {
     font-weight: 900;
     font-size: 12px;
     letter-spacing: .25px;
     color: var(--text);
     text-transform: uppercase;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
+    margin-bottom: 2px;
 }
 
+/* 4) Sub info */
 .producto-sub {
     margin-top: 4px;
     display: flex;
@@ -711,69 +744,84 @@ body {
         text-decoration: underline;
     }
 
+/* 5) Acciones fijas a la derecha */
 .producto-acciones {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 8px;
 }
 
-/* botones +/- y carrito */
+/* ✅ Botones modernos */
 .prod-btn {
-    width: 42px;
+    width: 40px;
     height: 38px;
     border-radius: 12px;
-    border: 1px solid var(--line);
-    background: #f8fafc;
+    border: 1px solid rgba(15, 23, 42, .12);
+    background: rgba(248, 250, 252, .95);
     color: var(--text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: transform .10s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    box-shadow: 0 8px 18px rgba(2, 6, 23, .06);
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
 }
 
     .prod-btn:hover {
         transform: translateY(-1px);
-        background: var(--card);
-        box-shadow: var(--shadow-sm);
+        background: #fff;
+        border-color: rgba(31, 107, 255, .30);
+        box-shadow: 0 12px 26px rgba(2, 6, 23, .10);
     }
 
+    .prod-btn:active {
+        transform: translateY(0) scale(.98);
+    }
+
+/* Input cantidad */
 .prod-cant {
-    width: 62px;
+    width: 64px;
     height: 38px;
     border-radius: 12px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(15, 23, 42, .12);
+    background: #fff;
+    color: var(--text);
     text-align: center;
     font-weight: 900;
     outline: none;
-    background: var(--card);
-    color: var(--text);
 }
 
     .prod-cant:focus {
-        border-color: rgba(31, 107, 255, .55);
-        box-shadow: 0 0 0 3px var(--primary-soft);
+        border-color: rgba(31, 107, 255, .45);
+        box-shadow: 0 0 0 3px rgba(31, 107, 255, .12);
     }
 
+/* Carrito pro */
 .prod-cart {
-    background: var(--card);
+    background: rgba(31, 107, 255, .08);
+    border-color: rgba(31, 107, 255, .22);
+    color: #1f6bff;
 }
 
-/* mobile */
-@media (max-width: 576px) {
-    .producto-item {
-        flex-direction: column;
-        align-items: stretch;
+    .prod-cart:hover {
+        background: rgba(31, 107, 255, .14);
+        border-color: rgba(31, 107, 255, .35);
     }
 
-    .producto-acciones {
+/* Desktop: centra vertical la columna derecha sin afectar el ancho */
+@media (min-width: 768px) {
+    .producto-item .col-md-6:last-child {
+        display: flex;
         justify-content: flex-end;
-    }
-
-    .producto-nombre {
-        white-space: normal;
+        align-items: center;
     }
 }
+
+
+
+
+
 
 /* =========================================================
    14) PRECIOS (columna derecha arriba)
@@ -1354,3 +1402,186 @@ body {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* =========================
+   MODAL CUENTAS (Bootstrap 5)
+========================= */
+
+.modal-cuentas {
+    border: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 30px 70px rgba(0,0,0,.25);
+}
+
+.modal-cuentas__header {
+    border: 0;
+    background: linear-gradient(135deg, #0b2a4a, #0f4c81);
+    padding: 16px 18px;
+}
+
+.modal-cuentas__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.18);
+    backdrop-filter: blur(10px);
+}
+
+    .modal-cuentas__icon i {
+        font-size: 20px;
+        color: #fff;
+    }
+
+.cuentas-search {
+    position: relative;
+    margin-bottom: 14px;
+}
+
+.cuentas-search__icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: .55;
+}
+
+.cuentas-search__input {
+    border-radius: 14px;
+    padding-left: 44px;
+    padding-right: 44px;
+    height: 44px;
+    border: 1px solid rgba(0,0,0,.10);
+    box-shadow: 0 10px 24px rgba(0,0,0,.06);
+}
+
+    .cuentas-search__input:focus {
+        box-shadow: 0 12px 30px rgba(15,76,129,.20);
+        border-color: rgba(15,76,129,.35);
+    }
+
+.cuentas-search__clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,.08);
+    background: #fff;
+    display: grid;
+    place-items: center;
+}
+
+    .cuentas-search__clear:hover {
+        background: #f6f8fb;
+    }
+
+.cuentas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Botón alargado por item */
+.cuenta-item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid rgba(0,0,0,.10);
+    background: #fff;
+    border-radius: 16px;
+    padding: 14px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 14px 30px rgba(0,0,0,.07);
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+    .cuenta-item:hover {
+        transform: translateY(-1px);
+        border-color: rgba(15,76,129,.25);
+        box-shadow: 0 18px 40px rgba(0,0,0,.10);
+    }
+
+    .cuenta-item:active {
+        transform: translateY(0px) scale(.995);
+    }
+
+.cuenta-item__left {
+    min-width: 0;
+}
+
+.cuenta-item__title {
+    font-weight: 800;
+    letter-spacing: .2px;
+    color: #0b2a4a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cuenta-item__sub {
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: rgba(0,0,0,.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cuenta-item__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.cuenta-item__badge {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(15,76,129,.10);
+    color: #0f4c81;
+    border: 1px solid rgba(15,76,129,.18);
+}
+
+.cuentas-empty {
+    padding: 26px 10px;
+}
+
+.cuentas-empty__box {
+    border: 1px dashed rgba(0,0,0,.15);
+    border-radius: 16px;
+    padding: 18px;
+    text-align: center;
+    background: #fbfcff;
+}
+
+    .cuentas-empty__box i {
+        font-size: 28px;
+        opacity: .55;
+    }
