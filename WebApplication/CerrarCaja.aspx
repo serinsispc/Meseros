@@ -132,6 +132,19 @@
             padding: 10px 12px;
         }
         .cc-sep{ height:1px; background: rgba(2,6,23,.08); margin: 10px 0; }
+        .cc-report-wrap{ width:100%; max-width:none; }
+        .cc-report-table{ width:100%; border-collapse:collapse; font-size:.95rem; }
+        .cc-report-table th{ background:#cfe0f2; color:#0b1b33; font-weight:900; padding:8px 10px; border:1px solid #aebfd1; }
+        .cc-report-table td{ background:#fff; padding:7px 10px; border:1px solid #cfd7e3; }
+        .cc-report-table td.money{ font-weight:900; white-space:nowrap; }
+        .cc-report-total{ display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-top:10px; font-weight:900; color:var(--cc-text); }
+        .cc-report-wrap{ width:100%; max-width:none; }
+        .cc-report-table{ width:100%; border-collapse:separate; border-spacing:0; font-size:.95rem; }
+        .cc-report-table th{ background:#d7e9fb; color:#0b1b33; font-weight:900; padding:10px 12px; border:1px solid #b7cfe7; }
+        .cc-report-table td{ background:#fff; padding:8px 12px; border-left:1px solid #d5dbe5; border-right:1px solid #d5dbe5; border-bottom:1px solid #d5dbe5; }
+        .cc-report-table tbody tr:first-child td{ border-top:1px solid #d5dbe5; }
+        .cc-report-table td.money{ font-weight:900; white-space:nowrap; }
+        .cc-report-total{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:10px; font-weight:900; color:var(--cc-text); }
     </style>
 
     <div class="container-fluid cc-wrap">
@@ -414,8 +427,47 @@
 
         </div>
 
-    </div>
 
+
+                <div class="row g-3 mt-3">
+            <div class="col-12">
+                <div class="cc-card">
+                    <div class="cc-card-h">
+                        <h2 class="cc-card-t"><i class="bi bi-table"></i>Reporte pagos internos por turno</h2>
+                        <span class="cc-pill"><i class="bi bi-diagram-3"></i>SP InformePagoInterno_Turno</span>
+                    </div>
+                    <div class="cc-card-b">
+                        <div id="pnlPagosInternos" runat="server" class="cc-report-wrap">
+                            <table class="cc-report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Medio de pago</th>
+                                        <th>Total Venta</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <asp:Repeater ID="rptPagosInternos" runat="server">
+                                        <ItemTemplate>
+                                            <tr>
+                                                <td><%# Eval("nombreMPI") %></td>
+                                                <td class="money"><%# string.Format("$ {0:N0}", Convert.ToDecimal(Eval("total"))) %></td>
+                                            </tr>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
+                                </tbody>
+                            </table>
+                            <div class="cc-report-total">
+                                <span>Total:</span>
+                                <span id="lblTotalPagosInternos" runat="server">$ 0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
     <!-- ✅ Modal confirmar cierre -->
     <div class="modal fade" id="mdlConfirmarCierre" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -456,6 +508,17 @@
 
 
 </asp:Content>
+
+
+
+
+
+
+
+
+
+
+
 
 
 

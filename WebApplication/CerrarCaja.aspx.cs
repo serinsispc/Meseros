@@ -220,6 +220,23 @@ namespace WebApplication
                 .Sum(x => x.total);
         }
 
+
+        private void BindPagosInternosReporte()
+        {
+            var data = pagosInternosTurno ?? new List<InformePagoInternoTurnoItem>();
+            rptPagosInternos.DataSource = data;
+            rptPagosInternos.DataBind();
+
+            if (pnlPagosInternos != null)
+            {
+                pnlPagosInternos.Visible = data.Count > 0;
+            }
+
+            if (lblTotalPagosInternos != null)
+            {
+                lblTotalPagosInternos.InnerText = FormatearMoneda(data.Sum(x => x.total));
+            }
+        }
         private bool EsVentaAnulada(V_TablaVentas venta)
         {
             return string.Equals(venta?.estadoVenta, "ANULADA", StringComparison.OrdinalIgnoreCase);
@@ -231,6 +248,9 @@ namespace WebApplication
         }
     }
 }
+
+
+
 
 
 
