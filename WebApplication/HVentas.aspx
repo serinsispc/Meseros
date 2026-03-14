@@ -58,6 +58,27 @@
             font-size: .85rem;
         }
 
+        .hv-hero-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(37,99,235,.18);
+            background: #ffffff;
+            color: var(--hv-primary);
+            font-weight: 800;
+            text-decoration: none;
+            box-shadow: 0 8px 22px rgba(2, 6, 23, .08);
+        }
+
+        .hv-hero-action:hover {
+            color: #1d4ed8;
+            border-color: rgba(37,99,235,.28);
+            text-decoration: none;
+        }
+
         .hv-kpis { margin-top: 14px; }
         .hv-kpi {
             background: var(--hv-card);
@@ -196,6 +217,10 @@
                         Filtra, consulta y revisa las facturas generadas en su turno activo.
                     </div>
                 </div>
+                <a href="caja.aspx" class="hv-hero-action">
+                    <i class="bi bi-shop-window"></i>
+                    Caja
+                </a>
             </div>
 
             <div class="row g-3 hv-kpis">
@@ -350,7 +375,7 @@
                                         <button type="button" class="btn btn-outline-primary btn-sm hv-linkbtn me-2" onclick="hvAbrirVenta(<%= venta.id %>)" data-bs-toggle="modal" data-bs-target="#mdlVenta">
                                             <i class="bi bi-eye me-1"></i>Ver
                                         </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm hv-linkbtn" onclick="window.print(); return false;">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm hv-linkbtn" onclick="hvImprimirVenta(<%= venta.id %>); return false;">
                                             <i class="bi bi-printer me-1"></i>Imprimir
                                         </button>
                                     </td>
@@ -454,7 +479,7 @@
                         <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
                             <i class="bi bi-x-lg me-2"></i>Cerrar
                         </button>
-                        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="window.print(); return false;">
+                        <button type="button" class="btn btn-primary rounded-pill px-4" onclick="hvImprimirVentaActual(); return false;">
                             <i class="bi bi-printer me-2"></i>Imprimir
                         </button>
                     </div>
@@ -509,7 +534,24 @@
             }
         }
 
+        window.hvVentaActualId = 0;
+
+        function hvImprimirVenta(idVenta) {
+            if (!idVenta) {
+                return;
+            }
+
+            if (typeof window.__doPostBack === 'function') {
+                window.__doPostBack('ImprimirFacturaHV', idVenta.toString());
+            }
+        }
+
+        function hvImprimirVentaActual() {
+            hvImprimirVenta(window.hvVentaActualId || 0);
+        }
+
         function hvAbrirVenta(idVenta) {
+            window.hvVentaActualId = idVenta;
             const venta = window.hvVentasDetalle ? window.hvVentasDetalle[idVenta] : null;
             if (!venta) {
                 return;
@@ -550,4 +592,9 @@
     </script>
 
 </asp:Content>
+
+
+
+
+
 

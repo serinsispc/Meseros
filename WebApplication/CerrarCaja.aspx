@@ -306,7 +306,7 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-12 col-md-6">
                                 <label class="small fw-bold text-muted mb-1 d-block">Efectivo físico contado (opcional)</label>
-                                <input type="text" class="form-control cc-input" id="txtEfectivoFisico" placeholder="$ 0" />
+                                <input type="text" class="form-control cc-input" id="txtEfectivoFisico" placeholder="$ 0" oninput="ccActualizarDiferencia()" onkeyup="ccActualizarDiferencia()" onchange="ccActualizarDiferencia()" />
                                 <div class="text-muted small fw-semibold mt-1">
                                     (Esto es para validar contra “Efectivo + Base”)
                                 </div>
@@ -452,10 +452,11 @@
 
 
 
-    <script src="Scripts/js/cerrar-caja.js"></script>
+    <script src="Scripts/js/cerrar-caja.js?v=20260314-2"></script>
 
 
 </asp:Content>
+
 
 
 

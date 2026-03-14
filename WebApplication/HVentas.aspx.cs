@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WebApplication.Class;
 using WebApplication.Helpers;
 using WebApplication.ViewModels;
 
@@ -22,62 +23,95 @@ namespace WebApplication
 
         protected async void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack)
+            Models = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels();
+            var db = Convert.ToString(Session[SessionContextHelper.DbKey] ?? Models.db);
+            var idBase = SessionContextHelper.ResolveBaseCajaId(Session, Models);
+
+            if (string.IsNullOrWhiteSpace(db) || idBase <= 0)
             {
-                Models = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels();
-                var db = Convert.ToString(Session[SessionContextHelper.DbKey] ?? Models.db);
-                var idBase = SessionContextHelper.ResolveBaseCajaId(Session, Models);
-
-                if (string.IsNullOrWhiteSpace(db) || idBase <= 0)
-                {
-                    Response.Redirect("~/Default.aspx", false);
-                    Context.ApplicationInstance.CompleteRequest();
-                    return;
-                }
-
-                var dal = new SqlAutoDAL();
-                Ventas = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == idBase && x.eliminada == false) ?? new List<V_TablaVentas>();
-                Ventas = Ventas.OrderByDescending(x => x.fechaVenta).ToList();
-
-                TotalVentas = Ventas.Where(x => !EsVentaAnulada(x)).Sum(x => x.total_A_Pagar);
-                CantidadFacturas = Ventas.Count(x => x.numeroVenta > 0);
-                TotalPendiente = Ventas.Where(x => !EsVentaAnulada(x)).Sum(x => x.totalPendienteVenta);
-                CantidadAnuladas = Ventas.Count(EsVentaAnulada);
-
-                var detalleMap = new Dictionary<int, object>();
-                foreach (var venta in Ventas)
-                {
-                    var detalles = await V_DetalleCajaControler.Lista_IdVenta(db, venta.id, 0) ?? new List<V_DetalleCaja>();
-                    detalleMap[venta.id] = new
-                    {
-                        id = venta.id,
-                        factura = FacturaLabel(venta),
-                        cliente = string.IsNullOrWhiteSpace(venta.nombreCliente) ? "Cliente contado" : venta.nombreCliente,
-                        nit = string.IsNullOrWhiteSpace(venta.nit) ? "0" : venta.nit,
-                        fecha = FechaLarga(venta.fechaVenta),
-                        hora = HoraLarga(venta.fechaVenta),
-                        alias = string.IsNullOrWhiteSpace(venta.aliasVenta) ? "Sin alias" : venta.aliasVenta,
-                        medioPago = string.IsNullOrWhiteSpace(venta.medioDePago) ? "Sin definir" : venta.medioDePago,
-                        estado = EstadoTexto(venta),
-                        total = venta.total_A_Pagar,
-                        pagado = venta.totalPagadoVenta,
-                        pendiente = venta.totalPendienteVenta,
-                        observacion = string.IsNullOrWhiteSpace(venta.observacionVenta) ? "Sin observacion" : venta.observacionVenta,
-                        detalles = detalles.Select(d => new
-                        {
-                            producto = string.IsNullOrWhiteSpace(d.nombreProducto) ? "Producto" : d.nombreProducto,
-                            presentacion = string.IsNullOrWhiteSpace(d.presentacion) ? string.Empty : d.presentacion,
-                            cantidad = d.unidad,
-                            precio = d.precioVenta,
-                            total = d.totalDetalle,
-                            nota = string.IsNullOrWhiteSpace(d.adiciones) ? (string.IsNullOrWhiteSpace(d.observacion) ? "Sin nota" : d.observacion) : d.adiciones,
-                            cuenta = string.IsNullOrWhiteSpace(d.nombreCuenta) ? "General" : d.nombreCuenta
-                        }).ToList()
-                    };
-                }
-
-                VentasDetalleJson = JsonConvert.SerializeObject(detalleMap).Replace("</", "<\\/");
+                Response.Redirect("~/Default.aspx", false);
+                Context.ApplicationInstance.CompleteRequest();
+                return;
             }
+
+            if (IsPostBack)
+            {
+                var eventTarget = Request["__EVENTTARGET"];
+                var eventArgument = Request["__EVENTARGUMENT"];
+
+                if (string.Equals(eventTarget, "ImprimirFacturaHV", StringComparison.OrdinalIgnoreCase))
+                {
+                    await EncolarImpresionFactura(db, eventArgument);
+                }
+            }
+
+            await CargarVentas(db, idBase);
+        }
+
+        private async System.Threading.Tasks.Task CargarVentas(string db, int idBase)
+        {
+            var dal = new SqlAutoDAL();
+            Ventas = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == idBase && x.eliminada == false) ?? new List<V_TablaVentas>();
+            Ventas = Ventas.OrderByDescending(x => x.fechaVenta).ToList();
+
+            TotalVentas = Ventas.Where(x => !EsVentaAnulada(x)).Sum(x => x.total_A_Pagar);
+            CantidadFacturas = Ventas.Count(x => x.numeroVenta > 0);
+            TotalPendiente = Ventas.Where(x => !EsVentaAnulada(x)).Sum(x => x.totalPendienteVenta);
+            CantidadAnuladas = Ventas.Count(EsVentaAnulada);
+
+            var detalleMap = new Dictionary<int, object>();
+            foreach (var venta in Ventas)
+            {
+                var detalles = await V_DetalleCajaControler.Lista_IdVenta(db, venta.id, 0) ?? new List<V_DetalleCaja>();
+                detalleMap[venta.id] = new
+                {
+                    id = venta.id,
+                    factura = FacturaLabel(venta),
+                    cliente = string.IsNullOrWhiteSpace(venta.nombreCliente) ? "Cliente contado" : venta.nombreCliente,
+                    nit = string.IsNullOrWhiteSpace(venta.nit) ? "0" : venta.nit,
+                    fecha = FechaLarga(venta.fechaVenta),
+                    hora = HoraLarga(venta.fechaVenta),
+                    alias = string.IsNullOrWhiteSpace(venta.aliasVenta) ? "Sin alias" : venta.aliasVenta,
+                    medioPago = string.IsNullOrWhiteSpace(venta.medioDePago) ? "Sin definir" : venta.medioDePago,
+                    estado = EstadoTexto(venta),
+                    total = venta.total_A_Pagar,
+                    pagado = venta.totalPagadoVenta,
+                    pendiente = venta.totalPendienteVenta,
+                    observacion = string.IsNullOrWhiteSpace(venta.observacionVenta) ? "Sin observacion" : venta.observacionVenta,
+                    detalles = detalles.Select(d => new
+                    {
+                        producto = string.IsNullOrWhiteSpace(d.nombreProducto) ? "Producto" : d.nombreProducto,
+                        presentacion = string.IsNullOrWhiteSpace(d.presentacion) ? string.Empty : d.presentacion,
+                        cantidad = d.unidad,
+                        precio = d.precioVenta,
+                        total = d.totalDetalle,
+                        nota = string.IsNullOrWhiteSpace(d.adiciones) ? (string.IsNullOrWhiteSpace(d.observacion) ? "Sin nota" : d.observacion) : d.adiciones,
+                        cuenta = string.IsNullOrWhiteSpace(d.nombreCuenta) ? "General" : d.nombreCuenta
+                    }).ToList()
+                };
+            }
+
+            VentasDetalleJson = JsonConvert.SerializeObject(detalleMap).Replace("</", "<\\/");
+        }
+
+        private async System.Threading.Tasks.Task EncolarImpresionFactura(string db, string eventArgument)
+        {
+            if (!int.TryParse((eventArgument ?? string.Empty).Trim(), out int idVenta) || idVenta <= 0)
+            {
+                AlertModerno.Warning(this, "Atención", "No se recibió una venta válida para imprimir.", true, 1800);
+                return;
+            }
+
+            var printer = new ImprimirFactura { id = 0, idventa = idVenta };
+            var ordenPrinter = await ImprimirFacturaControler.CRUD(db, printer, 0);
+
+            if (ordenPrinter == null || !ordenPrinter.estado)
+            {
+                AlertModerno.Error(this, "Error", "La factura no se pudo enviar a impresión.", true, 2200);
+                return;
+            }
+
+            AlertModerno.Success(this, "OK", "Factura enviada a impresión correctamente.", true, 1200);
         }
 
         protected string Moneda(decimal valor)
