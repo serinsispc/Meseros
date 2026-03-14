@@ -47,7 +47,43 @@
     };
 
     // ====== PostBack seguro (con fallback si NO existe __doPostBack) ======
+    let postbackBusy = false;
+    let busyTimer = null;
+    let currentPostbackTarget = '';
+
+    const mostrarProcesando = (mensaje) => {
+        const overlay = byId('pageBusyOverlay');
+        const title = overlay ? overlay.querySelector('.page-busy-title') : null;
+        if (title && mensaje) title.textContent = mensaje;
+        if (overlay) overlay.classList.add('is-visible');
+        if (document.body) document.body.classList.add('app-is-busy');
+        postbackBusy = true;
+
+        if (busyTimer) clearTimeout(busyTimer);
+        busyTimer = setTimeout(() => {
+            ocultarProcesando();
+            try { if (window.Swal && Swal.isVisible()) Swal.close(); } catch { }
+        }, 12000);
+    };
+
+    const ocultarProcesando = () => {
+        const overlay = byId('pageBusyOverlay');
+        if (overlay) overlay.classList.remove('is-visible');
+        if (document.body) document.body.classList.remove('app-is-busy');
+        if (busyTimer) {
+            clearTimeout(busyTimer);
+            busyTimer = null;
+        }
+        postbackBusy = false;
+        currentPostbackTarget = '';
+    };
+
+    window.mostrarProcesando = mostrarProcesando;
+    window.ocultarProcesando = ocultarProcesando;
     const firePostBack = (target, argument) => {
+        if (postbackBusy && currentPostbackTarget === target) return;
+        currentPostbackTarget = target || '';
+
         if (typeof window.__doPostBack === 'function') {
             window.__doPostBack(target, argument);
             return;
@@ -56,6 +92,7 @@
         const form = document.querySelector('form');
         if (!form) {
             alert('No se encontró el formulario en el MasterPage.');
+            ocultarProcesando();
             return;
         }
 
@@ -75,6 +112,8 @@
 
         form.submit();
     };
+
+    ocultarProcesando();
 
     // ==========================================================
     // ✅ Base64 seguro UTF8 (lo usamos para enviar JSON al server)
@@ -341,6 +380,24 @@
     // ✅ BOTÓN GUARDAR (NUEVO)
     // Envia: efectivo, cambio, facturaElectronica (swFE)
     // ==========================================================
+    const btnGuardarDescuento = byId('btnGuardarDescuento');
+    if (btnGuardarDescuento) {
+        btnGuardarDescuento.addEventListener('click', () => {
+            mostrarProcesando('Guardando descuento');
+            const valor = getVal('txtDescuento');
+            const razon = byId('txtRazonDescuento') ? (byId('txtRazonDescuento').value || '') : '';
+            firePostBack('btnGuardarDescuento', valor + '|' + razon);
+        });
+    }
+
+    const btnEliminarDescuento = byId('btnEliminarDescuento');
+    if (btnEliminarDescuento) {
+        btnEliminarDescuento.addEventListener('click', () => {
+            mostrarProcesando('Eliminando descuento');
+            firePostBack('btnEliminarDescuento', '');
+        });
+    }
+
     const btnGuardar = byId('btnGuardar');
     if (btnGuardar) {
         btnGuardar.addEventListener('click', () => {
@@ -368,7 +425,7 @@
             };
 
             const arg = encodeB64(JSON.stringify(payload));
-            mostrarProcesando();
+            mostrarProcesando('Guardando cobro');
             firePostBack('btnGuardar', arg);
         });
     }
@@ -392,7 +449,8 @@
             valorPropina = valorPropina.replace(/\./g, "").replace(",", ".");
 
             // 3️⃣ Enviar al servidor
-            firePostBack('btnGuardarPropina', valorPropina);
+            mostrarProcesando('Guardando propina');
+            firePostBack('btnGuardarPropina', valorPropina + '|' + getVal('txtPropinaPorcentaje'));
 
         });
     }
@@ -407,7 +465,8 @@
         btnEliminarPropina.addEventListener("click", function () {
 
             // 3️⃣ Enviar al servidor
-            firePostBack('btnEliminarPropina');
+            mostrarProcesando('Eliminando propina');
+            firePostBack('btnEliminarPropina', '');
 
         });
     }
@@ -583,6 +642,7 @@
 
             const payload = { idMetodoPago: idMetodoPago, pagos: pagos };
             const arg = encodeB64(JSON.stringify(payload));
+            mostrarProcesando('Guardando pago mixto');
             firePostBack('btnGuardarPagoMixto', arg);
 
             bootstrap.Modal.getOrCreateInstance(modalEl).hide();
@@ -862,4 +922,12 @@
 
     recalcularTotal();
 
+    window.addEventListener('pageshow', ocultarProcesando);
+    window.addEventListener('load', ocultarProcesando);
+
 })();
+
+
+
+
+

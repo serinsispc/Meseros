@@ -11,7 +11,15 @@
     <asp:HiddenField ID="hfRelMediosInternos" runat="server" ClientIDMode="Static" />
     <asp:HiddenField ID="hfIdVentaActual" runat="server" ClientIDMode="Static" />
 
-    <div class="wrap">
+    <div id="pageBusyOverlay" class="page-busy-overlay" aria-hidden="true">
+        <div class="page-busy-card">
+            <div class="page-busy-spinner"></div>
+            <div class="page-busy-title">Procesando cobro</div>
+            <div class="page-busy-text">Estamos validando la operación. No cierres esta ventana.</div>
+        </div>
+    </div>
+
+    <div class="wrap cobrar-wrap">
 
         <!-- TOPBAR -->
         <div class="topbar">
@@ -30,18 +38,18 @@
             </div>
         </div>
 
-        <div class="cardx">
-            <div class="head">
+        <div class="cardx cobrar-card">
+            <div class="head cobrar-card-head">
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-cash-stack"></i>
                     <b>Datos del cobro</b>
                 </div>
             </div>
 
-            <div class="body">
+            <div class="body cobrar-card-body">
 
                 <!-- Contado / Crédito -->
-                <div class="d-flex flex-wrap gap-3 mb-3">
+                <div class="d-flex flex-wrap gap-3 mb-3 cobrar-mode-row">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="chkContado" checked />
                         <label class="form-check-label fw-bold" for="chkContado">Venta de Contado</label>
@@ -53,7 +61,7 @@
                 </div>
 
                 <!-- SubTotal / IVA -->
-                <div class="row g-2 mb-2">
+                <div class="row g-3 mb-3 cobrar-top-grid">
                     <div class="col-12 col-md-6">
                         <label class="form-label fw-bold mb-1">SubTotal</label>
                         <input type="text" class="form-control" id="txtSubTotal" runat="server" ClientIDMode="Static" />
@@ -65,10 +73,11 @@
                 </div>
 
                 <!-- Descuento / Propina -->
-                <div class="row g-2 mb-3">
+                <div class="row g-3 mb-4 cobrar-top-grid">
 
                     <!-- DESCUENTO -->
                     <div class="col-12 col-md-6">
+                        <div class="cobrar-mini-card">
                         <label class="form-label fw-bold mb-1">Descuento</label>
 
                         <div class="row g-2">
@@ -104,9 +113,11 @@
                             </div>
                         </div>
                     </div>
+                    </div>
 
                     <!-- PROPINA -->
                     <div class="col-12 col-md-6">
+                        <div class="cobrar-mini-card">
                         <label class="form-label fw-bold mb-1">Propina</label>
 
                         <div class="row g-2">
@@ -134,88 +145,95 @@
                                 </div>
                             </div>
                         </div>
+                        </div>
+                    </div>
                     </div>
 
                 </div>
 
-                <!-- Total -->
-                <div class="totalBox mb-3">
-                    <div class="lbl">Total:</div>
-                    <div class="val" id="lblTotalGrande" runat="server" ClientIDMode="Static">0</div>
-                </div>
+                <div class="cobrar-main-grid">
+                    <div class="cobrar-summary-panel">
+                        <div class="cobrar-section-label">Resumen del cobro</div>
 
-                <!-- Medio de Pago -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold mb-1">Medio de Pago</label>
-                    <asp:DropDownList ID="ddlMedioPago" runat="server" CssClass="form-select" ClientIDMode="Static"></asp:DropDownList>
-                </div>
-
-                <!-- Factura electrónica -->
-                <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3" style="border-color: var(--border) !important;">
-                    <div>
-                        <div class="fw-bold">Factura electrónica</div>
-                        <div class="hint">Si activas, se abrirá el modal para agregar cliente</div>
+                        <div class="totalBox mb-3">
+                            <div class="lbl">Total:</div>
+                            <div class="val" id="lblTotalGrande" runat="server" ClientIDMode="Static">0</div>
+                        </div>
                     </div>
-                    <div class="form-check form-switch m-0">
+
+                    <div class="cobrar-payment-panel">
+                        <div class="cobrar-payment-card">
+                        <div class="cobrar-section-label">Forma de pago</div>
+
+                        <div class="mb-3 cobrar-block">
+                            <label class="form-label fw-bold mb-1">Medio de Pago</label>
+                            <asp:DropDownList ID="ddlMedioPago" runat="server" CssClass="form-select" ClientIDMode="Static"></asp:DropDownList>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3 cobrar-block" style="border-color: var(--border) !important;">
+                            <div>
+                                <div class="fw-bold">Factura electrónica</div>
+                                <div class="hint">Si activas, se abrirá el modal para agregar cliente</div>
+                            </div>
+                            <div class="form-check form-switch m-0">
+                                <%
+                                    if (Session["cliente_seleccionado_nit"] != null)
+                                    {
+                                %>
+                                    <input class="form-check-input" type="checkbox" id="swFE" checked="checked" />
+                                <%
+                                    }
+                                    else
+                                    {
+                                %>
+                                    <input class="form-check-input" type="checkbox" id="swFE" />
+                                <% } %>
+                            </div>
+                        </div>
+
                         <%
                             if (Session["cliente_seleccionado_nit"] != null)
                             {
                         %>
-                            <input class="form-check-input" type="checkbox" id="swFE" checked="checked" />
+                        <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3 cobrar-block" style="border-color: var(--border) !important;">
+                            <div>
+                                <div class="fw-bold">Cliente seleccionado</div>
+                                <div class="hint">NIT: <asp:Label ID="cliente_seleccionado_nit" runat="server"></asp:Label></div>
+                                <div class="hint">Nombre: <asp:Label ID="cliente_seleccionado_nombre" runat="server"></asp:Label></div>
+                                <div class="hint">Email: <asp:Label ID="cliente_seleccionado_correo" runat="server"></asp:Label></div>
+                            </div>
+                        </div>
                         <%
                             }
-                            else
-                            {
                         %>
-                            <input class="form-check-input" type="checkbox" id="swFE" />
-                        <% } %>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold mb-1">Abono Efectivo</label>
+                                <input type="text" class="form-control" id="txtAbonoEfectivo" runat="server" clientidmode="Static" value="0" readonly />
+                                <div class="hint mt-1">Saldo pago efectivo</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold mb-1">Efectivo</label>
+                                <input type="text" class="form-control" id="txtEfectivo" runat="server" ClientIDMode="Static" value="0" />
+                                <div class="hint mt-1">Se auto completa igual al Total</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold mb-1">Cambio</label>
+                                <input type="text" class="form-control" id="txtCambio" runat="server" ClientIDMode="Static" value="0" readonly />
+                                <div class="hint mt-1">Queda en 0</div>
+                            </div>
+                        </div>
+
+                        <div class="save-bar">
+                            <div class="d-grid">
+                                <button type="button" class="btn btnx btn-green bigSave" id="btnGuardar">
+                                    <i class="bi bi-floppy2-fill"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <%-- Información del cliente seleccionado --%>
-                <%
-                    if (Session["cliente_seleccionado_nit"] != null)
-                    {
-                %>
-                <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3" style="border-color: var(--border) !important;">
-                    <div>
-                        <div class="fw-bold">Cliente seleccionado</div>
-                        <div class="hint">NIT: <asp:Label ID="cliente_seleccionado_nit" runat="server"></asp:Label></div>
-                        <div class="hint">Nombre: <asp:Label ID="cliente_seleccionado_nombre" runat="server"></asp:Label></div>
-                        <div class="hint">Email: <asp:Label ID="cliente_seleccionado_correo" runat="server"></asp:Label></div>
-                    </div>
-                </div>
-                <%
-                    }
-                %>
-
-                <!-- Efectivo / Cambio -->
-                <div class="row g-2 mb-3">
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-bold mb-1">Abono Efectivo</label>
-                        <input type="text" class="form-control" id="txtAbonoEfectivo" runat="server" clientidmode="Static" value="0" readonly />
-                        <div class="hint mt-1">Saldo pago efectivo</div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-bold mb-1">Efectivo</label>
-                        <input type="text" class="form-control" id="txtEfectivo" runat="server" ClientIDMode="Static" value="0" />
-                        <div class="hint mt-1">Se auto completa igual al Total</div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label fw-bold mb-1">Cambio</label>
-                        <input type="text" class="form-control" id="txtCambio" runat="server" ClientIDMode="Static" value="0" readonly />
-                        <div class="hint mt-1">Queda en 0</div>
-                    </div>
-                </div>
-
-                <!-- Guardar -->
-                <div class="d-grid">
-                    <button type="button" class="btn btnx btn-green bigSave" id="btnGuardar">
-                        <i class="bi bi-floppy2-fill"></i> Guardar
-                    </button>
-                </div>
-
-            </div>
         </div>
 
     </div>
@@ -508,6 +526,11 @@
 
 
 </asp:Content>
+
+
+
+
+
 
 
 

@@ -14,7 +14,7 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x => x.idvendedor == idvendedor && x.numeroVenta==0);
+                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x => x.idvendedor == idvendedor && x.numeroVenta == 0 && x.eliminada == false);
                 return resp;
             }
             catch (Exception ex)
@@ -29,7 +29,7 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x =>x.numeroVenta == 0);
+                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x => x.numeroVenta == 0 && x.eliminada == false);
                 return resp;
             }
             catch (Exception ex)
@@ -40,3 +40,4 @@ namespace DAL.Controler
         }
     }
 }
+

@@ -5,6 +5,11 @@
     <link href="<%: ResolveUrl("~/Content/css/login.css") %>" rel="stylesheet" />
 
     <style>
+        .login-loading { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15, 23, 42, .45); backdrop-filter: blur(6px); z-index: 9999; }
+        .login-loading-card { width: min(340px, calc(100% - 32px)); background: rgba(255,255,255,.96); border-radius: 22px; padding: 22px 18px; box-shadow: 0 24px 60px rgba(0,0,0,.18); text-align: center; }
+        .login-loading-spinner { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; border: 5px solid rgba(0, 80, 184, .15); border-top-color: #0050b8; animation: loginSpin .9s linear infinite; }
+        @keyframes loginSpin { to { transform: rotate(360deg); } }
+        .btn-login.is-busy, #btnAperturarBase.is-busy { opacity: .75; pointer-events: none; }
         .users-grid-title { font-size: .9rem; font-weight: 600; margin-bottom: .5rem; color: #0050b8; }
         .login-card { width: 100%; max-width: 420px; }
         @media (min-width: 768px) { .login-card { max-width: 720px; } }
@@ -31,6 +36,14 @@
         .user-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); }
         @media (max-width: 575.98px) { .user-card { font-size: .8rem; padding: .5rem .3rem; min-height: 70px; } }
     </style>
+
+    <div id="loginLoading" class="login-loading">
+        <div class="login-loading-card">
+            <div class="login-loading-spinner"></div>
+            <div class="fw-bold">Procesando...</div>
+            <div class="text-muted small mt-1">Estamos validando tus datos, por favor espera.</div>
+        </div>
+    </div>
 
     <main class="login-page">
         <div class="login-card">
@@ -127,7 +140,7 @@
         </div>
     </div>
 
-    <script type="text/javascript">
+        <script type="text/javascript">
         (function () {
             function marcarSeleccion(btn) {
                 var cards = document.querySelectorAll('.user-card');
@@ -137,11 +150,10 @@
 
             function setCelularYFoco(btn) {
                 var txtCelular = document.getElementById('<%= txtCelular.ClientID %>');
-            var txtContrasena = document.getElementById('<%= txtContrasena.ClientID %>');
-
+                var txtContrasena = document.getElementById('<%= txtContrasena.ClientID %>');
                 var celular = btn.getAttribute('data-celular') || '';
-                if (txtCelular) txtCelular.value = celular;
 
+                if (txtCelular) txtCelular.value = celular;
                 marcarSeleccion(btn);
 
                 if (txtContrasena) {
@@ -150,17 +162,19 @@
                 }
             }
 
-            // ✅ Un solo listener para todo (no se pierde con postbacks/parciales)
             document.addEventListener('click', function (e) {
                 var btn = e.target.closest('.user-card');
                 if (!btn) return;
-
-                // ✅ Evita submit/refresh accidental
                 e.preventDefault();
                 e.stopPropagation();
-
                 setCelularYFoco(btn);
             }, true);
+
+            var overlay = document.getElementById('loginLoading');
+            if (overlay) {
+                window.addEventListener('pageshow', function () { overlay.style.display = 'none'; });
+                window.addEventListener('load', function () { overlay.style.display = 'none'; });
+            }
         })();
     </script>
 
@@ -199,3 +213,7 @@
 
 
 </asp:Content>
+
+
+
+

@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.UI;
 using WebApplication.Class;
+using WebApplication.Helpers;
 using WebApplication.ViewModels;
 using Acquirer_Response = RFacturacionElectronicaDIAN.Entities.Response.Acquirer_Response;
 
@@ -23,7 +24,7 @@ namespace WebApplication
 {
     public partial class Cobrar : System.Web.UI.Page
     {
-        #region Constantes de sesi\u00f3n / claves
+        #region Constantes de sesión / claves
         private const string SessionVendedorKey = "Vendedor";
         private const string SessionZonaActivaKey = "zonaactiva";
         private const string SessionModelsKey = "Models";
@@ -34,97 +35,43 @@ namespace WebApplication
 
         public MenuViewModels Models { get; private set; }
 
-                private MenuViewModels ModelSesion
+        private MenuViewModels ModelSesion
         {
             get
             {
-                var json = Session["modelsJSON"] as string;
-                if (!string.IsNullOrWhiteSpace(json))
+                if (Models != null)
                 {
-                    try { return JsonConvert.DeserializeObject<MenuViewModels>(json); }
-                    catch { }
+                    return Models;
                 }
 
-                return Session[SessionModelsKey] as MenuViewModels;
+                Models = SessionContextHelper.LoadModels(Session);
+                return Models;
             }
         }
 
+        private string DbActual => Convert.ToString(Session[SessionContextHelper.DbKey] ?? ModelSesion?.db ?? string.Empty);
         private V_TablaVentas VentaActual => ModelSesion?.venta;
 
         protected async void Page_Load(object sender, EventArgs e)
         {
+            if (!EnsureCobroContext())
+            {
+                Response.Redirect("~/caja.aspx", false);
+                Context.ApplicationInstance.CompleteRequest();
+                return;
+            }
+
             if (!IsPostBack)
             {
-                if (ModelSesion == null || VentaActual == null || Session["db"] == null)
-                {
-                    Response.Redirect("~/Menu.aspx", false);
-                    Context.ApplicationInstance.CompleteRequest();
-                    return;
-                }
-
-                await CargarMediosPago();
-                await CargarTiposDocumento();
-                await CargarTiposOrganizacion();
-                await CargarMunicipios();
-                await CargarTiposRegimen();
-                await CargarTiposResponsabilidad();
-                await CargarDetallesImpuesto();
-                await CargarClientesModal();
-                CargarDatosVenta();
-                await CargarRelMediosInternos();
-
-                // ? IMPORTANTE: asegurar PagoVentaJSON desde el primer render
-                await AsegurarPagoJsonInicial();
-
-                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
-                CargoDescuentoVentas descuento_ = new CargoDescuentoVentas();
-                descuento_ = ModelSesion.cargoDescuentoVentas.Where(X => X.tipo == false).FirstOrDefault();
-                if (descuento_ != null)
-                {
-                    Session["descuento_valor"] = descuento_.valor;
-                    Session["descuento_razon"] = descuento_.razon;
-                }
-                else
-                {
-                    Session["descuento_valor"] = 0;
-                    Session["descuento_razon"] = "";
-                }
-
-                descuento_ = new CargoDescuentoVentas();
-                descuento_ = ModelSesion.cargoDescuentoVentas.Where(X => X.tipo == true).FirstOrDefault();
-                if (descuento_ != null)
-                {
-                    Session["propina_valor"] = descuento_.valor;
-                }
-                else
-                {
-                    Session["propina_valor"] = 0;
-                }
-
-                //verificar si la venta activa ya tiene un usuario relacionado
-                var cliente = await ClientesControler.Consultar_id(Session["db"].ToString(), ModelSesion.venta.idCliente);
-                if (cliente != null)
-                {
-                    Session["cliente_seleccionado_id"] = cliente.id;
-                    Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
-                    Session["cliente_seleccionado_nit"] = cliente.identificationNumber ?? "";
-                    Session["cliente_seleccionado_correo"] = cliente.email ?? "";
-
-                    cliente_seleccionado_nit.Text = cliente.identificationNumber ?? "";
-                    cliente_seleccionado_nombre.Text = cliente.nameCliente ?? "";
-                    cliente_seleccionado_correo.Text = cliente.email ?? "";
-                }
-
-                hfIdVentaActual.Value = VentaActual.id.ToString();
+                await InicializarPantalla();
             }
             else
             {
-                // ? Captura __EVENTTARGET/__EVENTARGUMENT desde __doPostBack
                 await ProcesarPostBack();
             }
 
-            int descu = Convert.ToInt32(Session["descuento_valor"]);
-            int pro = Convert.ToInt32(Session["propina_valor"]);
+            int descu = Convert.ToInt32(Session["descuento_valor"] ?? 0);
+            int pro = Convert.ToInt32(Session["propina_valor"] ?? 0);
             if (Session["saldo"] != null)
             {
                 int saldo = Convert.ToInt32(Session["saldo"]);
@@ -135,6 +82,56 @@ namespace WebApplication
             txtPropina.Value = Convert.ToString(pro);
         }
 
+        private bool EnsureCobroContext()
+        {
+            var model = SessionContextHelper.LoadModels(Session);
+            if (model?.venta == null)
+            {
+                return false;
+            }
+
+            Models = model;
+            SessionContextHelper.ApplyOperationalContext(Session, model);
+            return !string.IsNullOrWhiteSpace(DbActual);
+        }
+
+        private async Task InicializarPantalla()
+        {
+            await CargarMediosPago();
+            await CargarTiposDocumento();
+            await CargarTiposOrganizacion();
+            await CargarMunicipios();
+            await CargarTiposRegimen();
+            await CargarTiposResponsabilidad();
+            await CargarDetallesImpuesto();
+            await CargarClientesModal();
+            CargarDatosVenta();
+            await CargarRelMediosInternos();
+            await AsegurarPagoJsonInicial();
+
+            ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(DbActual, ModelSesion.venta.id);
+            var descuento = (ModelSesion.cargoDescuentoVentas ?? new List<CargoDescuentoVentas>()).FirstOrDefault(x => x.tipo == false);
+            Session["descuento_valor"] = descuento?.valor ?? 0;
+            Session["descuento_razon"] = descuento?.razon ?? "";
+
+            var propina = (ModelSesion.cargoDescuentoVentas ?? new List<CargoDescuentoVentas>()).FirstOrDefault(x => x.tipo == true);
+            Session["propina_valor"] = propina?.valor ?? 0;
+
+            var cliente = await ClientesControler.Consultar_id(DbActual, ModelSesion.venta.idCliente);
+            if (cliente != null)
+            {
+                Session["cliente_seleccionado_id"] = cliente.id;
+                Session["cliente_seleccionado_nombre"] = cliente.nameCliente ?? "";
+                Session["cliente_seleccionado_nit"] = cliente.identificationNumber ?? "";
+                Session["cliente_seleccionado_correo"] = cliente.email ?? "";
+
+                cliente_seleccionado_nit.Text = cliente.identificationNumber ?? "";
+                cliente_seleccionado_nombre.Text = cliente.nameCliente ?? "";
+                cliente_seleccionado_correo.Text = cliente.email ?? "";
+            }
+
+            hfIdVentaActual.Value = VentaActual.id.ToString();
+        }
         private async Task ProcesarPostBack()
         {
             var eventTarget = Request["__EVENTTARGET"];
@@ -204,7 +201,12 @@ namespace WebApplication
 
                 if (Session["PagoVentaJSON"] == null)
                 {
-                    AlertModerno.Warning(this, "Atenci\u00f3n", "No se especific\u00f3 el medio de pago.", true, 2000);
+                    await AsegurarPagoJsonInicial();
+                }
+
+                if (Session["PagoVentaJSON"] == null)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se especificó el medio de pago.", true, 2000);
                     return;
                 }
 
@@ -280,7 +282,7 @@ namespace WebApplication
                     ? "FACTURA ELECTR\u00d3NICA DE VENTA"
                     : "POS";
 
-                var db = Session["db"]?.ToString() ?? "";
+                var db = DbActual;
                 var resolucion = await V_Resoluciones_Controler.ConsulrarResolucion(db, tipoFactura);
                 if (resolucion == null)
                 {
@@ -331,7 +333,15 @@ namespace WebApplication
                 venta.idFormaDePago = 1;
 
                 venta.razonDescuento = ModelSesion.venta.razonDescuento;
-                venta.idBaseCaja = (int)Session["idBase"];
+                var idBaseCaja = SessionContextHelper.ResolveBaseCajaId(Session, ModelSesion);
+                if (idBaseCaja <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se encontró una base de caja activa para finalizar el cobro.", true, 2200);
+                    GuardarModelsEnSesion();
+                    return;
+                }
+
+                venta.idBaseCaja = idBaseCaja;
 
                 venta.aliasVenta = ModelSesion.venta.aliasVenta;
                 venta.porpropina = ModelSesion.venta.por_propina;
@@ -367,7 +377,7 @@ namespace WebApplication
                 // ==========================================================
                 if (payload.facturaElectronica)
                 {
-                    var tokenFe = Session["TokenFE"]?.ToString() ?? "";
+                    var tokenFe = Session[SessionContextHelper.TokenFeKey]?.ToString() ?? ModelSesion?.TokenEmpresa ?? string.Empty;
 
                     var respfe = await ClassFE.FacturaElectronica(db, tv, ModelSesion.detalleCaja, tokenFe);
                     if (respfe)
@@ -448,7 +458,7 @@ namespace WebApplication
 
         private void GuardarModelsEnSesion()
         {
-            Session[SessionModelsKey] = ModelSesion;
+            SessionContextHelper.ApplyOperationalContext(Session, ModelSesion);
         }
 
         private async Task btnSeleccionarCliente(string eventArgument)
@@ -1167,7 +1177,7 @@ namespace WebApplication
         private async Task CargarRelMediosInternos()
         {
             List<V_R_MediosDePago_MediosDePagoInternos> rel =
-                await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(Session["db"].ToString());
+                await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(DbActual);
 
             hfRelMediosInternos.Value = JsonConvert.SerializeObject(rel ?? new List<V_R_MediosDePago_MediosDePagoInternos>());
         }
@@ -1186,7 +1196,7 @@ namespace WebApplication
                 if (idMetodoPago <= 0) return;
 
                 var rel = await V_R_MediosDePago_MediosDePagoInternosControler
-                    .GetAll(Session["db"].ToString());
+                    .GetAll(DbActual);
 
                 var r = (rel ?? new List<V_R_MediosDePago_MediosDePagoInternos>())
                     .FirstOrDefault(x => x.idMedioDePago == idMetodoPago);
@@ -1213,5 +1223,9 @@ namespace WebApplication
         }
     }
 }
+
+
+
+
 
 

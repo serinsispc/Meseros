@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Web;
 
 namespace WebApplication.Helpers
 {
@@ -19,10 +20,10 @@ namespace WebApplication.Helpers
 
             foreach (var parte in partes)
             {
-                var kv = parte.Split('=');
+                var kv = parte.Split(new[] { '=' }, 2);
                 if (kv.Length == 2)
                 {
-                    _data[kv[0].Trim()] = kv[1].Trim();
+                    _data[HttpUtility.UrlDecode(kv[0].Trim())] = HttpUtility.UrlDecode(kv[1].Trim());
                 }
             }
         }

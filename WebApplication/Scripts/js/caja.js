@@ -687,3 +687,132 @@ function editarNombreDetalle(btn) {
     });
     return false;
 }
+
+(function () {
+    let modalPropina;
+    let subtotal = 0;
+    let porcentaje = 0;
+    let propina = 0;
+    let idventa = 0;
+    let idcuenta = 0;
+    let lastEdited = null;
+    const MAX_PERCENT = 15;
+    const nfCOP = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+    function byId(id) { return document.getElementById(id); }
+    function formatCOP(n) { return nfCOP.format(isFinite(n) ? n : 0); }
+    function clamp(n, min, max) { return Math.min(Math.max(n, min), max); }
+    function roundTo100(n) { return Math.round(n / 100) * 100; }
+    function parseNumber(str) {
+        if (typeof str === 'number') return str;
+        if (!str) return 0;
+        str = String(str).trim().replace(/[^\d.,-]/g, '');
+        if (str.includes('.') && str.includes(',')) str = str.replace(/\./g, '').replace(',', '.');
+        else if (str.includes(',')) str = str.replace(/\./g, '').replace(',', '.');
+        else str = str.replace(/\./g, '');
+        const n = parseFloat(str);
+        return Number.isFinite(n) ? n : 0;
+    }
+    function renderHelp() {
+        const ayuda = byId('ayudaPropina');
+        if (ayuda) ayuda.textContent = 'Esto equivale a ' + porcentaje + '% sobre ' + formatCOP(subtotal) + '.';
+    }
+    function syncFromPercent() {
+        const txtPorcentaje = byId('txtPorcentajePropina');
+        const txtPropina = byId('txtValorPropina');
+        porcentaje = Math.round(clamp(parseNumber(txtPorcentaje ? txtPorcentaje.value : 0), 0, MAX_PERCENT));
+        const calc = (subtotal * porcentaje) / 100;
+        propina = Math.min(roundTo100(calc), subtotal);
+        if (txtPorcentaje) txtPorcentaje.value = porcentaje;
+        if (txtPropina) txtPropina.value = formatCOP(propina);
+        lastEdited = 'percent';
+        renderHelp();
+    }
+    function syncFromValue() {
+        const txtPorcentaje = byId('txtPorcentajePropina');
+        const txtPropina = byId('txtValorPropina');
+        let raw = Math.max(0, parseNumber(txtPropina ? txtPropina.value : 0));
+        propina = Math.min(roundTo100(raw), subtotal);
+        porcentaje = subtotal > 0 ? Math.round((propina / subtotal) * 100) : 0;
+        porcentaje = clamp(porcentaje, 0, MAX_PERCENT);
+        if (txtPorcentaje) txtPorcentaje.value = porcentaje;
+        if (txtPropina) txtPropina.value = formatCOP(propina);
+        lastEdited = 'value';
+        renderHelp();
+    }
+    function ensureModalPropina() {
+        const modalEl = byId('modalPropina');
+        if (!modalEl || !window.bootstrap || !window.bootstrap.Modal) return null;
+        if (!modalPropina) modalPropina = bootstrap.Modal.getOrCreateInstance(modalEl);
+        return modalPropina;
+    }
+
+    window.abrirModalPropina = function (btn) {
+        const txtSubtotal = byId('txtSubtotalPropina');
+        const txtPorcentaje = byId('txtPorcentajePropina');
+        const txtPropina = byId('txtValorPropina');
+        if (!btn) return false;
+
+        subtotal = parseNumber(btn.dataset.subtotal);
+        porcentaje = Math.round(clamp(parseNumber(btn.dataset.porcentaje), 0, MAX_PERCENT));
+        propina = Math.max(0, parseNumber(btn.dataset.propina));
+        idventa = parseInt(btn.dataset.idventa || '0', 10) || 0;
+        idcuenta = parseInt(btn.dataset.idcuenta || '0', 10) || 0;
+
+        if (propina > 0) {
+            porcentaje = subtotal > 0 ? Math.round(clamp((propina / subtotal) * 100, 0, MAX_PERCENT)) : 0;
+        } else {
+            const calc = (subtotal * porcentaje) / 100;
+            propina = Math.min(roundTo100(calc), subtotal);
+        }
+
+        if (txtSubtotal) txtSubtotal.value = formatCOP(subtotal);
+        if (txtPorcentaje) txtPorcentaje.value = porcentaje;
+        if (txtPropina) txtPropina.value = formatCOP(propina);
+        lastEdited = null;
+        renderHelp();
+        ensureModalPropina()?.show();
+        return false;
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const txtPorcentaje = byId('txtPorcentajePropina');
+        const txtPropina = byId('txtValorPropina');
+        const btnGuardar = byId('btnGuardarPropina');
+        const btnQuitar = byId('btnQuitarPropina');
+
+        txtPorcentaje?.addEventListener('input', function () {
+            porcentaje = Math.round(clamp(parseNumber(txtPorcentaje.value), 0, MAX_PERCENT));
+            const calc = (subtotal * porcentaje) / 100;
+            propina = Math.min(roundTo100(calc), subtotal);
+            if (txtPropina) txtPropina.value = formatCOP(propina);
+            lastEdited = 'percent';
+            renderHelp();
+        });
+        txtPropina?.addEventListener('input', function () {
+            let raw = Math.max(0, parseNumber(txtPropina.value));
+            let pTmp = subtotal > 0 ? Math.round((raw / subtotal) * 100) : 0;
+            pTmp = clamp(pTmp, 0, MAX_PERCENT);
+            if (txtPorcentaje) txtPorcentaje.value = pTmp;
+            lastEdited = 'value';
+            renderHelp();
+        });
+        txtPorcentaje?.addEventListener('blur', syncFromPercent);
+        txtPropina?.addEventListener('blur', syncFromValue);
+        document.querySelectorAll('.quick-tip').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (txtPorcentaje) txtPorcentaje.value = parseNumber(btn.dataset.tip);
+                syncFromPercent();
+            });
+        });
+        btnQuitar?.addEventListener('click', function () {
+            if (txtPorcentaje) txtPorcentaje.value = '0';
+            if (txtPropina) txtPropina.value = formatCOP(0);
+            syncFromPercent();
+        });
+        btnGuardar?.addEventListener('click', function () {
+            if (lastEdited === 'value') syncFromValue(); else syncFromPercent();
+            EjecutarAccion('EditarPropina', JSON.stringify({ porcentaje: porcentaje, propina: propina, idventa: idventa, idcuenta: idcuenta }), btnGuardar);
+        });
+    });
+})();

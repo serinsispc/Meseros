@@ -267,6 +267,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helpers\EventArgumentParser.cs" />
+    <Compile Include="Helpers\SessionContextHelper.cs" />
     <Compile Include="Helpers\ModalHelper.cs" />
     <Compile Include="HVentas.aspx.cs">
       <DependentUpon>HVentas.aspx</DependentUpon>

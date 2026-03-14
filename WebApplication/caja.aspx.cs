@@ -22,7 +22,7 @@ namespace WebApplication
         protected MenuViewModels models = new MenuViewModels();
         protected bool PuedeEliminarServicioActivo()
         {
-            return models?.detalleCaja == null || !models.detalleCaja.Any();
+            return models?.IdCuentaActiva > 0 && (models.detalleCaja == null || !models.detalleCaja.Any());
         }
 
         protected IEnumerable<V_CuentaCliente> CuentasClienteActivas()
@@ -261,7 +261,7 @@ namespace WebApplication
             {
                 cuentas = await V_CuentasVentaControler.Lista_IdVendedor(models.db, models.vendedor.id) ?? new List<V_CuentasVenta>();
             }
-            return cuentas;
+            return (cuentas ?? new List<V_CuentasVenta>()).Where(x => !x.eliminada).ToList();
         }
         protected async void Evento_Click(object sender, EventArgs e)
         {
@@ -366,6 +366,10 @@ namespace WebApplication
 
                 case "EditarNombreDetalle":
                     await EditarNombreDetalle(eventArgument);
+                    break;
+
+                case "EditarPropina":
+                    await EditarPropina(eventArgument);
                     break;
 
                 case "Comandar":
@@ -1210,6 +1214,89 @@ namespace WebApplication
             }
         }
 
+        private class EditarPropinaDto
+        {
+            public decimal porcentaje { get; set; }
+            public int propina { get; set; }
+            public int idventa { get; set; }
+            public int idcuenta { get; set; }
+        }
+
+        private async Task EditarPropina(string parametros)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(parametros))
+                {
+                    AlertModerno.Warning(this, "Atención", "No se recibió información de propina.", true, 1800);
+                    return;
+                }
+
+                var dto = JsonConvert.DeserializeObject<EditarPropinaDto>(parametros);
+                if (dto == null)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se pudo interpretar la información de propina.", true, 1800);
+                    return;
+                }
+
+                decimal porPropina = dto.porcentaje / 100m;
+                if (dto.idcuenta > 0)
+                {
+                    var cuenta = await CuentaClienteControler.CuentaCliente(models.db, dto.idcuenta);
+                    if (cuenta == null)
+                    {
+                        AlertModerno.Error(this, "Error", "No se encontró la cuenta cliente para actualizar la propina.", true, 1800);
+                        return;
+                    }
+
+                    cuenta.por_propina = porPropina;
+                    cuenta.propina = dto.propina;
+                    var respCuenta = await CuentaClienteControler.CRUD(models.db, cuenta, 1);
+                    if (!respCuenta.estado)
+                    {
+                        AlertModerno.Error(this, "Error", respCuenta.mensaje ?? "No se pudo actualizar la propina de la cuenta.", true, 1800);
+                        return;
+                    }
+                }
+                else
+                {
+                    var respuesta = await TablaVentasControler.Consultar_Id(models.db, dto.idventa);
+                    if (!respuesta.estado)
+                    {
+                        AlertModerno.Error(this, "Error", "No se encontró la venta para actualizar la propina.", true, 1800);
+                        return;
+                    }
+
+                    var venta = respuesta.data as TablaVentas;
+                    if (venta == null)
+                    {
+                        venta = JsonConvert.DeserializeObject<TablaVentas>(respuesta.data);
+                    }
+                    if (venta == null)
+                    {
+                        AlertModerno.Error(this, "Error", "No se encontró la venta para actualizar la propina.", true, 1800);
+                        return;
+                    }
+
+                    venta.porpropina = porPropina;
+                    venta.propina = dto.propina;
+                    var respVenta = await TablaVentasControler.CRUD(models.db, venta, 1);
+                    if (!respVenta.estado)
+                    {
+                        AlertModerno.Error(this, "Error", respVenta.mensaje ?? "No se pudo actualizar la propina del servicio.", true, 1800);
+                        return;
+                    }
+                }
+
+                models.IdCuenteClienteActiva = dto.idcuenta;
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", "Propina actualizada correctamente.", true, 1000);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
         private async Task Comandar()
         {
             if (models.detalleCaja == null || !models.detalleCaja.Any())
@@ -1272,6 +1359,11 @@ namespace WebApplication
         private async Task Cobrar()
         {
             Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
+            Session["modelsJSON"] = JsonConvert.SerializeObject(models);
+            Session["Models"] = models;
+            Session["db"] = models.db;
+            Session["idvendedor"] = models.vendedor?.id ?? 0;
+            Session["Vendedor"] = JsonConvert.SerializeObject(models.vendedor);
             Response.Redirect("~/Cobrar.aspx", false);
             Context.ApplicationInstance.CompleteRequest();
             await Task.CompletedTask;
@@ -1341,6 +1433,9 @@ namespace WebApplication
         }
     }
 }
+
+
+
 
 
 

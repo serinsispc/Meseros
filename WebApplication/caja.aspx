@@ -441,7 +441,16 @@
                                     <div class="precio-row precio-servicio">
                                         <div class="precio-label">SERVICIO (<%: ResumenPorcentajePropina().ToString("0.##") %>%)</div>
                                         <div class="precio-servicio-acciones">
-                                            <button type="button" class="btn-servicio-editar" title="Edición de propina pendiente">Editar</button>
+                                            <button type="button"
+                                                id="btnEditarPropina"
+                                                class="btn-servicio-editar"
+                                                title="Editar propina"
+                                                data-porcentaje="<%: ResumenPorcentajePropina().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) %>"
+                                                data-propina="<%: Convert.ToInt32(ResumenPropina()) %>"
+                                                data-idventa="<%: models.IdCuentaActiva %>"
+                                                data-idcuenta="<%: models.IdCuenteClienteActiva %>"
+                                                data-subtotal="<%: Convert.ToInt32(ResumenSubtotal()) %>"
+                                                onclick="return abrirModalPropina(this);">Editar</button>
                                             <div class="precio-value"><%: FormatearMoneda(ResumenPropina()) %></div>
                                         </div>
                                     </div>
@@ -518,7 +527,9 @@
                                                         <button type="button" class="save-btn" aria-label="Guardar" onclick="return guardarCantidadDetalle(this);">
                                                             <i class="bi bi-floppy2-fill"></i>
                                                         </button>
-                                                    </div>`r`n`r`n                                                    <div class="prod-actions-detalle">
+                                                    </div>
+
+                                                    <div class="prod-actions-detalle">
                                                         <button type="button" class="act-btn" aria-label="Notas" title="Notas del producto" onclick="return editarNotaDetalle(this);">
                                                             <i class="bi bi-chat"></i>
                                                         </button>
@@ -540,8 +551,8 @@
                                                     </div>
 
                                                     <div class="prod-bottom">
-                                                        <button type="button" class="nota-btn" aria-label="Notas" title="<%# Eval("observacion") %>">
-                                                            <i class="bi bi-journal-text me-2"></i><span><%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("observacion"))) ? "Sin nota" : Eval("observacion") %></span>
+                                                        <button type="button" class="nota-btn" aria-label="Notas" title="<%# Eval("adiciones") %>">
+                                                            <i class="bi bi-journal-text me-2"></i><span><%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("adiciones"))) || Convert.ToString(Eval("adiciones")) == "--" ? "Sin nota" : Eval("adiciones") %></span>
                                                         </button>
 
                                                         <div class="prod-total"><%# FormatearMoneda(Eval("totalDetalle")) %></div>
@@ -600,7 +611,49 @@
 
 
 
-    <!-- ==========================================================
+    
+    <div class="modal fade" id="modalPropina" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar propina</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="txtSubtotalPropina" class="form-label small mb-1">Subtotal</label>
+                            <input type="text" id="txtSubtotalPropina" class="form-control" readonly />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="txtPorcentajePropina" class="form-label small mb-1">% Propina</label>
+                            <input type="number" id="txtPorcentajePropina" class="form-control" min="0" max="15" step="1" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="txtValorPropina" class="form-label small mb-1">Valor propina</label>
+                            <input type="text" id="txtValorPropina" class="form-control" inputmode="numeric" />
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-outline-primary btn-sm quick-tip" data-tip="0">0%</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm quick-tip" data-tip="8">8%</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm quick-tip" data-tip="10">10%</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm quick-tip" data-tip="15">15%</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="btnQuitarPropina">Quitar</button>
+                            </div>
+                            <small id="ayudaPropina" class="text-muted d-block mt-2"></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="btnGuardarPropina" class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- ==========================================================
      Modal: Acciones de Mesa (Bootstrap 5)
      - Mostrar nombre de mesa seleccionada
      - 3 botones: Crear nuevo servicio, Amarrar mesa, Cancelar
@@ -775,6 +828,9 @@
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
+
+
+
 
 
 

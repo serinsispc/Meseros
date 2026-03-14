@@ -1,4 +1,4 @@
-using DAL;
+Ôªøusing DAL;
 using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
@@ -6,237 +6,247 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Web.UI;
 using WebApplication.Class;
+using WebApplication.Helpers;
 using WebApplication.ViewModels;
 
 namespace WebApplication
 {
     public partial class _Default : Page
     {
-        protected MenuViewModels models =new MenuViewModels();
+        protected MenuViewModels models = new MenuViewModels();
+
         protected async void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
             {
-                string db = Request.QueryString["db"];
-                if (db == "-") return;
-                if (!string.IsNullOrEmpty(db))
-                {
-                    // Sanitizar db (seguridad)
-                    db = db.Replace("/", "").Replace("\\", "").Replace("..", "").Trim();
-
-                    models.db = db;
-
-                    // consultar sede (para usarla luego si hace falta)
-                    var sede = await SedeControler.Consultar(db);
-                    if (sede != null)
-                    {
-                        models.Sede =sede;
-                    }
-
-                    // logo
-                    var imagenes = await ImagenesControler.Consultar(db, sede.guidSede);
-
-                    if (imagenes != null && imagenes.imagenBytes != null && imagenes.imagenBytes.Length > 0)
-                    {
-                        byte[] imagenbyte = imagenes.imagenBytes;
-
-                        string carpeta = Server.MapPath("~/Recursos/Imagenes/logo/");
-                        if (!Directory.Exists(carpeta))
-                            Directory.CreateDirectory(carpeta);
-
-                        string rutaCompleta = Path.Combine(carpeta, $"{db}.png");
-                        File.WriteAllBytes(rutaCompleta, imagenbyte);
-                    }
-
-                    // vendedores
-                    var vendedores = await VendedorControler.ListaVendedor(db);
-                    if (vendedores != null && vendedores.Count > 0)
-                    {
-                        rptUsuarios.DataSource = vendedores;
-                        rptUsuarios.DataBind();
-                    }
-                    await SerialisarModels();
-                }
-                else
-                {
-                    AlertModerno.Error(this, "Error", "No se encuentra la base de datos.", true);
-                }
-            }
-            else
-            {
-                //en esta parte Deserialisamos el models
-                await DeserializarModels();
-            }
-        }
-                private async Task DeserializarModels()
-        {
-            if (Session["Models"] is MenuViewModels modelEnSesion)
-            {
-                models = modelEnSesion;
+                await InicializarLogin();
                 return;
             }
 
-            if (Session["ModelsJson"] != null)
+            DeserializarModels();
+        }
+
+        private async Task InicializarLogin()
+        {
+            var db = ResolverDbInicial();
+            if (string.IsNullOrWhiteSpace(db))
             {
-                var modelJson = Session["ModelsJson"].ToString();
-                models = JsonConvert.DeserializeObject<MenuViewModels>(modelJson);
+                AlertModerno.Error(this, "Error", "No se encuentra la base de datos.", true);
+                return;
             }
 
+            SessionContextHelper.ClearOperationalContext(Session);
+            models = new MenuViewModels { db = db };
+
+            var sede = await SedeControler.Consultar(db);
+            if (sede == null)
+            {
+                AlertModerno.Error(this, "Error", "No se encontr√≥ la sede configurada para esta base.", true);
+                return;
+            }
+
+            models.Sede = sede;
+
+            var vendedoresTask = VendedorControler.ListaVendedor(db);
+            var imagenTask = ImagenesControler.Consultar(db, sede.guidSede);
+            await Task.WhenAll(vendedoresTask, imagenTask);
+
+            var vendedores = vendedoresTask.Result ?? new List<Vendedor>();
+            var imagenes = imagenTask.Result;
+
+            if (imagenes?.imagenBytes != null && imagenes.imagenBytes.Length > 0)
+            {
+                GuardarLogoSiNoExiste(db, imagenes.imagenBytes);
+            }
+
+            rptUsuarios.DataSource = vendedores;
+            rptUsuarios.DataBind();
+
+            SessionContextHelper.SaveModels(Session, models);
         }
-        private async Task SerialisarModels()
+
+        private string ResolverDbInicial()
         {
-            Session["ModelsJson"]=JsonConvert.SerializeObject(models);
+            var db = SanitizarDb(Request.QueryString["db"]);
+            if (!string.IsNullOrWhiteSpace(db) && db != "-")
+            {
+                return db;
+            }
+
+            var sessionModel = SessionContextHelper.LoadModels(Session);
+            return SanitizarDb(sessionModel?.db);
+        }
+
+        private static string SanitizarDb(string db)
+        {
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                return string.Empty;
+            }
+
+            db = db.Replace("/", string.Empty)
+                   .Replace("\\", string.Empty)
+                   .Replace("..", string.Empty)
+                   .Trim();
+
+            return db;
+        }
+
+        private void GuardarLogoSiNoExiste(string db, byte[] imagen)
+        {
+            if (imagen == null || imagen.Length == 0)
+            {
+                return;
+            }
+
+            var carpeta = Server.MapPath("~/Recursos/Imagenes/logo/");
+            if (!Directory.Exists(carpeta))
+            {
+                Directory.CreateDirectory(carpeta);
+            }
+
+            var rutaCompleta = Path.Combine(carpeta, $"{db}.png");
+            if (!File.Exists(rutaCompleta))
+            {
+                File.WriteAllBytes(rutaCompleta, imagen);
+            }
+        }
+
+        private void DeserializarModels()
+        {
+            var model = SessionContextHelper.LoadModels(Session);
+            if (model != null)
+            {
+                models = model;
+            }
         }
 
         protected async void btnIngresar_Click(object sender, EventArgs e)
         {
-            if (txtCelular.Text != string.Empty && txtContrasena.Text != string.Empty)
+            DeserializarModels();
+
+            if (string.IsNullOrWhiteSpace(txtCelular.Text) || string.IsNullOrWhiteSpace(txtContrasena.Text))
             {
-                string db = models.db;
-                if (string.IsNullOrEmpty(db))
+                AlertModerno.Warning(this, "Atenci√≥n", "Debes seleccionar un usuario e ingresar la contrase√±a.", true);
+                return;
+            }
+
+            string db = SanitizarDb(models.db);
+            if (string.IsNullOrEmpty(db))
+            {
+                AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesi√≥n.", true);
+                return;
+            }
+
+            string usuario = txtCelular.Text.Trim();
+            string clave = txtContrasena.Text.Trim();
+
+            var vendedor = await VendedorControler.Consultar_usuario_clave(db, usuario, clave);
+            if (vendedor == null)
+            {
+                AlertModerno.Error(this, "Error", "Usuario no existe.", true);
+                return;
+            }
+
+            models.vendedor = vendedor;
+
+            if (vendedor.cajaMovil == 1)
+            {
+                var usuarioCaja = await R_VendedorUsuarioControler.ConsultarRelacion(db, vendedor.id);
+                if (usuarioCaja == null)
                 {
-                    AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesiÛn.", true);
+                    AlertModerno.Error(this, "Error", "No tiene un usuario de caja relacionado, contacte al administrador.", true);
                     return;
                 }
 
-                string usuario = txtCelular.Text;
-                string clave = txtContrasena.Text;
+                Session[SessionContextHelper.UsuarioCajaKey] = JsonConvert.SerializeObject(usuarioCaja);
 
-                var vendedor = await VendedorControler.Consultar_usuario_clave(db, usuario, clave);
+                var tokenEmpresa = await tokenEmpresaControler.ConsultarToken(db);
+                models.TokenEmpresa = tokenEmpresa?.token ?? string.Empty;
 
-                if (vendedor != null)
+                var baseActiva = await BaseCajaControler.VerificarBaseCaja(db, usuarioCaja.id);
+                if (baseActiva != null)
                 {
-                    models.vendedor = vendedor;
-                    // si tiene permiso de caja
-                    if (vendedor.cajaMovil == 1)
-                    {
-                        // consultar relaciÛn vendedor -> usuario caja
-                        var usuarioCaja = await R_VendedorUsuarioControler.ConsultarRelacion(db, vendedor.id);
-                        if (usuarioCaja != null)
-                        {
-                            //consultamos el token de facturacion
-                            var tokem = await tokenEmpresaControler.ConsultarToken(db);
-                            if(tokem != null)
-                            {
-                                models.TokenEmpresa = tokem.token;
-                            }
+                    models.BaseCaja = baseActiva;
+                    SessionContextHelper.ApplyOperationalContext(Session, models);
+                    AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {vendedor.nombreVendedor}", "~/caja.aspx", false, 1200);
+                    return;
+                }
 
-                            // verificar base activa
-                            var baseActiva = await BaseCajaControler.VerificarBaseCaja(db, usuarioCaja.id);
-                            if (baseActiva != null)
-                            {
-                                models.BaseCaja = baseActiva;
-                                await SerialisarModels();
-                                AlertModerno.SuccessGoTo(this, "Ok",
-                                    $"Bienvenido {vendedor.nombreVendedor}",
-                                    "~/caja.aspx", esToast: false, ms: 1200);
-                            }
-                            else
-                            {
-                                // ? NO redirigir. Abrir modal para ingresar base
-                                AbrirModalBase();
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            AlertModerno.Error(this, "Error", "No tiene un usuario de caja relacionado, contacte al administrador.", true);
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        await SerialisarModels();
-                        AlertModerno.SuccessGoTo(this, "Ok",
-                            $"Bienvenido {vendedor.nombreVendedor}",
-                            "~/caja.aspx", esToast: false, ms: 1200);
-                    }
-                }
-                else
-                {
-                    AlertModerno.Error(this, "Error", "Usuario no existe.", true);
-                }
+                SessionContextHelper.ApplyOperationalContext(Session, models);
+                AbrirModalBase();
+                return;
             }
+
+            SessionContextHelper.ApplyOperationalContext(Session, models);
+            AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {vendedor.nombreVendedor}", "~/caja.aspx", false, 1200);
         }
 
         protected async void btnAperturarBase_Click(object sender, EventArgs e)
         {
-            string db = models.db;
+            DeserializarModels();
+
+            string db = SanitizarDb(models.db);
             if (string.IsNullOrEmpty(db))
             {
-                AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesiÛn.", true);
+                AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesi√≥n.", true);
                 return;
             }
 
-            var usuarioCajaJson = Session["usuario_caja"]?.ToString();
+            var usuarioCajaJson = Session[SessionContextHelper.UsuarioCajaKey]?.ToString();
             if (string.IsNullOrEmpty(usuarioCajaJson))
             {
-                AlertModerno.Error(this, "Error", "No se encuentra el usuario de caja en sesiÛn.", true);
+                AlertModerno.Error(this, "Error", "No se encuentra el usuario de caja en sesi√≥n.", true);
                 return;
             }
 
             var usuarioCaja = JsonConvert.DeserializeObject<R_VendedorUsuario>(usuarioCajaJson);
+            if (usuarioCaja == null)
+            {
+                AlertModerno.Error(this, "Error", "La relaci√≥n de usuario de caja es inv√°lida.", true);
+                return;
+            }
 
-            // leer valor base del modal
-            string txt = txtValorBaseModal.Text?.Trim() ?? "";
-
-            // permitir "200000" o "200.000"
-            txt = txt.Replace(".", "").Replace(",", "");
+            string txt = txtValorBaseModal.Text?.Trim() ?? string.Empty;
+            txt = txt.Replace(".", string.Empty).Replace(",", string.Empty);
             if (!decimal.TryParse(txt, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal valorBase) || valorBase <= 0)
             {
-                AlertModerno.Error(this, "Error", "Ingrese un valor de base v·lido.", true);
+                AlertModerno.Error(this, "Error", "Ingrese un valor de base v√°lido.", true);
                 AbrirModalBase();
                 return;
             }
 
-            // guidSede si lo necesitas
-            var guidSede = models.Sede.guidSede;
-
-            // ? AQUÕ APERTURAS LA BASE
-            // Ajusta este llamado al mÈtodo real de tu DAL/Controler:
-            // Ejemplo esperado: BaseCajaControler.AperturarBase(db, usuarioCaja.id, valorBase, guidSede)
-            var basecaja = new BaseCaja {
-             id=0,
-             fechaApertura=DateTime.Now,
-             idUsuarioApertura=usuarioCaja.id,
-             valorBase=Convert.ToInt32(txt),
-             fechaCierre=DateTime.Now,
-             idUsuarioCierre=usuarioCaja.id,
-             estadoBase= "ACTIVA",
-             idSedeBAse= 1
-            };
-            var baseNueva = await BaseCajaControler.AperturarBase(db, basecaja,0);
-            // ---------------------------
-
-            if (baseNueva != null)
+            var baseNueva = await BaseCajaControler.AperturarBase(db, new BaseCaja
             {
-                models.BaseCaja=baseNueva;
-                await SerialisarModels();
-                AlertModerno.SuccessGoTo(this, "Ok",
-                    "Caja aperturada correctamente.",
-                    "~/menu.aspx", esToast: false, ms: 1200);
-            }
-            else
+                id = 0,
+                fechaApertura = DateTime.Now,
+                idUsuarioApertura = usuarioCaja.id,
+                valorBase = Convert.ToInt32(valorBase),
+                fechaCierre = DateTime.Now,
+                idUsuarioCierre = usuarioCaja.id,
+                estadoBase = "ACTIVA",
+                idSedeBAse = models.Sede?.id ?? 1
+            }, 0);
+
+            if (baseNueva == null)
             {
                 AlertModerno.Error(this, "Error", "No fue posible aperturar la caja. Verifique e intente nuevamente.", true);
                 AbrirModalBase();
+                return;
             }
+
+            models.BaseCaja = baseNueva;
+            SessionContextHelper.ApplyOperationalContext(Session, models);
+            AlertModerno.SuccessGoTo(this, "Ok", "Caja aperturada correctamente.", "~/caja.aspx", false, 1200);
         }
 
         private void AbrirModalBase()
         {
-            ScriptManager.RegisterStartupScript(
-                this,
-                this.GetType(),
-                "openBaseModal",
-                "openBaseModal();",
-                true
-            );
+            ScriptManager.RegisterStartupScript(this, GetType(), "openBaseModal", "openBaseModal();", true);
         }
     }
 }
-
-
