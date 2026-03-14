@@ -502,7 +502,7 @@
                                     <asp:Repeater runat="server" ID="rpDetalleCaja">
                                         <ItemTemplate>
                                             <div class="col-6 col-xl-12 item-col">
-                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>">
+                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>" data-detalle-nombre="<%# Eval("nombreProducto") %>" data-detalle-nota="<%# Eval("adiciones") %>" data-detalle-cantidad="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" data-detalle-precio="<%# Convert.ToDecimal(Eval("precioVenta")).ToString(System.Globalization.CultureInfo.InvariantCulture) %>">
                                                     <div class="prod-top-detalle">
                                                         <div class="prod-nombre"><%# Eval("nombreProducto") %></div>
                                                         <div class="prod-precio"><%# FormatearMoneda(Eval("precioVenta")) %></div>
@@ -518,14 +518,24 @@
                                                         <button type="button" class="save-btn" aria-label="Guardar" onclick="return guardarCantidadDetalle(this);">
                                                             <i class="bi bi-floppy2-fill"></i>
                                                         </button>
-                                                    </div>
-
-                                                    <div class="prod-actions-detalle">
-                                                        <button type="button" class="act-btn" aria-label="Cuenta" title="<%# Eval("nombreCuenta") %>" <%= models.IdCuenteClienteActiva > 0 ? "" : "disabled=\"disabled\"" %>>
-                                                            <i class="bi bi-person-badge"></i>
+                                                    </div>`r`n`r`n                                                    <div class="prod-actions-detalle">
+                                                        <button type="button" class="act-btn" aria-label="Notas" title="Notas del producto" onclick="return editarNotaDetalle(this);">
+                                                            <i class="bi bi-chat"></i>
                                                         </button>
-                                                        <button type="button" class="act-btn act-danger" aria-label="Eliminar" onclick="return confirmarEliminarDetalle(this);">
+                                                        <button type="button" class="act-btn" aria-label="Anclar a cuenta" title="<%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("nombreCuenta"))) ? "Anclar a cuenta" : Eval("nombreCuenta") %>" onclick="return anclarDetalleCuenta(this);">
+                                                            <i class="bi bi-link-45deg"></i>
+                                                        </button>
+                                                        <button type="button" class="act-btn act-danger" aria-label="Eliminar" title="Eliminar producto" onclick="return confirmarEliminarDetalle(this);">
                                                             <i class="bi bi-trash"></i>
+                                                        </button>
+                                                        <button type="button" class="act-btn" aria-label="Dividir" title="Dividir producto" onclick="return dividirDetalle(this);">
+                                                            <i class="bi bi-scissors"></i>
+                                                        </button>
+                                                        <button type="button" class="act-btn" aria-label="Descuento" title="Editar valor o descuento" onclick="return editarValorDetalle(this);">
+                                                            <i class="bi bi-cash-coin"></i>
+                                                        </button>
+                                                        <button type="button" class="act-btn" aria-label="Editar" title="Editar producto" onclick="return editarNombreDetalle(this);">
+                                                            <i class="bi bi-pencil-square"></i>
                                                         </button>
                                                     </div>
 
@@ -765,6 +775,12 @@
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
+
+
+
+
+
+
 
 
 

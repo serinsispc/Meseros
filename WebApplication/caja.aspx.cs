@@ -126,12 +126,15 @@ namespace WebApplication
         {
             rpCuentas.DataSource = models.cuentas;
             rpCuentasModal.DataSource = models.cuentas;
+            rpCuentasCliente.DataSource = CuentasClienteActivas();
+            rpDetalleCaja.DataSource = models.detalleCaja;
             rpZonas.DataSource = models.zonas;
             rpMesas.DataSource = models.Mesas;
             rpCategorias.DataSource = models.categorias;
             rpProductos.DataSource = models.productosLista ?? models.productos;
             DataBind();
         }
+
         private async Task<bool> VerificarSession()
         {
             if (models.vendedor.id != null)
@@ -343,6 +346,26 @@ namespace WebApplication
 
                 case "EliminarDetalle":
                     await EliminarDetalleCaja(eventArgument);
+                    break;
+
+                case "GuardarNotaDetalle":
+                    await GuardarNotaDetalle(eventArgument);
+                    break;
+
+                case "DividirDetalle":
+                    await DividirDetalle(eventArgument);
+                    break;
+
+                case "AnclarDetalleCuenta":
+                    await AnclarDetalleCuenta(eventArgument);
+                    break;
+
+                case "EditarValorDetalle":
+                    await EditarValorDetalle(eventArgument);
+                    break;
+
+                case "EditarNombreDetalle":
+                    await EditarNombreDetalle(eventArgument);
                     break;
 
                 case "Comandar":
@@ -1019,6 +1042,174 @@ namespace WebApplication
             }
         }
 
+        private async Task GuardarNotaDetalle(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                string nota = data.GetString("NOTA") ?? string.Empty;
+
+                if (idDetalle <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se recibió un detalle válido.", true, 1800);
+                    return;
+                }
+
+                var resp = await DetalleVenta_f.NotasDetalle(models.db, idDetalle, nota);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo actualizar la nota.", true, 1800);
+                    return;
+                }
+
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Nota actualizada correctamente.", true, 900);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task DividirDetalle(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                int cantidadActual = data.GetInt("ACTUAL");
+                int cantidadDividir = data.GetInt("DIVIDIR");
+
+                if (idDetalle <= 0 || cantidadActual <= 1 || cantidadDividir <= 0 || cantidadDividir >= cantidadActual)
+                {
+                    AlertModerno.Warning(this, "Atención", "La cantidad a dividir no es válida.", true, 1800);
+                    return;
+                }
+
+                var resp = await DetalleVenta_f.Dividir(models.db, idDetalle, cantidadActual, cantidadDividir, models.IdCuentaActiva);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo dividir el detalle.", true, 1800);
+                    return;
+                }
+
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Detalle dividido correctamente.", true, 900);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task AnclarDetalleCuenta(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                int idCuentaCliente = data.GetInt("CUENTA");
+
+                if (idDetalle <= 0 || idCuentaCliente <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "Seleccione una cuenta válida para anclar el detalle.", true, 1800);
+                    return;
+                }
+
+                var resp = await R_CuentaCliente_DetalleVenta_f.Insert(models.db, idCuentaCliente, idDetalle);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo anclar el detalle a la cuenta.", true, 1800);
+                    return;
+                }
+
+                models.IdCuenteClienteActiva = idCuentaCliente;
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Detalle anclado correctamente.", true, 900);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task EditarValorDetalle(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                decimal valor = Convert.ToDecimal((data.GetString("VALOR") ?? "0").Replace(".", ","));
+
+                if (idDetalle <= 0 || valor <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "Ingrese un valor válido.", true, 1800);
+                    return;
+                }
+
+                var detalle = await DetalleVentaControler.ConsultarId(models.db, idDetalle);
+                if (detalle == null)
+                {
+                    AlertModerno.Error(this, "Error", "No se encontró el detalle a modificar.", true, 1800);
+                    return;
+                }
+
+                detalle.precioVenta = valor;
+                var resp = await DetalleVentaControler.CRUD(models.db, detalle, 1);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo actualizar el valor.", true, 1800);
+                    return;
+                }
+
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Valor actualizado correctamente.", true, 900);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task EditarNombreDetalle(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                string nombre = (data.GetString("NOMBRE") ?? string.Empty).Trim();
+
+                if (idDetalle <= 0 || string.IsNullOrWhiteSpace(nombre))
+                {
+                    AlertModerno.Warning(this, "Atención", "Ingrese una descripción válida.", true, 1800);
+                    return;
+                }
+
+                var detalle = await DetalleVentaControler.ConsultarId(models.db, idDetalle);
+                if (detalle == null)
+                {
+                    AlertModerno.Error(this, "Error", "No se encontró el detalle a modificar.", true, 1800);
+                    return;
+                }
+
+                detalle.nombreProducto = nombre;
+                var resp = await DetalleVentaControler.CRUD(models.db, detalle, 1);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo actualizar el producto.", true, 1800);
+                    return;
+                }
+
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Producto actualizado correctamente.", true, 900);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
         private async Task Comandar()
         {
             if (models.detalleCaja == null || !models.detalleCaja.Any())
@@ -1150,6 +1341,10 @@ namespace WebApplication
         }
     }
 }
+
+
+
+
 
 
 

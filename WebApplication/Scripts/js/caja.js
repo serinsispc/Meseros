@@ -462,3 +462,228 @@ function confirmarEliminarDetalle(btn) {
 
     return false;
 }
+
+function mostrarFuncionPendiente(nombre) {
+    if (window.Swal && typeof window.Swal.fire === "function") {
+        Swal.fire({
+            icon: "info",
+            title: nombre || "Función pendiente",
+            text: "Esta opción visual ya fue restaurada. En la siguiente fase conectamos su lógica completa igual que en Menu.aspx.",
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#2563eb"
+        });
+    } else {
+        alert((nombre || "Función pendiente") + ": esta opción se conectará en la siguiente fase.");
+    }
+
+    return false;
+}
+
+function obtenerCardDetalle(el) {
+    return el ? el.closest('.producto-item-detalle') : null;
+}
+
+function editarNotaDetalle(btn) {
+    const card = obtenerCardDetalle(btn);
+    if (!card) return false;
+    const id = card.dataset.detalleId || '';
+    const notaActual = card.dataset.detalleNota && card.dataset.detalleNota !== '--' ? card.dataset.detalleNota : '';
+
+    if (!window.Swal) {
+        const nota = prompt('Escriba la nota del detalle', notaActual);
+        if (nota === null) return false;
+        EjecutarAccion('GuardarNotaDetalle', BuildArgs({ ID: id, NOTA: nota }), btn);
+        return false;
+    }
+
+    Swal.fire({
+        title: 'Notas del detalle',
+        input: 'text',
+        inputValue: notaActual,
+        inputLabel: 'Nota o adición',
+        inputPlaceholder: 'Escriba la nota',
+        showCancelButton: true,
+        confirmButtonText: 'Guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb'
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            EjecutarAccion('GuardarNotaDetalle', BuildArgs({ ID: id, NOTA: result.value || '' }), btn);
+        }
+    });
+    return false;
+}
+
+function dividirDetalle(btn) {
+    const card = obtenerCardDetalle(btn);
+    if (!card) return false;
+    const id = card.dataset.detalleId || '';
+    const actual = parseInt(card.dataset.detalleCantidad || '0', 10) || 0;
+
+    if (actual <= 1) {
+        mostrarFuncionPendiente('No se puede dividir un detalle con cantidad menor o igual a 1');
+        return false;
+    }
+
+    if (!window.Swal) {
+        const cantidad = prompt('Cantidad a dividir', '1');
+        if (cantidad === null) return false;
+        EjecutarAccion('DividirDetalle', BuildArgs({ ID: id, ACTUAL: actual, DIVIDIR: cantidad }), btn);
+        return false;
+    }
+
+    Swal.fire({
+        title: 'Dividir detalle',
+        input: 'number',
+        inputValue: 1,
+        inputAttributes: { min: 1, max: actual - 1, step: 1 },
+        inputLabel: 'Cantidad a dividir',
+        showCancelButton: true,
+        confirmButtonText: 'Dividir',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        preConfirm: function (value) {
+            const numero = parseInt(value, 10);
+            if (!numero || numero <= 0 || numero >= actual) {
+                Swal.showValidationMessage('La cantidad debe ser mayor a 0 y menor a la cantidad actual.');
+                return false;
+            }
+            return numero;
+        }
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            EjecutarAccion('DividirDetalle', BuildArgs({ ID: id, ACTUAL: actual, DIVIDIR: result.value }), btn);
+        }
+    });
+    return false;
+}
+
+function anclarDetalleCuenta(btn) {
+    const card = obtenerCardDetalle(btn);
+    if (!card) return false;
+    const id = card.dataset.detalleId || '';
+    const cuentas = Array.from(document.querySelectorAll('.cuentas-lista .cuenta-item'));
+    const opciones = cuentas
+        .map(function (item) {
+            const onclick = item.getAttribute('onclick') || '';
+            const match = onclick.match(/ID=(\d+)/);
+            const cuentaId = match ? match[1] : '';
+            const nombre = (item.childNodes[0] && item.childNodes[0].textContent ? item.childNodes[0].textContent : item.textContent || '').trim();
+            return cuentaId && nombre ? { id: cuentaId, nombre: nombre } : null;
+        })
+        .filter(function (x) { return x && x.id !== '0'; });
+
+    if (!opciones.length) {
+        mostrarFuncionPendiente('No hay cuentas cliente disponibles para anclar este detalle');
+        return false;
+    }
+
+    const inputOptions = {};
+    opciones.forEach(function (op) { inputOptions[op.id] = op.nombre; });
+
+    if (!window.Swal) {
+        const elegido = prompt('ID de la cuenta destino: ' + opciones.map(function (o) { return o.id + ' - ' + o.nombre; }).join(', '), opciones[0].id);
+        if (!elegido) return false;
+        EjecutarAccion('AnclarDetalleCuenta', BuildArgs({ ID: id, CUENTA: elegido }), btn);
+        return false;
+    }
+
+    Swal.fire({
+        title: 'Anclar detalle a cuenta',
+        input: 'select',
+        inputOptions: inputOptions,
+        inputPlaceholder: 'Seleccione una cuenta',
+        showCancelButton: true,
+        confirmButtonText: 'Anclar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        preConfirm: function (value) {
+            if (!value) {
+                Swal.showValidationMessage('Debe seleccionar una cuenta.');
+                return false;
+            }
+            return value;
+        }
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            EjecutarAccion('AnclarDetalleCuenta', BuildArgs({ ID: id, CUENTA: result.value }), btn);
+        }
+    });
+    return false;
+}
+
+function editarValorDetalle(btn) {
+    const card = obtenerCardDetalle(btn);
+    if (!card) return false;
+    const id = card.dataset.detalleId || '';
+    const valorActual = card.dataset.detallePrecio || '0';
+
+    if (!window.Swal) {
+        const valor = prompt('Nuevo valor del detalle', valorActual);
+        if (valor === null) return false;
+        EjecutarAccion('EditarValorDetalle', BuildArgs({ ID: id, VALOR: valor }), btn);
+        return false;
+    }
+
+    Swal.fire({
+        title: 'Editar valor',
+        input: 'number',
+        inputValue: valorActual,
+        inputAttributes: { min: 1, step: '0.01' },
+        inputLabel: 'Nuevo valor unitario',
+        showCancelButton: true,
+        confirmButtonText: 'Guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        preConfirm: function (value) {
+            const numero = parseFloat(value);
+            if (!numero || numero <= 0) {
+                Swal.showValidationMessage('Ingrese un valor mayor a cero.');
+                return false;
+            }
+            return value;
+        }
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            EjecutarAccion('EditarValorDetalle', BuildArgs({ ID: id, VALOR: result.value }), btn);
+        }
+    });
+    return false;
+}
+
+function editarNombreDetalle(btn) {
+    const card = obtenerCardDetalle(btn);
+    if (!card) return false;
+    const id = card.dataset.detalleId || '';
+    const nombreActual = card.dataset.detalleNombre || '';
+
+    if (!window.Swal) {
+        const nombre = prompt('Nueva descripción del producto', nombreActual);
+        if (nombre === null) return false;
+        EjecutarAccion('EditarNombreDetalle', BuildArgs({ ID: id, NOMBRE: nombre }), btn);
+        return false;
+    }
+
+    Swal.fire({
+        title: 'Editar descripción',
+        input: 'text',
+        inputValue: nombreActual,
+        inputLabel: 'Descripción visible del detalle',
+        showCancelButton: true,
+        confirmButtonText: 'Guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        preConfirm: function (value) {
+            if (!value || !value.trim()) {
+                Swal.showValidationMessage('Ingrese una descripción válida.');
+                return false;
+            }
+            return value.trim();
+        }
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            EjecutarAccion('EditarNombreDetalle', BuildArgs({ ID: id, NOMBRE: result.value }), btn);
+        }
+    });
+    return false;
+}

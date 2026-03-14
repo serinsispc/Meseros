@@ -111,8 +111,25 @@ namespace WebApplication
         /// Campo generado automáticamente.
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Repeater rpProductos;
+                protected global::System.Web.UI.WebControls.Repeater rpProductos;
 
+        /// <summary>
+        /// Control rpCuentasCliente.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rpCuentasCliente;
+
+        /// <summary>
+        /// Control rpDetalleCaja.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rpDetalleCaja;
         /// <summary>
         /// Control modalAccionesMesa.
         /// </summary>
@@ -150,3 +167,5 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.Repeater rpCuentasModal;
     }
 }
+
+
