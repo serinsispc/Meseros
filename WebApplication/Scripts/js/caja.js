@@ -46,78 +46,72 @@
             .join("|");
     };
 
-    window.Actualizar = function () {
-        EjecutarAccion("Actualizar", "");
-    };
-
     window.ConfirmarLiberarMesa = function (btn) {
-        if (!window.Swal || typeof window.Swal.fire !== "function") {
-            const ok = window.confirm("\u00bfSeguro que desea liberar esta mesa?");
-            if (!ok) {
-                return false;
-            }
-
-            EjecutarAccion("LiberarMesa", "", btn);
-            return true;
-        }
-
-        Swal.fire({
-            icon: "warning",
+        mostrarConfirmacion({
             title: "Liberar mesa",
-            text: "\u00bfSeguro que desea liberar esta mesa?",
-            showCancelButton: true,
-            confirmButtonText: "S\u00ed, liberar",
-            cancelButtonText: "Cancelar",
-            confirmButtonColor: "#dc3545",
-            cancelButtonColor: "#94a3b8",
-            reverseButtons: true,
-            focusCancel: true,
-            customClass: {
-                popup: "shadow-lg rounded-4"
-            }
-        }).then(function (result) {
-            if (result.isConfirmed) {
-                EjecutarAccion("LiberarMesa", "", btn);
-            }
+            text: "¿Seguro que desea liberar esta mesa?",
+            confirmText: "Sí, liberar",
+            confirmColor: "#dc3545"
+        }, function () {
+            EjecutarAccion("LiberarMesa", "", btn);
         });
-
         return false;
     };
 
     window.ConfirmarEliminarServicio = function (btn) {
-        if (!window.Swal || typeof window.Swal.fire !== "function") {
-            const ok = window.confirm("\u00bfSeguro que desea eliminar el servicio activo?");
-            if (!ok) {
-                return false;
-            }
-
-            EjecutarAccion("EliminarServicio", "", btn);
-            return true;
-        }
-
-        Swal.fire({
-            icon: "warning",
+        mostrarConfirmacion({
             title: "Eliminar servicio",
-            text: "\u00bfSeguro que desea eliminar el servicio activo?",
-            showCancelButton: true,
-            confirmButtonText: "S\u00ed, eliminar",
-            cancelButtonText: "Cancelar",
-            confirmButtonColor: "#dc3545",
-            cancelButtonColor: "#94a3b8",
-            reverseButtons: true,
-            focusCancel: true,
-            customClass: {
-                popup: "shadow-lg rounded-4"
-            }
-        }).then(function (result) {
-            if (result.isConfirmed) {
-                EjecutarAccion("EliminarServicio", "", btn);
-            }
+            text: "¿Seguro que desea eliminar el servicio activo?",
+            confirmText: "Sí, eliminar",
+            confirmColor: "#dc3545"
+        }, function () {
+            EjecutarAccion("EliminarServicio", "", btn);
         });
+        return false;
+    };
 
+    window.ConfirmarCerrarCaja = function (btn) {
+        mostrarConfirmacion({
+            title: "Cerrar caja",
+            text: "Se cerrará la caja activa y se enviará al cierre de sesión. ¿Desea continuar?",
+            confirmText: "Sí, cerrar",
+            confirmColor: "#d97706"
+        }, function () {
+            EjecutarAccion("CerrarCaja", "", btn);
+        });
         return false;
     };
 })();
+
+function mostrarConfirmacion(config, onConfirm) {
+    if (!window.Swal || typeof window.Swal.fire !== "function") {
+        const ok = window.confirm(config.text || "¿Desea continuar?");
+        if (ok && typeof onConfirm === "function") {
+            onConfirm();
+        }
+        return;
+    }
+
+    Swal.fire({
+        icon: "warning",
+        title: config.title || "Confirmación",
+        text: config.text || "¿Desea continuar?",
+        showCancelButton: true,
+        confirmButtonText: config.confirmText || "Aceptar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: config.confirmColor || "#dc3545",
+        cancelButtonColor: "#94a3b8",
+        reverseButtons: true,
+        focusCancel: true,
+        customClass: {
+            popup: "shadow-lg rounded-4"
+        }
+    }).then(function (result) {
+        if (result.isConfirmed && typeof onConfirm === "function") {
+            onConfirm();
+        }
+    });
+}
 
 function abrirModalCuenta(el, e) {
     if (e) {
@@ -133,19 +127,42 @@ function abrirModalCuenta(el, e) {
     const cuentaEditandoId = el.getAttribute("data-id") || "";
     const nombre = el.getAttribute("data-nombre") || "";
 
+    prepararModalCuenta({
+        titulo: cuentaEditandoId ? "Editar servicio" : "Nuevo servicio",
+        id: cuentaEditandoId,
+        nombre: nombre,
+        accion: "EditarAliasCuenta"
+    });
+
+    return false;
+}
+
+function abrirModalCuentaClienteNueva() {
+    prepararModalCuenta({
+        titulo: "Nueva cuenta",
+        id: "",
+        nombre: "",
+        accion: "CrearCuentaCliente"
+    });
+    return false;
+}
+
+function prepararModalCuenta(config) {
     const titulo = document.getElementById("modalCuentaTitulo");
     const idEditar = document.getElementById("idCuentaModalEditar");
+    const accionInput = document.getElementById("accionCuentaModal");
     const input = document.getElementById("txtCuentaNombre");
     const err = document.getElementById("cuentaError");
     const modalEl = document.getElementById("modalCuentaCliente");
 
     if (!modalEl) {
-        return false;
+        return;
     }
 
-    if (titulo) titulo.innerText = cuentaEditandoId ? "Editar Cuenta" : "Nueva Cuenta";
-    if (idEditar) idEditar.value = cuentaEditandoId;
-    if (input) input.value = nombre;
+    if (titulo) titulo.innerText = config.titulo || "Cuenta";
+    if (idEditar) idEditar.value = config.id || "";
+    if (accionInput) accionInput.value = config.accion || "EditarAliasCuenta";
+    if (input) input.value = config.nombre || "";
     if (err) err.classList.add("d-none");
 
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
@@ -162,12 +179,12 @@ function abrirModalCuenta(el, e) {
     }, { once: true });
 
     modal.show();
-    return false;
 }
 
 function guardarCuentaDirecto(btn) {
-    const nombre = document.getElementById("txtCuentaNombre").value.trim();
+    const nombre = (document.getElementById("txtCuentaNombre").value || "").trim();
     const idCuenta = document.getElementById("idCuentaModalEditar").value;
+    const accion = document.getElementById("accionCuentaModal").value || "EditarAliasCuenta";
     const error = document.getElementById("cuentaError");
 
     if (nombre.length < 2) {
@@ -180,6 +197,11 @@ function guardarCuentaDirecto(btn) {
     const modalEl = document.getElementById("modalCuentaCliente");
     const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
+
+    if (accion === "CrearCuentaCliente") {
+        EjecutarAccion("CrearCuentaCliente", nombre, btn);
+        return;
+    }
 
     EjecutarAccion("EditarAliasCuenta", BuildArgs({
         ID: idCuenta,
@@ -204,6 +226,7 @@ function guardarCuentaDirecto(btn) {
 
         configurarBuscadorCaja();
         configurarCantidadProductos();
+        configurarDetalleCaja();
     });
 })();
 
@@ -348,4 +371,94 @@ function configurarCantidadProductos() {
     }, true);
 }
 
+function agregarProductoDesdeCard(btn) {
+    const item = btn.closest(".producto-item");
+    if (!item) return false;
 
+    const input = item.querySelector(".js-cantidad");
+    const cantidad = input ? Math.max(1, parseInt(input.value || "1", 10) || 1) : 1;
+    const id = btn.getAttribute("data-id") || item.dataset.productoId || "";
+
+    if (!id) {
+        return false;
+    }
+
+    EjecutarAccion("AgregarProducto", BuildArgs({
+        ID: id,
+        CANTIDAD: cantidad
+    }), btn);
+    return false;
+}
+
+function configurarDetalleCaja() {
+    const contenedor = document.querySelector(".lista-productos") || document;
+
+    function normalizar(input) {
+        let v = parseInt(input.value, 10);
+        if (isNaN(v) || v < 1) v = 1;
+        input.value = v;
+        return v;
+    }
+
+    contenedor.addEventListener("click", function (e) {
+        const restar = e.target.closest(".js-detalle-restar");
+        const sumar = e.target.closest(".js-detalle-sumar");
+        if (!restar && !sumar) return;
+
+        const card = e.target.closest(".producto-item-detalle");
+        if (!card) return;
+
+        const input = card.querySelector(".js-detalle-cantidad");
+        if (!input) return;
+
+        let cantidad = normalizar(input);
+        cantidad = restar ? Math.max(1, cantidad - 1) : cantidad + 1;
+        input.value = cantidad;
+    });
+
+    contenedor.addEventListener("input", function (e) {
+        const input = e.target.closest(".js-detalle-cantidad");
+        if (!input) return;
+        input.value = input.value.replace(/[^\d]/g, "");
+        normalizar(input);
+    });
+}
+
+function guardarCantidadDetalle(btn) {
+    const card = btn.closest(".producto-item-detalle");
+    if (!card) return false;
+
+    const input = card.querySelector(".js-detalle-cantidad");
+    const cantidad = input ? Math.max(1, parseInt(input.value || "1", 10) || 1) : 1;
+    const id = card.dataset.detalleId || "";
+
+    if (!id) return false;
+
+    EjecutarAccion("ActualizarCantidadDetalle", BuildArgs({
+        ID: id,
+        CANTIDAD: cantidad
+    }), btn);
+    return false;
+}
+
+function confirmarEliminarDetalle(btn) {
+    const card = btn.closest(".producto-item-detalle");
+    if (!card) return false;
+
+    const id = card.dataset.detalleId || "";
+    if (!id) return false;
+
+    mostrarConfirmacion({
+        title: "Eliminar producto",
+        text: "¿Seguro que desea eliminar este producto del servicio activo?",
+        confirmText: "Sí, eliminar",
+        confirmColor: "#dc3545"
+    }, function () {
+        EjecutarAccion("EliminarDetalle", BuildArgs({
+            ID: id,
+            NOTA: ""
+        }), btn);
+    });
+
+    return false;
+}

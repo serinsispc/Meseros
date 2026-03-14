@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Web.UI;
 using WebApplication.Class;
@@ -20,12 +19,70 @@ namespace WebApplication
     {
         private const string ok = "Ok";
         private const string SessionModelsJson = "ModelsJson";
-        protected MenuViewModels models = new MenuViewModels();
+        protected MenuViewModels models = new MenuViewModels();
         protected bool PuedeEliminarServicioActivo()
         {
             return models?.detalleCaja == null || !models.detalleCaja.Any();
         }
 
+        protected IEnumerable<V_CuentaCliente> CuentasClienteActivas()
+        {
+            return (models?.v_CuentaClientes ?? new List<V_CuentaCliente>())
+                .Where(x => x.idVenta == models.IdCuentaActiva && !x.eliminada)
+                .OrderBy(x => x.fecha);
+        }
+
+        protected bool TieneDetalleServicioActivo()
+        {
+            return models?.detalleCaja != null && models.detalleCaja.Any();
+        }
+
+        protected decimal ResumenSubtotal()
+        {
+            return models.IdCuenteClienteActiva > 0 ? models.ventaCuenta?.subtotalVenta ?? 0 : models.venta?.subtotalVenta ?? 0;
+        }
+
+        protected decimal ResumenImpuestos()
+        {
+            return models.IdCuenteClienteActiva > 0 ? models.ventaCuenta?.ivaVenta ?? 0 : models.venta?.ivaVenta ?? 0;
+        }
+
+        protected decimal ResumenTotal1()
+        {
+            return models.IdCuenteClienteActiva > 0 ? models.ventaCuenta?.totalVenta ?? 0 : models.venta?.totalVenta ?? 0;
+        }
+
+        protected decimal ResumenPropina()
+        {
+            return models.IdCuenteClienteActiva > 0 ? models.ventaCuenta?.propina ?? 0 : models.venta?.propina ?? 0;
+        }
+
+        protected decimal ResumenPorcentajePropina()
+        {
+            var valor = models.IdCuenteClienteActiva > 0 ? models.ventaCuenta?.por_propina ?? 0 : models.venta?.por_propina ?? 0;
+            return valor * 100m;
+        }
+
+        protected decimal ResumenTotal2()
+        {
+            return models.IdCuenteClienteActiva > 0 ? models.ventaCuenta?.total_A_Pagar ?? 0 : models.venta?.total_A_Pagar ?? 0;
+        }
+
+        protected string NombreCuentaClienteActiva()
+        {
+            if (models.IdCuenteClienteActiva <= 0)
+            {
+                return "Cuenta General";
+            }
+
+            return models.ventaCuenta?.nombreCuenta ?? $"Cuenta #{models.IdCuenteClienteActiva}";
+        }
+
+        protected string FormatearMoneda(object valor)
+        {
+            decimal numero;
+            return decimal.TryParse(Convert.ToString(valor), out numero) ? numero.ToString("C0") : "$ 0";
+        }
         protected async void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -263,9 +320,45 @@ namespace WebApplication
                 case "SeleccionarCategoria":
                     await SeleccionarCategoria(eventArgument);
                     break;
-
+
                 case "BuscarCodigoProducto":
                     await BuscarCodigoProducto(eventArgument);
+                    break;
+
+                case "AgregarProducto":
+                    await AgregarProducto(eventArgument);
+                    break;
+
+                case "SeleccionarCuentaCliente":
+                    await SeleccionarCuentaCliente(eventArgument);
+                    break;
+
+                case "CrearCuentaCliente":
+                    await CrearCuentaCliente(eventArgument);
+                    break;
+
+                case "ActualizarCantidadDetalle":
+                    await ActualizarCantidadDetalle(eventArgument);
+                    break;
+
+                case "EliminarDetalle":
+                    await EliminarDetalleCaja(eventArgument);
+                    break;
+
+                case "Comandar":
+                    await Comandar();
+                    break;
+
+                case "SolicitarCuenta":
+                    await SolicitarCuenta();
+                    break;
+
+                case "Cobrar":
+                    await Cobrar();
+                    break;
+
+                case "CerrarCaja":
+                    await CerrarCaja();
                     break;
             }
         }
@@ -300,6 +393,7 @@ namespace WebApplication
             if (rvv)
             {
                 // Actualizar modelos y UI
+                models.IdCuenteClienteActiva = 0;
                 models.IdCuentaActiva = idVenta;
                 models.cuentas = await CargarCuentas();
                 models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
@@ -448,9 +542,10 @@ namespace WebApplication
                         models.Mesas = models.MesasLista.Where(x => x.idZona == mesa.idZona).ToList();
                     }
                 }
+                models.IdCuenteClienteActiva = 0;
                 models.IdCuentaActiva = idCuenta;
                 models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idCuenta);
-                models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, idCuenta);
+                models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
                 models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, idCuenta, 0);
 
                 await CargarDATA();
@@ -735,26 +830,34 @@ namespace WebApplication
 
                 if (producto == null)
                 {
-                    AlertModerno.Warning(this, "Atenci\u00f3n", "Producto no encontrado", true, 2000);
+                    AlertModerno.Warning(this, "Atención", "Producto no encontrado", true, 2000);
                     btnbuscar.Focus();
                     return;
                 }
 
                 var resp = await DetalleVenta_f.AgregarProducto(models.db, producto.idPresentacion, 1, models.IdCuentaActiva);
-                if (resp.estado)
-                {
-                    AlertModerno.Success(this, "OK", resp.mensaje ?? "Producto agregado correctamente.", true, 800);
-                    models.IdCategoriaActiva = producto.idCategoria;
-                    models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
-                    models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
-                    models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
-                    models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
-                    await CargarDATA();
-                }
-                else
+                if (!resp.estado)
                 {
                     AlertModerno.Error(this, "Error", resp.mensaje ?? "No fue posible agregar el producto.", true);
+                    return;
                 }
+
+                if (models.IdCuenteClienteActiva > 0 && resp.data != null)
+                {
+                    var relacion = new R_CuentaCliente_DetalleVenta
+                    {
+                        id = 0,
+                        fecha = DateTime.Now,
+                        idCuentaCliente = models.IdCuenteClienteActiva,
+                        idDetalleVenta = Convert.ToInt32(resp.data),
+                        eliminada = false
+                    };
+                    await R_CuentaCliente_DetalleVentaControler.CRUD(models.db, relacion, 0);
+                }
+
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Producto agregado correctamente.", true, 800);
+                models.IdCategoriaActiva = producto.idCategoria;
+                await RecargarVentaActiva();
 
                 ScriptManager.RegisterStartupScript(
                     this,
@@ -769,6 +872,266 @@ namespace WebApplication
                 AlertModerno.Error(this, "Error", ex.Message, true, 2500);
             }
         }
+
+        private async Task AgregarProducto(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idPresentacion = data.GetInt("ID");
+                decimal cantidad = Convert.ToDecimal((data.GetString("CANTIDAD") ?? "1").Replace(".", ","));
+
+                if (idPresentacion <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se recibió un producto válido.", true, 2200);
+                    return;
+                }
+
+                if (cantidad <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "La cantidad debe ser mayor a cero.", true, 2200);
+                    return;
+                }
+
+                var resp = await DetalleVenta_f.AgregarProducto(models.db, idPresentacion, cantidad, models.IdCuentaActiva);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No fue posible agregar el producto.", true);
+                    return;
+                }
+
+                if (models.IdCuenteClienteActiva > 0 && resp.data != null)
+                {
+                    var relacion = new R_CuentaCliente_DetalleVenta
+                    {
+                        id = 0,
+                        fecha = DateTime.Now,
+                        idCuentaCliente = models.IdCuenteClienteActiva,
+                        idDetalleVenta = Convert.ToInt32(resp.data),
+                        eliminada = false
+                    };
+                    await R_CuentaCliente_DetalleVentaControler.CRUD(models.db, relacion, 0);
+                }
+
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Producto agregado correctamente.", true, 900);
+                await RecargarVentaActiva();
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task SeleccionarCuentaCliente(string parametros)
+        {
+            var data = new EventArgumentParser(parametros);
+            int idCuentaCliente = data.GetInt("ID");
+
+            models.IdCuenteClienteActiva = idCuentaCliente;
+            await RecargarVentaActiva();
+        }
+
+        private async Task CrearCuentaCliente(string parametros)
+        {
+            try
+            {
+                string nombreCuenta = (parametros ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(nombreCuenta) || nombreCuenta.Length < 2)
+                {
+                    AlertModerno.Warning(this, "Atención", "El nombre de la cuenta debe tener mínimo 2 caracteres.", true, 2200);
+                    return;
+                }
+
+                int nuevaCuentaId = await CuentaCliente_f.Crear(models.db, models.IdCuentaActiva, nombreCuenta, Convert.ToInt32(models.Sede.porcentaje_propina));
+                if (nuevaCuentaId <= 0)
+                {
+                    AlertModerno.Error(this, "Error", "No fue posible crear la cuenta.", true, 2200);
+                    return;
+                }
+
+                models.IdCuenteClienteActiva = nuevaCuentaId;
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", "Cuenta creada correctamente.", true, 1600);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task ActualizarCantidadDetalle(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                int cantidad = data.GetInt("CANTIDAD");
+
+                if (idDetalle <= 0 || cantidad <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se recibió una cantidad válida.", true, 1800);
+                    return;
+                }
+
+                var resp = await DetalleVenta_f.ActualizarCantidadDetalle(models.db, idDetalle, cantidad);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo actualizar la cantidad.", true, 1800);
+                    return;
+                }
+
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Cantidad actualizada correctamente.", true, 800);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task EliminarDetalleCaja(string parametros)
+        {
+            try
+            {
+                var data = new EventArgumentParser(parametros);
+                int idDetalle = data.GetInt("ID");
+                string nota = data.GetString("NOTA") ?? string.Empty;
+
+                if (idDetalle <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "No se recibió un detalle válido.", true, 1800);
+                    return;
+                }
+
+                var resp = await DetalleVenta_f.Eliminar(models.db, idDetalle, nota);
+                if (!resp.estado)
+                {
+                    AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo eliminar el producto.", true, 1800);
+                    return;
+                }
+
+                await RecargarVentaActiva();
+                AlertModerno.Success(this, "OK", resp.mensaje ?? "Producto eliminado correctamente.", true, 800);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task Comandar()
+        {
+            if (models.detalleCaja == null || !models.detalleCaja.Any())
+            {
+                AlertModerno.Warning(this, "Atención", "No hay productos cargados para comandar.", true, 1800);
+                return;
+            }
+
+            if (models.detalleCaja.Where(x => x.itemComandado == 0).ToList().Count == 0)
+            {
+                AlertModerno.Warning(this, "Atención", "No hay items pendientes por comandar.", true, 1800);
+                return;
+            }
+
+            var comanda = new ImprecionComandaAdd
+            {
+                id = 0,
+                idVenta = models.IdCuentaActiva,
+                idMesa = Convert.ToString(models.IdMesaActiva),
+                idMesero = Convert.ToString(models.vendedor.id),
+                estado = 1
+            };
+
+            var resp = await ImprecionComandaAddControler.CRUD(models.db, comanda, 0);
+            if (resp.estado)
+            {
+                AlertModerno.Success(this, "OK", "Comanda enviada correctamente.", true, 1500);
+            }
+            else
+            {
+                AlertModerno.Error(this, "Error", "Comanda no enviada correctamente.", true, 1800);
+            }
+        }
+
+        private async Task SolicitarCuenta()
+        {
+            if (models.IdCuentaActiva <= 0)
+            {
+                AlertModerno.Warning(this, "Atención", "No hay un servicio activo para imprimir la cuenta.", true, 1800);
+                return;
+            }
+
+            var cuenta = new ImprimirCuenta
+            {
+                id = 0,
+                idVenta = models.IdCuentaActiva
+            };
+
+            var resp = await ImprimirCuentaControler.CRUD(models.db, cuenta, 0);
+            if (resp.estado)
+            {
+                AlertModerno.Success(this, "OK", "Cuenta enviada correctamente.", true, 1500);
+            }
+            else
+            {
+                AlertModerno.Error(this, "Error", "Cuenta no enviada correctamente.", true, 1800);
+            }
+        }
+
+        private async Task Cobrar()
+        {
+            Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
+            Response.Redirect("~/Cobrar.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
+            await Task.CompletedTask;
+        }
+
+        private async Task CerrarCaja()
+        {
+            try
+            {
+                var baseCaja = models.BaseCaja;
+                if (baseCaja == null || baseCaja.id <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "No hay una caja activa para cerrar.", true, 2200);
+                    return;
+                }
+
+                if (!string.Equals(baseCaja.estadoBase, "ACTIVA", StringComparison.OrdinalIgnoreCase))
+                {
+                    AlertModerno.Warning(this, "Atención", "La caja actual ya se encuentra cerrada.", true, 2200);
+                    return;
+                }
+
+                baseCaja.estadoBase = "CERRADA";
+                baseCaja.fechaCierre = DateTime.Now;
+                baseCaja.idUsuarioCierre = models.vendedor.id;
+                var resp = await BaseCajaControler.CRUD(models.db, baseCaja, 1);
+                if (!resp)
+                {
+                    AlertModerno.Error(this, "Error", "No fue posible cerrar la caja. Verifique e intente nuevamente.", true, 2200);
+                    return;
+                }
+
+                Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
+                AlertModerno.SuccessGoTo(this, "OK", "Caja cerrada con éxito.", "~/Salir.aspx", false, 1200);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
+
+        private async Task RecargarVentaActiva()
+        {
+            models.cuentas = await CargarCuentas();
+            models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
+            models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
+            models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
+            models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
+            await CargarDATA();
+        }
+
         private async Task SeleccionarCategoria(string parametros)
         {
             var data = new EventArgumentParser(parametros);
@@ -787,5 +1150,18 @@ namespace WebApplication
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

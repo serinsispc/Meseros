@@ -1,9 +1,8 @@
 ﻿<%@ Page Title="" Language="C#" MasterPageFile="~/CajaMaster.Master" AutoEventWireup="true" CodeBehind="caja.aspx.cs" Inherits="WebApplication.caja" Async="true" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-    <style>
+        <style>
         :root {
-            /* Ajusta a tu azul corporativo Serinsis PC */
             --serinsis-blue: #0b3a7e;
             --serinsis-blue2: #1e88ff;
         }
@@ -20,17 +19,55 @@
             color: #6b7280 !important;
         }
 
+        .cuenta-item.cuenta-item-activa,
+        .btn-cuenta-general.cuenta-item-activa {
+            border-color: rgba(30, 136, 255, .42) !important;
+            background: linear-gradient(135deg, rgba(11,58,126,.08), rgba(30,136,255,.18)) !important;
+            color: #0b3a7e !important;
+            box-shadow: 0 14px 28px rgba(30, 136, 255, .18) !important;
+            transform: translateY(-2px);
+        }
+
+        .cuenta-item small {
+            display: block;
+            margin-top: 4px;
+            font-weight: 700;
+            color: rgba(15, 23, 42, .56);
+        }
+
+        .detalle-empty {
+            padding: 28px 18px;
+            border: 1px dashed rgba(148, 163, 184, .8);
+            border-radius: 18px;
+            background: rgba(248, 250, 252, .9);
+            text-align: center;
+            color: rgba(15, 23, 42, .68);
+            font-weight: 700;
+        }
+
+        .detalle-empty i {
+            font-size: 2rem;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .prod-actions-detalle .act-btn[disabled] {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
         .app-loading {
             position: fixed;
             inset: 0;
             z-index: 999999;
-            /*display: none;  se controla por JS */
             align-items: center;
             justify-content: center;
             background: rgba(10, 22, 45, .38);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
         }
+
         .app-loading-card {
             width: min(360px, calc(100% - 32px));
             background: rgba(255,255,255,.92);
@@ -52,22 +89,22 @@
             margin: 8px auto 10px;
         }
 
-        @keyframes appSpin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-            <div class="app-loading-title">Cargando...</div>
+        .app-loading-title {
             font-weight: 800;
             color: #0f172a;
             font-size: 1.05rem;
         }
 
-            <div class="app-loading-sub">Estamos preparando tu informaci&oacute;n</div>
+        .app-loading-sub {
             color: rgba(15,23,42,.70);
             font-size: .92rem;
             margin-top: 4px;
+        }
+
+        @keyframes appSpin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </asp:Content>
@@ -133,7 +170,7 @@
                                 Eliminar servicio
                             </button>
 
-                            <button type="button" class="btn-top btn-domicilio">
+                            <button type="button" class="btn-top btn-domicilio" onclick="return Swal.fire({ icon: 'info', title: 'Domicilios', text: 'El flujo de domicilios de caja lo conectamos en la siguiente fase para no romper el proceso actual.', confirmButtonText: 'Entendido' }), false;">
                                 <i class="bi bi-house-door-fill"></i>
                                 Domicilio
                             </button>
@@ -143,7 +180,7 @@
                                 Ventas
                             </button>
 
-                            <button type="button" class="btn-top btn-cerrar-caja">
+                            <button type="button" class="btn-top btn-cerrar-caja" onclick="return ConfirmarCerrarCaja(this)">
                                 <i class="bi bi-lock-fill"></i>
                                 Cerrar caja
                             </button>
@@ -345,7 +382,7 @@
                                                                         <i class="bi bi-plus-lg"></i>
                                                                     </button>
 
-                                                                    <button type="button" class="prod-btn prod-cart" aria-label="Agregar">
+                                                                    <button type="button" class="prod-btn prod-cart" aria-label="Agregar" data-id="<%# Eval("idPresentacion") %>" onclick="return agregarProductoDesdeCard(this);">
                                                                         <i class="bi bi-cart"></i>
                                                                     </button>
                                                                 </div>
@@ -379,379 +416,142 @@
             </section>
 
             <!-- ================= DERECHA ================= -->
-            <aside class="col-12 col-xl-4 d-flex">
+                        <aside class="col-12 col-xl-4 d-flex">
                 <div class="panel w-100">
                     <div class="row g-0 h-100 aside-stack">
 
                         <div class="col-12">
                             <div class="box h-precios p-0 precios-box">
-
                                 <div class="precios-resumen">
-
                                     <div class="precio-row">
                                         <div class="precio-label">SUBTOTAL:</div>
-                                        <div class="precio-value">$ 1.501.150</div>
+                                        <div class="precio-value"><%: FormatearMoneda(ResumenSubtotal()) %></div>
                                     </div>
 
                                     <div class="precio-row">
-                                        <div class="precio-label">IMPUESTOS (8%)</div>
-                                        <div class="precio-value">$ 0</div>
+                                        <div class="precio-label">IMPUESTOS</div>
+                                        <div class="precio-value"><%: FormatearMoneda(ResumenImpuestos()) %></div>
                                     </div>
 
                                     <div class="precio-row precio-total">
                                         <div class="precio-label">TOTAL 1:</div>
-                                        <div class="precio-value">$ 1.501.150</div>
+                                        <div class="precio-value"><%: FormatearMoneda(ResumenTotal1()) %></div>
                                     </div>
 
                                     <div class="precio-row precio-servicio">
-                                        <div class="precio-label">SERVICIO (0.10%)</div>
+                                        <div class="precio-label">SERVICIO (<%: ResumenPorcentajePropina().ToString("0.##") %>%)</div>
                                         <div class="precio-servicio-acciones">
-                                            <button type="button" class="btn-servicio-editar">Editar</button>
-                                            <div class="precio-value">$ 150.115</div>
+                                            <button type="button" class="btn-servicio-editar" title="Edición de propina pendiente">Editar</button>
+                                            <div class="precio-value"><%: FormatearMoneda(ResumenPropina()) %></div>
                                         </div>
                                     </div>
 
                                     <div class="precio-row precio-total2">
                                         <div class="precio-label">TOTAL 2:</div>
-                                        <div class="precio-value">$ 1.651.265</div>
+                                        <div class="precio-value"><%: FormatearMoneda(ResumenTotal2()) %></div>
                                     </div>
-
                                 </div>
 
                                 <div class="precios-acciones">
-                                    <button type="button" class="accion-btn accion-comandar">
+                                    <button type="button" class="accion-btn accion-comandar" onclick="EjecutarAccion('Comandar','',this)">
                                         <i class="bi bi-send-fill me-1"></i>Comandar
                                     </button>
 
-                                    <button type="button" class="accion-btn accion-cuenta">
+                                    <button type="button" class="accion-btn accion-cuenta" onclick="EjecutarAccion('SolicitarCuenta','',this)">
                                         <i class="bi bi-chat-square-text-fill me-1"></i>Solicitar<br />
                                         Cuenta
                                     </button>
 
-                                    <button type="button" class="accion-btn accion-cobrar">
+                                    <button type="button" class="accion-btn accion-cobrar" onclick="EjecutarAccion('Cobrar','',this)">
                                         <i class="bi bi-cash-coin me-1"></i>Cobrar
                                     </button>
                                 </div>
-
                             </div>
                         </div>
 
-
-
                         <div class="col-12">
                             <div class="box h-nueva-cuenta">
-
-                                <!-- FILA SUPERIOR -->
                                 <div class="cuentas-header col-12">
-
-                                    <button type="button" class="btn-nueva-cuenta">
+                                    <button type="button" class="btn-nueva-cuenta" onclick="return abrirModalCuentaClienteNueva();">
                                         <i class="bi bi-plus-lg me-2"></i>
                                         Nueva cuenta
                                     </button>
 
-                                    <button type="button" class="btn-cuenta-general">
-                                        <span>Cuenta General </span>
-                                        <span class="cuenta-total">$ 1.651.265</span>
+                                    <button type="button" class="btn-cuenta-general <%= models.IdCuenteClienteActiva == 0 ? "cuenta-item-activa" : string.Empty %>" onclick="EjecutarAccion('SeleccionarCuentaCliente','ID=0',this)">
+                                        <span><%: NombreCuentaClienteActiva() == "Cuenta General" ? "Cuenta General" : "Cuenta General" %></span>
+                                        <span class="cuenta-total"><%: FormatearMoneda(models.venta?.total_A_Pagar ?? 0) %></span>
                                     </button>
-
                                 </div>
 
-                                <!-- LISTADO DE CUENTAS -->
                                 <div class="cuentas-lista">
-                                    <button type="button" class="cuenta-item">Mesa 01</button>
-                                    <button type="button" class="cuenta-item">Mesa 02</button>
-                                    <button type="button" class="cuenta-item">Cliente Juan</button>
-                                    <button type="button" class="cuenta-item">Servicio</button>
-                                    <button type="button" class="cuenta-item">Domicilio 03</button>
-                                    <button type="button" class="cuenta-item">Mesa 10</button>
+                                    <asp:Repeater runat="server" ID="rpCuentasCliente">
+                                        <ItemTemplate>
+                                            <button type="button" class="cuenta-item <%# Convert.ToInt32(Eval("id")) == models.IdCuenteClienteActiva ? "cuenta-item-activa" : string.Empty %>" onclick="EjecutarAccion('SeleccionarCuentaCliente','ID=<%# Eval("id") %>',this)">
+                                                <%# Eval("nombreCuenta") %>
+                                                <small><%# FormatearMoneda(Eval("total_A_Pagar")) %></small>
+                                            </button>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
                                 </div>
-
                             </div>
                         </div>
-
 
                         <div class="col-12">
                             <div class="box h-lista">
-
                                 <div class="row lista-productos">
+                                    <asp:Repeater runat="server" ID="rpDetalleCaja">
+                                        <ItemTemplate>
+                                            <div class="col-6 col-xl-12 item-col">
+                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>">
+                                                    <div class="prod-top-detalle">
+                                                        <div class="prod-nombre"><%# Eval("nombreProducto") %></div>
+                                                        <div class="prod-precio"><%# FormatearMoneda(Eval("precioVenta")) %></div>
+                                                    </div>
 
-                                    <div class="col-6 col-xl-12 item-col">
-                                        <div class="producto-item-detalle">
+                                                    <div class="prod-mid-detalle">
+                                                        <div class="prod-cantidad">
+                                                            <button type="button" class="qty-btn js-detalle-restar" aria-label="Disminuir">-</button>
+                                                            <input type="text" class="qty-input js-detalle-cantidad" value="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" inputmode="numeric" />
+                                                            <button type="button" class="qty-btn js-detalle-sumar" aria-label="Aumentar">+</button>
+                                                        </div>
 
-                                            <!-- TOP -->
-                                            <div class="prod-top-detalle">
-                                                <div class="prod-nombre">CAMARA IP V380</div>
-                                                <div class="prod-precio">$ 101.150</div>
-                                            </div>
+                                                        <button type="button" class="save-btn" aria-label="Guardar" onclick="return guardarCantidadDetalle(this);">
+                                                            <i class="bi bi-floppy2-fill"></i>
+                                                        </button>
+                                                    </div>
 
-                                            <!-- MID -->
-                                            <div class="prod-mid-detalle">
-                                                <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
-                                                    <input type="text" class="qty-input" value="1" inputmode="numeric" />
-                                                    <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
+                                                    <div class="prod-actions-detalle">
+                                                        <button type="button" class="act-btn" aria-label="Cuenta" title="<%# Eval("nombreCuenta") %>" <%= models.IdCuenteClienteActiva > 0 ? "" : "disabled=\"disabled\"" %>>
+                                                            <i class="bi bi-person-badge"></i>
+                                                        </button>
+                                                        <button type="button" class="act-btn act-danger" aria-label="Eliminar" onclick="return confirmarEliminarDetalle(this);">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <div class="prod-bottom">
+                                                        <button type="button" class="nota-btn" aria-label="Notas" title="<%# Eval("observacion") %>">
+                                                            <i class="bi bi-journal-text me-2"></i><span><%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("observacion"))) ? "Sin nota" : Eval("observacion") %></span>
+                                                        </button>
+
+                                                        <div class="prod-total"><%# FormatearMoneda(Eval("totalDetalle")) %></div>
+                                                    </div>
                                                 </div>
-
-                                                <button type="button" class="save-btn" aria-label="Guardar">
-                                                    <i class="bi bi-floppy2-fill"></i>
-                                                </button>
                                             </div>
+                                        </ItemTemplate>
+                                    </asp:Repeater>
 
-                                            <!-- ACTIONS -->
-                                            <div class="prod-actions-detalle">
-                                                <button type="button" class="act-btn" aria-label="Chat"><i class="bi bi-chat"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Link"><i class="bi bi-link-45deg"></i></button>
-                                                <button type="button" class="act-btn act-danger" aria-label="Eliminar"><i class="bi bi-trash"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Cortar"><i class="bi bi-scissors"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Descuento"><i class="bi bi-cash-coin"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Editar"><i class="bi bi-pencil-square"></i></button>
-                                            </div>
-
-                                            <!-- BOTTOM -->
-                                            <div class="prod-bottom">
-                                                <button type="button" class="nota-btn" aria-label="Notas">
-                                                    <i class="bi bi-journal-text me-2"></i><span>--</span>
-                                                </button>
-
-                                                <div class="prod-total">$ 101.150</div>
-                                            </div>
-
+                                    <% if (!TieneDetalleServicioActivo()) { %>
+                                    <div class="col-12">
+                                        <div class="detalle-empty">
+                                            <i class="bi bi-bag-x"></i>
+                                            Este servicio aún no tiene productos cargados.
                                         </div>
                                     </div>
-
-                                    <div class="col-6 col-xl-12 item-col">
-                                        <div class="producto-item-detalle">
-
-                                            <!-- TOP -->
-                                            <div class="prod-top-detalle">
-                                                <div class="prod-nombre">CAMARA IP V380</div>
-                                                <div class="prod-precio">$ 101.150</div>
-                                            </div>
-
-                                            <!-- MID -->
-                                            <div class="prod-mid-detalle">
-                                                <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
-                                                    <input type="text" class="qty-input" value="1" inputmode="numeric" />
-                                                    <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
-                                                </div>
-
-                                                <button type="button" class="save-btn" aria-label="Guardar">
-                                                    <i class="bi bi-floppy2-fill"></i>
-                                                </button>
-                                            </div>
-
-                                            <!-- ACTIONS -->
-                                            <div class="prod-actions-detalle">
-                                                <button type="button" class="act-btn" aria-label="Chat"><i class="bi bi-chat"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Link"><i class="bi bi-link-45deg"></i></button>
-                                                <button type="button" class="act-btn act-danger" aria-label="Eliminar"><i class="bi bi-trash"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Cortar"><i class="bi bi-scissors"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Descuento"><i class="bi bi-cash-coin"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Editar"><i class="bi bi-pencil-square"></i></button>
-                                            </div>
-
-                                            <!-- BOTTOM -->
-                                            <div class="prod-bottom">
-                                                <button type="button" class="nota-btn" aria-label="Notas">
-                                                    <i class="bi bi-journal-text me-2"></i><span>--</span>
-                                                </button>
-
-                                                <div class="prod-total">$ 101.150</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-
-                                    <div class="col-6 col-xl-12 item-col">
-                                        <div class="producto-item-detalle">
-
-                                            <!-- TOP -->
-                                            <div class="prod-top-detalle">
-                                                <div class="prod-nombre">CAMARA IP V380</div>
-                                                <div class="prod-precio">$ 101.150</div>
-                                            </div>
-
-                                            <!-- MID -->
-                                            <div class="prod-mid-detalle">
-                                                <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
-                                                    <input type="text" class="qty-input" value="1" inputmode="numeric" />
-                                                    <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
-                                                </div>
-
-                                                <button type="button" class="save-btn" aria-label="Guardar">
-                                                    <i class="bi bi-floppy2-fill"></i>
-                                                </button>
-                                            </div>
-
-                                            <!-- ACTIONS -->
-                                            <div class="prod-actions-detalle">
-                                                <button type="button" class="act-btn" aria-label="Chat"><i class="bi bi-chat"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Link"><i class="bi bi-link-45deg"></i></button>
-                                                <button type="button" class="act-btn act-danger" aria-label="Eliminar"><i class="bi bi-trash"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Cortar"><i class="bi bi-scissors"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Descuento"><i class="bi bi-cash-coin"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Editar"><i class="bi bi-pencil-square"></i></button>
-                                            </div>
-
-                                            <!-- BOTTOM -->
-                                            <div class="prod-bottom">
-                                                <button type="button" class="nota-btn" aria-label="Notas">
-                                                    <i class="bi bi-journal-text me-2"></i><span>--</span>
-                                                </button>
-
-                                                <div class="prod-total">$ 101.150</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                    <div class="col-6 col-xl-12 item-col">
-                                        <div class="producto-item-detalle">
-
-                                            <!-- TOP -->
-                                            <div class="prod-top-detalle">
-                                                <div class="prod-nombre">CAMARA IP V380</div>
-                                                <div class="prod-precio">$ 101.150</div>
-                                            </div>
-
-                                            <!-- MID -->
-                                            <div class="prod-mid-detalle">
-                                                <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
-                                                    <input type="text" class="qty-input" value="1" inputmode="numeric" />
-                                                    <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
-                                                </div>
-
-                                                <button type="button" class="save-btn" aria-label="Guardar">
-                                                    <i class="bi bi-floppy2-fill"></i>
-                                                </button>
-                                            </div>
-
-                                            <!-- ACTIONS -->
-                                            <div class="prod-actions-detalle">
-                                                <button type="button" class="act-btn" aria-label="Chat"><i class="bi bi-chat"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Link"><i class="bi bi-link-45deg"></i></button>
-                                                <button type="button" class="act-btn act-danger" aria-label="Eliminar"><i class="bi bi-trash"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Cortar"><i class="bi bi-scissors"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Descuento"><i class="bi bi-cash-coin"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Editar"><i class="bi bi-pencil-square"></i></button>
-                                            </div>
-
-                                            <!-- BOTTOM -->
-                                            <div class="prod-bottom">
-                                                <button type="button" class="nota-btn" aria-label="Notas">
-                                                    <i class="bi bi-journal-text me-2"></i><span>--</span>
-                                                </button>
-
-                                                <div class="prod-total">$ 101.150</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                    <div class="col-6 col-xl-12 item-col">
-                                        <div class="producto-item-detalle">
-
-                                            <!-- TOP -->
-                                            <div class="prod-top-detalle">
-                                                <div class="prod-nombre">CAMARA IP V380</div>
-                                                <div class="prod-precio">$ 101.150</div>
-                                            </div>
-
-                                            <!-- MID -->
-                                            <div class="prod-mid-detalle">
-                                                <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
-                                                    <input type="text" class="qty-input" value="1" inputmode="numeric" />
-                                                    <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
-                                                </div>
-
-                                                <button type="button" class="save-btn" aria-label="Guardar">
-                                                    <i class="bi bi-floppy2-fill"></i>
-                                                </button>
-                                            </div>
-
-                                            <!-- ACTIONS -->
-                                            <div class="prod-actions-detalle">
-                                                <button type="button" class="act-btn" aria-label="Chat"><i class="bi bi-chat"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Link"><i class="bi bi-link-45deg"></i></button>
-                                                <button type="button" class="act-btn act-danger" aria-label="Eliminar"><i class="bi bi-trash"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Cortar"><i class="bi bi-scissors"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Descuento"><i class="bi bi-cash-coin"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Editar"><i class="bi bi-pencil-square"></i></button>
-                                            </div>
-
-                                            <!-- BOTTOM -->
-                                            <div class="prod-bottom">
-                                                <button type="button" class="nota-btn" aria-label="Notas">
-                                                    <i class="bi bi-journal-text me-2"></i><span>--</span>
-                                                </button>
-
-                                                <div class="prod-total">$ 101.150</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                    <div class="col-6 col-xl-12 item-col">
-                                        <div class="producto-item-detalle">
-
-                                            <!-- TOP -->
-                                            <div class="prod-top-detalle">
-                                                <div class="prod-nombre">CAMARA IP V380</div>
-                                                <div class="prod-precio">$ 101.150</div>
-                                            </div>
-
-                                            <!-- MID -->
-                                            <div class="prod-mid-detalle">
-                                                <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
-                                                    <input type="text" class="qty-input" value="1" inputmode="numeric" />
-                                                    <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
-                                                </div>
-
-                                                <button type="button" class="save-btn" aria-label="Guardar">
-                                                    <i class="bi bi-floppy2-fill"></i>
-                                                </button>
-                                            </div>
-
-                                            <!-- ACTIONS -->
-                                            <div class="prod-actions-detalle">
-                                                <button type="button" class="act-btn" aria-label="Chat"><i class="bi bi-chat"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Link"><i class="bi bi-link-45deg"></i></button>
-                                                <button type="button" class="act-btn act-danger" aria-label="Eliminar"><i class="bi bi-trash"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Cortar"><i class="bi bi-scissors"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Descuento"><i class="bi bi-cash-coin"></i></button>
-                                                <button type="button" class="act-btn" aria-label="Editar"><i class="bi bi-pencil-square"></i></button>
-                                            </div>
-
-                                            <!-- BOTTOM -->
-                                            <div class="prod-bottom">
-                                                <button type="button" class="nota-btn" aria-label="Notas">
-                                                    <i class="bi bi-journal-text me-2"></i><span>--</span>
-                                                </button>
-
-                                                <div class="prod-total">$ 101.150</div>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
+                                    <% } %>
                                 </div>
-
-
-
-
                             </div>
                         </div>
-
-
-
-
-
                     </div>
                 </div>
             </aside>
@@ -780,6 +580,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <input type="hidden" id="idCuentaModalEditar" />
+                    <input type="hidden" id="accionCuentaModal" value="EditarAliasCuenta" />
                     <!-- boton de guardar-client (no server control) -->
                     <button type="button" id="btnGuardarCuenta" class="btn btn-primary" onclick="guardarCuentaDirecto(this)">Guardar</button>
                 </div>
@@ -964,6 +765,13 @@
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
+
+
+
+
+
+
+
 
 
 
