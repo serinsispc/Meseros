@@ -104,6 +104,8 @@
     <Compile Include="Controler\DetalleVentaControler.cs" />
     <Compile Include="Controler\FacturaElectronicaControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
+    <Compile Include="Controler\InformePagoInternoTurnoControler.cs" />
+
     <Compile Include="Controler\ImprecionComandaAddControler.cs" />
     <Compile Include="Controler\ImprimirCuentaControler.cs" />
     <Compile Include="Controler\ImprimirFacturaControler.cs" />
