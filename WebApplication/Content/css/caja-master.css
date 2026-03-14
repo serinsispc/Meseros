@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    CAJA MASTER - CSS (Look SaaS como tu imagen)
    ✅ No cambia estructura HTML
    ✅ Solo colores / sombras / bordes / detalle visual
@@ -1585,3 +1585,47 @@ body {
         font-size: 28px;
         opacity: .55;
     }
+/* Compactar lateral derecho de caja */
+.aside-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-content: flex-start;
+}
+
+.aside-stack > .col-12 {
+    width: 100%;
+}
+
+.aside-stack > .col-12:last-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+.h-nueva-cuenta {
+    height: auto;
+    min-height: 0;
+}
+
+.h-lista {
+    min-height: 180px;
+}
+
+.aside-stack > .col-12:last-child > .h-lista {
+    flex: 1 1 auto;
+    min-height: 180px;
+    max-height: 100%;
+}
+
+.categoria-btn.categoria-search-hit {
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    color: #ffffff;
+    border-color: rgba(31, 107, 255, .45);
+    box-shadow: 0 0 0 3px var(--primary-soft), var(--shadow-md);
+}
+
+.producto-item.producto-hidden,
+.categoria-btn.categoria-hidden {
+    display: none !important;
+}

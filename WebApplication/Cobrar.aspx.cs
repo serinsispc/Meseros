@@ -1,4 +1,4 @@
-ï»¿using DAL;
+using DAL;
 using DAL.Controler;
 using DAL.Funciones;
 using DAL.Model;
@@ -23,7 +23,7 @@ namespace WebApplication
 {
     public partial class Cobrar : System.Web.UI.Page
     {
-        #region Constantes de sesiÃ³n / claves
+        #region Constantes de sesión / claves
         private const string SessionVendedorKey = "Vendedor";
         private const string SessionZonaActivaKey = "zonaactiva";
         private const string SessionModelsKey = "Models";
@@ -34,15 +34,18 @@ namespace WebApplication
 
         public MenuViewModels Models { get; private set; }
 
-        private MenuViewModels ModelSesion
+                private MenuViewModels ModelSesion
         {
             get
             {
                 var json = Session["modelsJSON"] as string;
-                if (string.IsNullOrWhiteSpace(json)) return null;
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    try { return JsonConvert.DeserializeObject<MenuViewModels>(json); }
+                    catch { }
+                }
 
-                try { return JsonConvert.DeserializeObject<MenuViewModels>(json); }
-                catch { return null; }
+                return Session[SessionModelsKey] as MenuViewModels;
             }
         }
 
@@ -70,7 +73,7 @@ namespace WebApplication
                 CargarDatosVenta();
                 await CargarRelMediosInternos();
 
-                // âœ… IMPORTANTE: asegurar PagoVentaJSON desde el primer render
+                // ? IMPORTANTE: asegurar PagoVentaJSON desde el primer render
                 await AsegurarPagoJsonInicial();
 
                 ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
@@ -116,7 +119,7 @@ namespace WebApplication
             }
             else
             {
-                // âœ… Captura __EVENTTARGET/__EVENTARGUMENT desde __doPostBack
+                // ? Captura __EVENTTARGET/__EVENTARGUMENT desde __doPostBack
                 await ProcesarPostBack();
             }
 
@@ -201,13 +204,13 @@ namespace WebApplication
 
                 if (Session["PagoVentaJSON"] == null)
                 {
-                    AlertModerno.Warning(this, "AtenciÃ³n", "NO, se especifico el medio de pago", true, 2000);
+                    AlertModerno.Warning(this, "Atención", "NO, se especifico el medio de pago", true, 2000);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(eventArgument))
                 {
-                    AlertModerno.Warning(this, "AtenciÃ³n", "No llegÃ³ informaciÃ³n del cobro.", true, 2000);
+                    AlertModerno.Warning(this, "Atención", "No llegó información del cobro.", true, 2000);
                     return;
                 }
 
@@ -240,7 +243,7 @@ namespace WebApplication
                 var payload = JsonConvert.DeserializeObject<GuardarCobroPayload>(jsonPayload);
                 if (payload == null)
                 {
-                    AlertModerno.Error(this, "Error", "Payload invÃ¡lido para guardar el cobro.", true);
+                    AlertModerno.Error(this, "Error", "Payload inválido para guardar el cobro.", true);
                     return;
                 }
 
@@ -259,29 +262,29 @@ namespace WebApplication
                 catch { }
 
                 // ==========================================================
-                // 4) ValidaciÃ³n FE: cliente seleccionado
+                // 4) Validación FE: cliente seleccionado
                 // ==========================================================
                 if (payload.facturaElectronica)
                 {
                     if (Session["cliente_seleccionado_id"] == null)
                     {
-                        AlertModerno.Warning(this, "AtenciÃ³n", "Factura electrÃ³nica activa: debes seleccionar un cliente.", true, 2200);
+                        AlertModerno.Warning(this, "Atención", "Factura electrónica activa: debes seleccionar un cliente.", true, 2200);
                         return;
                     }
                 }
 
                 // ==========================================================
-                // 5) Resolver tipo factura y resoluciÃ³n
+                // 5) Resolver tipo factura y resolución
                 // ==========================================================
                 string tipoFactura = payload.facturaElectronica
-                    ? "FACTURA ELECTRÃ“NICA DE VENTA"
+                    ? "FACTURA ELECTRÓNICA DE VENTA"
                     : "POS";
 
                 var db = Session["db"]?.ToString() ?? "";
                 var resolucion = await V_Resoluciones_Controler.ConsulrarResolucion(db, tipoFactura);
                 if (resolucion == null)
                 {
-                    AlertModerno.Warning(this, "AtenciÃ³n", "NO se encontro la resoluciÃ³n.", true, 2200);
+                    AlertModerno.Warning(this, "Atención", "NO se encontro la resolución.", true, 2200);
                     return;
                 }
 
@@ -308,7 +311,7 @@ namespace WebApplication
 
                 venta.estadoVenta = "CANCELADO";
 
-                // âš ï¸ OJO: mantengo tu lÃ³gica: FirstOrDefault() como estaba
+                // ?? OJO: mantengo tu lógica: FirstOrDefault() como estaba
                 venta.numeroReferenciaPago = await MediosDePagoInternos_Controler.ConsultarReferencia(
                     db,
                     Pagos.FirstOrDefault().idMedioDePagointerno
@@ -360,7 +363,7 @@ namespace WebApplication
 
 
                 // ==========================================================
-                // 10) Factura electrÃ³nica (si aplica)
+                // 10) Factura electrónica (si aplica)
                 // ==========================================================
                 if (payload.facturaElectronica)
                 {
@@ -369,11 +372,11 @@ namespace WebApplication
                     var respfe = await ClassFE.FacturaElectronica(db, tv, ModelSesion.detalleCaja, tokenFe);
                     if (respfe)
                     {
-                        AlertModerno.Success(this, "OK", "Factura electrÃ³nica enviada correctamente.", true, 1200);
+                        AlertModerno.Success(this, "OK", "Factura electrónica enviada correctamente.", true, 1200);
                     }
                     else
                     {
-                        AlertModerno.Error(this, "Error", "La factura electrÃ³nica no fue enviada.", true, 1200);
+                        AlertModerno.Error(this, "Error", "La factura electrónica no fue enviada.", true, 1200);
                         GuardarModelsEnSesion();
                         DataBind();
                         return;
@@ -381,7 +384,7 @@ namespace WebApplication
                 }
 
                 // ==========================================================
-                // 11) Orden de impresiÃ³n
+                // 11) Orden de impresión
                 // ==========================================================
                 var printer = new ImprimirFactura { id = 0, idventa = venta.id };
                 var ordenPrinter = await ImprimirFacturaControler.CRUD(db, printer, 0);
@@ -394,7 +397,7 @@ namespace WebApplication
                     return;
                 }
 
-                //antes de terminar liberamos las mesas que estÃ©n ancladas a esta cuenta
+                //antes de terminar liberamos las mesas que estén ancladas a esta cuenta
                 var relaciones = await R_VentaMesaControler.ListaRelacion(db,venta.id);
                 if (relaciones.Count > 0)
                 {
@@ -430,7 +433,7 @@ namespace WebApplication
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Error btnGuardar: " + ex.Message);
-                AlertModerno.Error(this, "Â¡Error!", "No fue posible guardar el cobro.", true);
+                AlertModerno.Error(this, "¡Error!", "No fue posible guardar el cobro.", true);
             }
 
             await Task.CompletedTask;
@@ -452,13 +455,13 @@ namespace WebApplication
         {
             if (string.IsNullOrWhiteSpace(eventArgument))
             {
-                AlertModerno.Warning(this, "AtenciÃ³n", "Debes seleccionar un cliente antes de continuar.", true, 2000);
+                AlertModerno.Warning(this, "Atención", "Debes seleccionar un cliente antes de continuar.", true, 2000);
                 return;
             }
 
             if (!int.TryParse(eventArgument, out var clienteId) || clienteId <= 0)
             {
-                AlertModerno.Error(this, "Error", "ID de cliente invÃ¡lido.", true);
+                AlertModerno.Error(this, "Error", "ID de cliente inválido.", true);
                 return;
             }
 
@@ -466,7 +469,7 @@ namespace WebApplication
             var cliente = clientes.FirstOrDefault(c => c.id == clienteId);
             if (cliente == null)
             {
-                AlertModerno.Error(this, "Error", "No se encontrÃ³ el cliente seleccionado.", true);
+                AlertModerno.Error(this, "Error", "No se encontró el cliente seleccionado.", true);
                 return;
             }
 
@@ -561,7 +564,7 @@ namespace WebApplication
                         };
 
                         var limpiarJson = JsonConvert.SerializeObject(limpiarPayload);
-                        var limpiarScript = $"Swal.fire({{icon:'error',title:'Â¡Error!',text:'El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.',confirmButtonColor:'#2563eb'}}).then(function(){{if(window.setClienteData){{window.setClienteData({limpiarJson});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}}});";
+                        var limpiarScript = $"Swal.fire({{icon:'error',title:'¡Error!',text:'El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.',confirmButtonColor:'#2563eb'}}).then(function(){{if(window.setClienteData){{window.setClienteData({limpiarJson});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}}});";
 
                         ClientScript.RegisterStartupScript(GetType(), "nitNoEncontrado", limpiarScript, true);
                         return;
@@ -610,7 +613,7 @@ namespace WebApplication
                 ClientScript.RegisterStartupScript(
                     GetType(),
                     "nitError",
-                    "Swal.fire({icon:'error',title:'Â¡Error!',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlCliente'); if(modalEl){bootstrap.Modal.getOrCreateInstance(modalEl).show();}});",
+                    "Swal.fire({icon:'error',title:'¡Error!',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlCliente'); if(modalEl){bootstrap.Modal.getOrCreateInstance(modalEl).show();}});",
                     true);
             }
 
@@ -619,7 +622,6 @@ namespace WebApplication
 
         private async Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
         {
-            FacturacionElectronicaDIANFactory.urlJSON = "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/";
             FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
 
             Acquirer_Request acquirer_Request = new Acquirer_Request();
@@ -670,7 +672,7 @@ namespace WebApplication
 
                 if (!respuestaCRUD)
                 {
-                    AlertModerno.Error(this, "Â¡Error!", "No fue posible agregar el descuento.", true);
+                    AlertModerno.Error(this, "¡Error!", "No fue posible agregar el descuento.", true);
                     return;
                 }
 
@@ -678,14 +680,14 @@ namespace WebApplication
                 ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
                 ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
 
-                AlertModerno.Success(this, "Â¡OK!", $"Descuento agregado con Ã©xito", true, 800);
+                AlertModerno.Success(this, "¡OK!", $"Descuento agregado con éxito", true, 800);
 
                 GuardarModelsEnSesion();
                 DataBind();
             }
             catch
             {
-                AlertModerno.Error(this, "Â¡Error!", "No fue posible crear la relaciÃ³n del vendedor con la venta.", true);
+                AlertModerno.Error(this, "¡Error!", "No fue posible crear la relación del vendedor con la venta.", true);
             }
         }
 
@@ -703,19 +705,19 @@ namespace WebApplication
 
                 if (r.estado == false)
                 {
-                    AlertModerno.Error(this, "Â¡Error!", "No fue posible eliminar el descuento.", true);
+                    AlertModerno.Error(this, "¡Error!", "No fue posible eliminar el descuento.", true);
                     return;
                 }
 
                 ModelSesion.venta = new V_TablaVentas();
                 ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), idventa);
-                AlertModerno.Success(this, "Â¡OK!", $"Descuento eliminado con Ã©xito", true, 800);
+                AlertModerno.Success(this, "¡OK!", $"Descuento eliminado con éxito", true, 800);
                 GuardarModelsEnSesion();
                 DataBind();
             }
             catch
             {
-                AlertModerno.Error(this, "Â¡Error!", "No fue posible eliminar el descuento.", true);
+                AlertModerno.Error(this, "¡Error!", "No fue posible eliminar el descuento.", true);
             }
         }
 
@@ -752,7 +754,7 @@ namespace WebApplication
 
                 if (!respuestaCRUD)
                 {
-                    AlertModerno.Error(this, "Â¡Error!", "No fue posible agregar la propina.", true);
+                    AlertModerno.Error(this, "¡Error!", "No fue posible agregar la propina.", true);
                     return;
                 }
 
@@ -760,14 +762,14 @@ namespace WebApplication
                 ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
                 ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
 
-                AlertModerno.Success(this, "Â¡OK!", $"propina agregado con Ã©xito", true, 800);
+                AlertModerno.Success(this, "¡OK!", $"propina agregado con éxito", true, 800);
 
                 GuardarModelsEnSesion();
                 DataBind();
             }
             catch
             {
-                AlertModerno.Error(this, "Â¡Error!", "No fue posible agregar la propina.", true);
+                AlertModerno.Error(this, "¡Error!", "No fue posible agregar la propina.", true);
             }
         }
 
@@ -785,19 +787,19 @@ namespace WebApplication
 
                 if (r.estado == false)
                 {
-                    AlertModerno.Error(this, "Â¡Error!", "No fue posible eliminar la propina.", true);
+                    AlertModerno.Error(this, "¡Error!", "No fue posible eliminar la propina.", true);
                     return;
                 }
 
                 ModelSesion.venta = new V_TablaVentas();
                 ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), idventa);
-                AlertModerno.Success(this, "Â¡OK!", $"Propina eliminado con Ã©xito", true, 800);
+                AlertModerno.Success(this, "¡OK!", $"Propina eliminado con éxito", true, 800);
                 GuardarModelsEnSesion();
                 DataBind();
             }
             catch
             {
-                AlertModerno.Error(this, "Â¡Error!", "No fue posible eliminar la propina.", true);
+                AlertModerno.Error(this, "¡Error!", "No fue posible eliminar la propina.", true);
             }
         }
 
@@ -848,7 +850,7 @@ namespace WebApplication
             ddlMedioPago.DataValueField = "id";
             ddlMedioPago.DataBind();
 
-            // 1) Si la venta ya trae medio, respÃ©talo
+            // 1) Si la venta ya trae medio, respétalo
             if (VentaActual != null && VentaActual.idMedioDePago > 0)
             {
                 var valor = VentaActual.idMedioDePago.ToString();
@@ -1211,3 +1213,5 @@ namespace WebApplication
         }
     }
 }
+
+

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -21,20 +21,19 @@ namespace DAL
 
         public static string connectionString;
 
-        public static void ConexionBase(string db)
+                public static void ConexionBase(string db)
         {
-            connectionString =
-                $"data source=www.serinsispc.com; initial catalog={db}; user id=emilianop; password=Ser1ns1s@2020*";
+            connectionString = RuntimeSettings.BuildSqlConnectionString(db);
         }
 
         public async Task<string> EjecutarConsulta(string consulta, [Optional] bool lista_)
         {
             if (string.IsNullOrWhiteSpace(consulta))
-                throw new ArgumentException("La consulta SQL está vacía.", nameof(consulta));
+                throw new ArgumentException("La consulta SQL est� vac�a.", nameof(consulta));
 
             try
             {
-                // Abrir la conexión justo antes de usarla
+                // Abrir la conexi�n justo antes de usarla
                 if (_conexion.State != ConnectionState.Open)
                     await _conexion.OpenAsync().ConfigureAwait(false);
 
@@ -60,8 +59,8 @@ namespace DAL
                             lista.Add(dict);
                         }
 
-                        // lista_ == true  → lista completa
-                        // lista_ == false → solo primer objeto
+                        // lista_ == true  ? lista completa
+                        // lista_ == false ? solo primer objeto
                         if (lista_ == false)
                         {
                             respuesta = JsonSerializer.Serialize(
@@ -101,3 +100,6 @@ namespace DAL
         }
     }
 }
+
+
+

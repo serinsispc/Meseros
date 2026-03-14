@@ -1,4 +1,4 @@
-﻿<%@ Page Title="" Language="C#" MasterPageFile="~/CajaMaster.Master" AutoEventWireup="true" CodeBehind="caja.aspx.cs" Inherits="WebApplication.caja" Async="true" %>
+<%@ Page Title="" Language="C#" MasterPageFile="~/CajaMaster.Master" AutoEventWireup="true" CodeBehind="caja.aspx.cs" Inherits="WebApplication.caja" Async="true" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <style>
@@ -62,13 +62,13 @@
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
 
-    <!-- ✅ LOADING OVERLAY (visible en primer load, oculto en postbacks) -->
+    <!-- ? LOADING OVERLAY (visible en primer load, oculto en postbacks) -->
     <div id="appLoading" class="app-loading"
         style="<%= IsPostBack ? "display:none;": "display:flex;" %>">
         <div class="app-loading-card">
             <div class="app-spinner" aria-hidden="true"></div>
-            <div class="app-loading-title">Cargando…</div>
-            <div class="app-loading-sub">Estamos preparando tu información</div>
+            <div class="app-loading-title">CargandoÃ¢â‚¬Â¦</div>
+            <div class="app-loading-sub">Estamos preparando tu informaciÃƒÂ³n</div>
         </div>
     </div>
 
@@ -84,7 +84,7 @@
         OnClick="Evento_Click" />
 
 
-    <!-- ✅ OJO: tu CSS usa .app-shell -->
+    <!-- ? OJO: tu CSS usa .app-shell -->
     <main class="container-fluid app-shell">
 
         <div class="row g-1 h-100">
@@ -99,7 +99,7 @@
 
                         <!-- IZQUIERDA -->
                         <div class="fw-bold text-dark ps-2">
-                            👤 <span class="fw-semibold"><%: models.vendedor.nombreVendedor %></span>
+                            ?? <span class="fw-semibold"><%: models.vendedor.nombreVendedor %></span>
                         </div>
 
                         <!-- DERECHA: Botones -->
@@ -132,7 +132,7 @@
 
                             <button type="button" class="btn-top btn-logout">
                                 <i class="bi bi-box-arrow-right"></i>
-                                Cerrar sesión
+                                Cerrar sesiÃƒÂ³n
                             </button>
 
                         </div>
@@ -155,7 +155,7 @@
 
                                             <div class="cuenta-card <%# (Convert.ToInt32(Eval("id")) == models.IdCuentaActiva ? "cuenta-activa" : "") %>">
 
-                                                <!-- ✏️ EDITAR: abre modal (NO debe disparar seleccionar cuenta) -->
+                                                <!-- ?? EDITAR: abre modal (NO debe disparar seleccionar cuenta) -->
                                                 <button type="button"
                                                     class="cuenta-edit"
                                                     title="Editar"
@@ -239,7 +239,7 @@
                         </div>
                     </div>
 
-                    <!-- Buscar + Categorías + Productos -->
+                    <!-- Buscar + CategorÃƒÂ­as + Productos -->
                     <div id="divProductos" runat="server" class="col-12 col-lg-7 d-flex">
                         <div class="panel b-purple w-100">
                             <div class="row g-0 ">
@@ -249,11 +249,11 @@
 
                                         <i class="bi bi-search buscar-icon"></i>
 
-                                        <input id="btnbuscar" type="text" runat="server" class="buscar-input" placeholder="Buscar producto..." />
+                                        <input id="btnbuscar" type="text" runat="server" ClientIDMode="Static" class="buscar-input" placeholder="Buscar producto..." autocomplete="off" />
 
                                         <button type="button"
                                             class="buscar-clear"
-                                            onclick="document.getElementById('txtBuscar').value=''">
+                                            onclick="window.CajaBuscador && CajaBuscador.clear();">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
 
@@ -268,7 +268,9 @@
                                             <asp:Repeater runat="server" ID="rpCategorias">
                                                 <ItemTemplate>
 
-                                                    <button type="button" class='categoria-btn <%# (int)Eval("id") == models.IdCategoriaActiva ? "categoria-activa" : "" %>'
+                                                                                                        <button type="button" class='categoria-btn <%# (int)Eval("id") == models.IdCategoriaActiva ? "categoria-activa" : "" %>'
+                                                        data-categoria-id="<%# Eval("id") %>"
+                                                        data-categoria-nombre="<%# Eval("nombreCategoria") %>"
                                                         onclick="EjecutarAccion('SeleccionarCategoria','id=<%# Eval("id") %>',this)">
                                                         <%# Eval("nombreCategoria") %>
                                                     </button>
@@ -292,7 +294,7 @@
                                                 <ItemTemplate>
 
                                                     <!-- ITEM -->
-                                                    <div class="producto-item">
+                                                    <div class="producto-item" data-producto-id="<%# Eval("idPresentacion") %>" data-producto-codigo="<%# Eval("codigoProducto") %>" data-producto-nombre="<%# Eval("nombreProducto") %>" data-producto-descripcion="<%# Eval("descripcionProducto") %>" data-categoria-id="<%# Eval("idCategoria") %>" data-categoria-nombre="<%# Eval("nombreCategoria") %>">
 
                                                         <div class="row g-0 align-items-center">
 
@@ -361,7 +363,7 @@
             <!-- ================= DERECHA ================= -->
             <aside class="col-12 col-xl-4 d-flex">
                 <div class="panel w-100">
-                    <div class="row g-0 h-100">
+                    <div class="row g-0 h-100 aside-stack">
 
                         <div class="col-12">
                             <div class="box h-precios p-0 precios-box">
@@ -467,7 +469,7 @@
                                             <!-- MID -->
                                             <div class="prod-mid-detalle">
                                                 <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">−</button>
+                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
                                                     <input type="text" class="qty-input" value="1" inputmode="numeric" />
                                                     <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
                                                 </div>
@@ -511,7 +513,7 @@
                                             <!-- MID -->
                                             <div class="prod-mid-detalle">
                                                 <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">−</button>
+                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
                                                     <input type="text" class="qty-input" value="1" inputmode="numeric" />
                                                     <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
                                                 </div>
@@ -556,7 +558,7 @@
                                             <!-- MID -->
                                             <div class="prod-mid-detalle">
                                                 <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">−</button>
+                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
                                                     <input type="text" class="qty-input" value="1" inputmode="numeric" />
                                                     <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
                                                 </div>
@@ -600,7 +602,7 @@
                                             <!-- MID -->
                                             <div class="prod-mid-detalle">
                                                 <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">−</button>
+                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
                                                     <input type="text" class="qty-input" value="1" inputmode="numeric" />
                                                     <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
                                                 </div>
@@ -644,7 +646,7 @@
                                             <!-- MID -->
                                             <div class="prod-mid-detalle">
                                                 <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">−</button>
+                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
                                                     <input type="text" class="qty-input" value="1" inputmode="numeric" />
                                                     <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
                                                 </div>
@@ -688,7 +690,7 @@
                                             <!-- MID -->
                                             <div class="prod-mid-detalle">
                                                 <div class="prod-cantidad">
-                                                    <button type="button" class="qty-btn" aria-label="Disminuir">−</button>
+                                                    <button type="button" class="qty-btn" aria-label="Disminuir">-</button>
                                                     <input type="text" class="qty-input" value="1" inputmode="numeric" />
                                                     <button type="button" class="qty-btn" aria-label="Aumentar">+</button>
                                                 </div>
@@ -753,14 +755,14 @@
                     <div class="mb-2">
                         <label for="txtCuentaNombre" class="form-label">Nombre de la cuenta</label>
                         <input type="text" id="txtCuentaNombre" class="form-control" maxlength="100" placeholder="Ingrese el nombre de la cuenta" />
-                        <div id="cuentaError" class="form-text text-danger d-none">Ingrese un nombre válido (mín. 2 caracteres).</div>
+                        <div id="cuentaError" class="form-text text-danger d-none">Ingrese un nombre vÃƒÂ¡lido (mÃƒÂ­n. 2 caracteres).</div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <input type="hidden" id="idCuentaModalEditar" />
-                    <!-- botón de guardar-client (no server control) -->
+                    <!-- botÃƒÂ³n de guardar-client (no server control) -->
                     <button type="button" id="btnGuardarCuenta" class="btn btn-primary" onclick="guardarCuentaDirecto(this)">Guardar</button>
                 </div>
             </div>
@@ -786,7 +788,7 @@
             <span runat="server" id="lblMesaSeleccionada" class="fw-bolder" style="color: #0b3a7e;">--</span>
                         </div>
                         <div class="mt-1" style="color: rgba(15,23,42,.70); font-size: .92rem;">
-                            ¿Cuál de las siguientes acciones desea?
+                            Ã‚Â¿CuÃƒÂ¡l de las siguientes acciones desea?
                         </div>
                     </div>
 
@@ -804,7 +806,7 @@
                             <div>
                                 <div class="fw-semibold" style="color: #0f172a;">Acciones disponibles</div>
                                 <div style="color: rgba(15,23,42,.72); font-size: .92rem;">
-                                    Elige una opción para continuar con la mesa seleccionada.
+                                    Elige una opciÃƒÂ³n para continuar con la mesa seleccionada.
                                 </div>
                             </div>
                         </div>
@@ -895,7 +897,7 @@
 
                     </div>
 
-                    <!-- Vacío -->
+                    <!-- VacÃƒÂ­o -->
                     <div class="cuentas-empty d-none" id="cuentasEmpty">
                         <div class="cuentas-empty__box">
                             <i class="bi bi-inboxes"></i>
@@ -929,7 +931,7 @@
             }
         };
 
-        // ✅ En la carga inicial: ocultar cuando ya se pintó la página
+        // ? En la carga inicial: ocultar cuando ya se pintÃƒÂ³ la pÃƒÂ¡gina
         window.addEventListener('load', function () {
             SerinsisLoading.hide();
         });
@@ -938,3 +940,4 @@
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
+

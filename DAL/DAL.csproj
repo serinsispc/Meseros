@@ -85,6 +85,7 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
@@ -139,6 +140,7 @@
     <Compile Include="Controler\V_TablaVentasControler.cs" />
     <Compile Include="Controler\ZonasControler.cs" />
     <Compile Include="CrudSpHelper.cs" />
+    <Compile Include="RuntimeSettings.cs" />
     <Compile Include="Funciones\ClassFE.cs" />
     <Compile Include="Funciones\ComandImpresaa_f.cs" />
     <Compile Include="Funciones\CuentaCliente_f.cs" />

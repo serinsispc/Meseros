@@ -1,4 +1,4 @@
-ï»¿using DAL.Controler;
+using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
 using QRCoder;
@@ -66,7 +66,7 @@ namespace DAL.Funciones
                 facturaNacional.date = $"{DateTime.Today:yyyy-MM-dd}";
                 facturaNacional.time = $"{DateTime.Today:HH:mm:ss}";
                 /*en esta parte creamos la observacion*/
-                string observacion = $"el servicio Ã³ producto fue facturado el dÃ­a {v_TablaVentas.fechaVenta:yyyy-MM-dd} pero con inconvenientes en el sistema de facturaciÃ³n ha sido aceptada por la DIAN el dÃ­a {DateTime.Today:yyyy-MM-dd}";
+                string observacion = $"el servicio ó producto fue facturado el día {v_TablaVentas.fechaVenta:yyyy-MM-dd} pero con inconvenientes en el sistema de facturación ha sido aceptada por la DIAN el día {DateTime.Today:yyyy-MM-dd}";
                 TablaVentas tablaVentas = new TablaVentas();
                 tablaVentas = await TablaVentasControler.ConsultarIdVenta(db,v_TablaVentas.id);
                 if (tablaVentas != null)
@@ -436,3 +436,4 @@ namespace DAL.Funciones
         }
     }
 }
+

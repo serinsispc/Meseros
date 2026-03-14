@@ -1,7 +1,8 @@
-ï»¿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using RFacturacionElectronicaDIAN.Entities.Request;
 using RFacturacionElectronicaDIAN.Entities.Response;
 using System;
+using System.Configuration;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -21,8 +22,6 @@ namespace RFacturacionElectronicaDIAN.Factories
         public static int EstadoMensaje { get; set; }
 
         public static string urlJSON = "";
-        readonly string Api_Prod = urlJSON;
-        //readonly string token;
         readonly string urlEndPoint;
 
 
@@ -34,7 +33,7 @@ namespace RFacturacionElectronicaDIAN.Factories
         /// <param name="usedTest"></param>
         public FacturacionElectronicaDIANFactory()
         {
-            this.urlEndPoint = Api_Prod;
+            this.urlEndPoint = ResolveBaseUrl();
         }
 
         public Task<string> HttpWebRequestPost(string Url, string Json, HttpMethod httpMethod, [Optional] string token)
@@ -90,15 +89,29 @@ namespace RFacturacionElectronicaDIAN.Factories
                             }
                         }
                 }
-                catch (WebException ex)
+                                catch (WebException ex)
                 {
-                    Response = new StreamReader(ex.Response.GetResponseStream()).ReadToEnd();
+                    if (ex.Response != null)
+                    {
+                        using (var responseStream = ex.Response.GetResponseStream())
+                        using (var reader = responseStream != null ? new StreamReader(responseStream) : null)
+                        {
+                            Response = reader != null ? reader.ReadToEnd() : ex.Message;
+                        }
+                    }
+                    else
+                    {
+                        Response = ex.Message;
+                    }
+
                     ErrorProsesoDian = Response;
+                    System.Diagnostics.Trace.TraceError("DIAN WebException: " + Response);
                 }
                 catch (Exception ex)
                 {
-                    string error = ex.Message;
-                    Response = "error";
+                    Response = ex.Message;
+                    ErrorProsesoDian = Response;
+                    System.Diagnostics.Trace.TraceError("DIAN Exception: " + ex);
                 }
 
                 return Response;
@@ -131,14 +144,14 @@ namespace RFacturacionElectronicaDIAN.Factories
                                .Replace("\"allowance_char" + "ges\":null,", "");
                         Response = string.Empty;
                         maximoIntentos++;
-                        // Pausa de 10s antes del siguiente intento (si aÃºn quedan intentos)
+                        // Pausa de 10s antes del siguiente intento (si aún quedan intentos)
                         if (intento < maximoIntentos)
                             await Task.Delay(TimeSpan.FromSeconds(10));
 
                         continue; // siguiente vuelta
                     }
 
-                    // Ã‰xito u otro mensaje: salimos
+                    // Éxito u otro mensaje: salimos
                     break;
                 }
 
@@ -676,5 +689,42 @@ namespace RFacturacionElectronicaDIAN.Factories
             var config = JsonConvert.DeserializeObject<SMTP_Response>(respuesta);
             return config;
         }
+        private static string ResolveBaseUrl()
+        {
+            var explicitUrl = NormalizeUrl(urlJSON);
+            if (!string.IsNullOrWhiteSpace(explicitUrl))
+            {
+                return explicitUrl;
+            }
+
+            var envUrl = NormalizeUrl(System.Environment.GetEnvironmentVariable("COMANDASVENTAS_DIAN_API_BASE_URL"));
+            if (!string.IsNullOrWhiteSpace(envUrl))
+            {
+                return envUrl;
+            }
+
+            var configUrl = NormalizeUrl(ConfigurationManager.AppSettings["ComandasVentas.DianApiBaseUrl"]);
+            if (!string.IsNullOrWhiteSpace(configUrl))
+            {
+                return configUrl;
+            }
+
+            return "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/";
+        }
+
+        private static string NormalizeUrl(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            return value.Trim().TrimEnd('/') + "/";
+        }
     }
 }
+
+
+
+
+
