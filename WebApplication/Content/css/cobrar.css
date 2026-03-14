@@ -756,3 +756,32 @@ body {
         grid-template-columns: minmax(360px, 0.9fr) minmax(620px, 1.4fr);
     }
 }
+
+.cobrar-stack-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cobrar-summary-panel {
+    gap: 14px;
+}
+
+.cobrar-summary-panel .form-control {
+    min-height: 44px;
+}
+
+.cobrar-summary-panel .input-group-text {
+    min-width: 44px;
+    justify-content: center;
+}
+
+.cobrar-payment-card {
+    min-height: 100%;
+}
+
+@media (min-width: 992px) {
+    .cobrar-main-grid {
+        grid-template-columns: minmax(420px, 0.95fr) minmax(620px, 1.35fr);
+    }
+}

@@ -60,102 +60,81 @@
                     </div>
                 </div>
 
-                <!-- SubTotal / IVA -->
-                <div class="row g-3 mb-3 cobrar-top-grid">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-bold mb-1">SubTotal</label>
-                        <input type="text" class="form-control" id="txtSubTotal" runat="server" ClientIDMode="Static" />
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-bold mb-1">IVA</label>
-                        <input type="text" class="form-control" id="txtIVA" runat="server" ClientIDMode="Static" />
-                    </div>
-                </div>
-
-                <!-- Descuento / Propina -->
-                <div class="row g-3 mb-4 cobrar-top-grid">
-
-                    <!-- DESCUENTO -->
-                    <div class="col-12 col-md-6">
-                        <div class="cobrar-mini-card">
-                        <label class="form-label fw-bold mb-1">Descuento</label>
-
-                        <div class="row g-2">
-                            <div class="col-5">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="txtDescuentoPorcentaje" value="0" />
-                                    <span class="input-group-text">%</span>
-                                </div>
-                                <div class="hint mt-1">% sobre (SubTotal + IVA)</div>
-                            </div>
-
-                            <div class="col-7">
-                                <input type="text" class="form-control" id="txtDescuento"
-                                       runat="server" ClientIDMode="Static" />
-                                <div class="hint mt-1">Valor descuento</div>
-
-                                <!-- ✅ Botones DESCUENTO -->
-                                <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
-                                    <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarDescuento">
-                                        <i class="bi bi-check2-circle"></i> Guardar descuento
-                                    </button>
-                                    <button type="button" class="btn btnx flex-fill" id="btnEliminarDescuento">
-                                        <i class="bi bi-trash3"></i> Eliminar
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label fw-bold mb-1 mt-2">Razon Descuento</label>
-                                <input type="text" class="form-control" id="txtRazonDescuento"
-                                       runat="server" ClientIDMode="Static"
-                                       placeholder="Ej: Cortesía / Promoción / Ajuste..." />
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    <!-- PROPINA -->
-                    <div class="col-12 col-md-6">
-                        <div class="cobrar-mini-card">
-                        <label class="form-label fw-bold mb-1">Propina</label>
-
-                        <div class="row g-2">
-                            <div class="col-5">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="txtPropinaPorcentaje" value="0" />
-                                    <span class="input-group-text">%</span>
-                                </div>
-                                <div class="hint mt-1">% sobre SubTotal</div>
-                            </div>
-
-                            <div class="col-7">
-                                <input type="text" class="form-control" id="txtPropina"
-                                       runat="server" ClientIDMode="Static" value="0" />
-                                <div class="hint mt-1">Valor propina</div>
-
-                                <!-- ✅ Botones PROPINA -->
-                                <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
-                                    <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarPropina">
-                                        <i class="bi bi-check2-circle"></i> Guardar propina
-                                    </button>
-                                    <button type="button" class="btn btnx flex-fill" id="btnEliminarPropina">
-                                        <i class="bi bi-trash3"></i> Eliminar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                </div>
-
+                <!-- Layout principal -->
                 <div class="cobrar-main-grid">
                     <div class="cobrar-summary-panel">
-                        <div class="cobrar-section-label">Resumen del cobro</div>
+                        <div class="cobrar-section-label">Resumen de venta</div>
 
-                        <div class="totalBox mb-3">
+                        <div class="cobrar-mini-card cobrar-stack-card">
+                            <label class="form-label fw-bold mb-1">SubTotal</label>
+                            <input type="text" class="form-control" id="txtSubTotal" runat="server" ClientIDMode="Static" />
+                        </div>
+
+                        <div class="cobrar-mini-card cobrar-stack-card">
+                            <label class="form-label fw-bold mb-1">IVA</label>
+                            <input type="text" class="form-control" id="txtIVA" runat="server" ClientIDMode="Static" />
+                        </div>
+
+                        <div class="cobrar-mini-card cobrar-stack-card">
+                            <label class="form-label fw-bold mb-1">Descuento</label>
+                            <div class="row g-2">
+                                <div class="col-5">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="txtDescuentoPorcentaje" value="0" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="hint mt-1">% sobre (SubTotal + IVA)</div>
+                                </div>
+                                <div class="col-7">
+                                    <input type="text" class="form-control" id="txtDescuento" runat="server" ClientIDMode="Static" />
+                                    <div class="hint mt-1">Valor descuento</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold mb-1 mt-2">Razon Descuento</label>
+                                    <input type="text" class="form-control" id="txtRazonDescuento" runat="server" ClientIDMode="Static" placeholder="Ej: Cortesía / Promoción / Ajuste..." />
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
+                                        <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarDescuento">
+                                            <i class="bi bi-check2-circle"></i> Guardar descuento
+                                        </button>
+                                        <button type="button" class="btn btnx flex-fill" id="btnEliminarDescuento">
+                                            <i class="bi bi-trash3"></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cobrar-mini-card cobrar-stack-card">
+                            <label class="form-label fw-bold mb-1">Propina</label>
+                            <div class="row g-2">
+                                <div class="col-5">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="txtPropinaPorcentaje" value="0" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="hint mt-1">% sobre SubTotal</div>
+                                </div>
+                                <div class="col-7">
+                                    <input type="text" class="form-control" id="txtPropina" runat="server" ClientIDMode="Static" value="0" />
+                                    <div class="hint mt-1">Valor propina</div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
+                                        <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarPropina">
+                                            <i class="bi bi-check2-circle"></i> Guardar propina
+                                        </button>
+                                        <button type="button" class="btn btnx flex-fill" id="btnEliminarPropina">
+                                            <i class="bi bi-trash3"></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cobrar-section-label">Total a cobrar</div>
+                        <div class="totalBox">
                             <div class="lbl">Total:</div>
                             <div class="val" id="lblTotalGrande" runat="server" ClientIDMode="Static">0</div>
                         </div>
@@ -163,81 +142,81 @@
 
                     <div class="cobrar-payment-panel">
                         <div class="cobrar-payment-card">
-                        <div class="cobrar-section-label">Forma de pago</div>
+                            <div class="cobrar-section-label">Forma de pago</div>
 
-                        <div class="mb-3 cobrar-block">
-                            <label class="form-label fw-bold mb-1">Medio de Pago</label>
-                            <asp:DropDownList ID="ddlMedioPago" runat="server" CssClass="form-select" ClientIDMode="Static"></asp:DropDownList>
-                        </div>
+                            <div class="mb-3 cobrar-block">
+                                <label class="form-label fw-bold mb-1">Medio de Pago</label>
+                                <asp:DropDownList ID="ddlMedioPago" runat="server" CssClass="form-select" ClientIDMode="Static"></asp:DropDownList>
+                            </div>
 
-                        <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3 cobrar-block" style="border-color: var(--border) !important;">
-                            <div>
-                                <div class="fw-bold">Factura electrónica</div>
-                                <div class="hint">Si activas, se abrirá el modal para agregar cliente</div>
+                            <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3 cobrar-block" style="border-color: var(--border) !important;">
+                                <div>
+                                    <div class="fw-bold">Factura electrónica</div>
+                                    <div class="hint">Si activas, se abrirá el modal para agregar cliente</div>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <%
+                                        if (Session["cliente_seleccionado_nit"] != null)
+                                        {
+                                    %>
+                                        <input class="form-check-input" type="checkbox" id="swFE" checked="checked" />
+                                    <%
+                                        }
+                                        else
+                                        {
+                                    %>
+                                        <input class="form-check-input" type="checkbox" id="swFE" />
+                                    <% } %>
+                                </div>
                             </div>
-                            <div class="form-check form-switch m-0">
-                                <%
-                                    if (Session["cliente_seleccionado_nit"] != null)
-                                    {
-                                %>
-                                    <input class="form-check-input" type="checkbox" id="swFE" checked="checked" />
-                                <%
-                                    }
-                                    else
-                                    {
-                                %>
-                                    <input class="form-check-input" type="checkbox" id="swFE" />
-                                <% } %>
-                            </div>
-                        </div>
 
-                        <%
-                            if (Session["cliente_seleccionado_nit"] != null)
-                            {
-                        %>
-                        <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3 cobrar-block" style="border-color: var(--border) !important;">
-                            <div>
-                                <div class="fw-bold">Cliente seleccionado</div>
-                                <div class="hint">NIT: <asp:Label ID="cliente_seleccionado_nit" runat="server"></asp:Label></div>
-                                <div class="hint">Nombre: <asp:Label ID="cliente_seleccionado_nombre" runat="server"></asp:Label></div>
-                                <div class="hint">Email: <asp:Label ID="cliente_seleccionado_correo" runat="server"></asp:Label></div>
+                            <%
+                                if (Session["cliente_seleccionado_nit"] != null)
+                                {
+                            %>
+                            <div class="d-flex align-items-center justify-content-between border rounded-3 p-3 mb-3 cobrar-block" style="border-color: var(--border) !important;">
+                                <div>
+                                    <div class="fw-bold">Cliente seleccionado</div>
+                                    <div class="hint">NIT: <asp:Label ID="cliente_seleccionado_nit" runat="server"></asp:Label></div>
+                                    <div class="hint">Nombre: <asp:Label ID="cliente_seleccionado_nombre" runat="server"></asp:Label></div>
+                                    <div class="hint">Email: <asp:Label ID="cliente_seleccionado_correo" runat="server"></asp:Label></div>
+                                </div>
                             </div>
-                        </div>
-                        <%
-                            }
-                        %>
+                            <%
+                                }
+                            %>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-12 col-md-4">
-                                <label class="form-label fw-bold mb-1">Abono Efectivo</label>
-                                <input type="text" class="form-control" id="txtAbonoEfectivo" runat="server" clientidmode="Static" value="0" readonly />
-                                <div class="hint mt-1">Saldo pago efectivo</div>
+                            <div class="row g-2 mb-3 cobrar-block cobrar-fields-row">
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold mb-1">Abono Efectivo</label>
+                                    <input type="text" class="form-control" id="txtAbonoEfectivo" runat="server" clientidmode="Static" value="0" readonly />
+                                    <div class="hint mt-1">Saldo pago efectivo</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold mb-1">Efectivo</label>
+                                    <input type="text" class="form-control" id="txtEfectivo" runat="server" ClientIDMode="Static" value="0" />
+                                    <div class="hint mt-1">Se auto completa igual al Total</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fw-bold mb-1">Cambio</label>
+                                    <input type="text" class="form-control" id="txtCambio" runat="server" ClientIDMode="Static" value="0" readonly />
+                                    <div class="hint mt-1">Queda en 0</div>
+                                </div>
                             </div>
-                            <div class="col-12 col-md-4">
-                                <label class="form-label fw-bold mb-1">Efectivo</label>
-                                <input type="text" class="form-control" id="txtEfectivo" runat="server" ClientIDMode="Static" value="0" />
-                                <div class="hint mt-1">Se auto completa igual al Total</div>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <label class="form-label fw-bold mb-1">Cambio</label>
-                                <input type="text" class="form-control" id="txtCambio" runat="server" ClientIDMode="Static" value="0" readonly />
-                                <div class="hint mt-1">Queda en 0</div>
-                            </div>
-                        </div>
 
-                        <div class="save-bar">
-                            <div class="d-grid">
-                                <button type="button" class="btn btnx btn-green bigSave" id="btnGuardar">
-                                    <i class="bi bi-floppy2-fill"></i> Guardar
-                                </button>
+                            <div class="save-bar">
+                                <div class="d-grid">
+                                    <button type="button" class="btn btnx btn-green bigSave" id="btnGuardar">
+                                        <i class="bi bi-floppy2-fill"></i> Guardar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+            </div>
         </div>
-
-    </div>
-
     <!-- MODAL VACÍO: Agregar Cliente -->
     <div class="modal fade cliente-modal" id="mdlCliente" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -526,6 +505,7 @@
 
 
 </asp:Content>
+
 
 
 
