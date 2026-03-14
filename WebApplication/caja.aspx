@@ -1,4 +1,4 @@
-<%@ Page Title="" Language="C#" MasterPageFile="~/CajaMaster.Master" AutoEventWireup="true" CodeBehind="caja.aspx.cs" Inherits="WebApplication.caja" Async="true" %>
+﻿<%@ Page Title="" Language="C#" MasterPageFile="~/CajaMaster.Master" AutoEventWireup="true" CodeBehind="caja.aspx.cs" Inherits="WebApplication.caja" Async="true" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
     <style>
@@ -6,6 +6,18 @@
             /* Ajusta a tu azul corporativo Serinsis PC */
             --serinsis-blue: #0b3a7e;
             --serinsis-blue2: #1e88ff;
+        }
+
+        .btn-eliminar-servicio-disabled {
+            background: #e5e7eb !important;
+            color: #6b7280 !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
+            cursor: not-allowed !important;
+        }
+
+        .btn-eliminar-servicio-disabled i {
+            color: #6b7280 !important;
         }
 
         .app-loading {
@@ -19,7 +31,6 @@
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
         }
-
         .app-loading-card {
             width: min(360px, calc(100% - 32px));
             background: rgba(255,255,255,.92);
@@ -47,13 +58,13 @@
             }
         }
 
-        .app-loading-title {
+            <div class="app-loading-title">Cargando...</div>
             font-weight: 800;
             color: #0f172a;
             font-size: 1.05rem;
         }
 
-        .app-loading-sub {
+            <div class="app-loading-sub">Estamos preparando tu informaci&oacute;n</div>
             color: rgba(15,23,42,.70);
             font-size: .92rem;
             margin-top: 4px;
@@ -67,8 +78,8 @@
         style="<%= IsPostBack ? "display:none;": "display:flex;" %>">
         <div class="app-loading-card">
             <div class="app-spinner" aria-hidden="true"></div>
-            <div class="app-loading-title">CargandoÃ¢â‚¬Â¦</div>
-            <div class="app-loading-sub">Estamos preparando tu informaciÃƒÂ³n</div>
+            <div class="app-loading-title">Cargando...</div>
+            <div class="app-loading-sub">Estamos preparando tu informaci&oacute;n</div>
         </div>
     </div>
 
@@ -114,6 +125,13 @@
                                 <i class="bi bi-plus-circle-fill"></i>
                                 Nuevo Servicio
                             </button>
+                            <button type="button"
+                                class="btn-top btn-logout<%= PuedeEliminarServicioActivo() ? string.Empty : " btn-eliminar-servicio-disabled" %>"
+                                onclick="<%= PuedeEliminarServicioActivo() ? "return ConfirmarEliminarServicio(this)" : "return false;" %>"
+                                <%= PuedeEliminarServicioActivo() ? string.Empty : "disabled=\"disabled\" title=\"No se puede eliminar porque el servicio tiene productos cargados.\"" %>>
+                                <i class="bi bi-trash3-fill"></i>
+                                Eliminar servicio
+                            </button>
 
                             <button type="button" class="btn-top btn-domicilio">
                                 <i class="bi bi-house-door-fill"></i>
@@ -132,7 +150,7 @@
 
                             <button type="button" class="btn-top btn-logout">
                                 <i class="bi bi-box-arrow-right"></i>
-                                Cerrar sesiÃƒÂ³n
+                                Cerrar sesi&oacute;n
                             </button>
 
                         </div>
@@ -239,7 +257,7 @@
                         </div>
                     </div>
 
-                    <!-- Buscar + CategorÃƒÂ­as + Productos -->
+                    <!-- Buscar + Categorias + Productos -->
                     <div id="divProductos" runat="server" class="col-12 col-lg-7 d-flex">
                         <div class="panel b-purple w-100">
                             <div class="row g-0 ">
@@ -755,14 +773,14 @@
                     <div class="mb-2">
                         <label for="txtCuentaNombre" class="form-label">Nombre de la cuenta</label>
                         <input type="text" id="txtCuentaNombre" class="form-control" maxlength="100" placeholder="Ingrese el nombre de la cuenta" />
-                        <div id="cuentaError" class="form-text text-danger d-none">Ingrese un nombre vÃƒÂ¡lido (mÃƒÂ­n. 2 caracteres).</div>
+                        <div id="cuentaError" class="form-text text-danger d-none">Ingrese un nombre v&aacute;lido (m&iacute;n. 2 caracteres).</div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <input type="hidden" id="idCuentaModalEditar" />
-                    <!-- botÃƒÂ³n de guardar-client (no server control) -->
+                    <!-- boton de guardar-client (no server control) -->
                     <button type="button" id="btnGuardarCuenta" class="btn btn-primary" onclick="guardarCuentaDirecto(this)">Guardar</button>
                 </div>
             </div>
@@ -788,7 +806,7 @@
             <span runat="server" id="lblMesaSeleccionada" class="fw-bolder" style="color: #0b3a7e;">--</span>
                         </div>
                         <div class="mt-1" style="color: rgba(15,23,42,.70); font-size: .92rem;">
-                            Ã‚Â¿CuÃƒÂ¡l de las siguientes acciones desea?
+                            &iquest;Cu&aacute;l de las siguientes acciones desea?
                         </div>
                     </div>
 
@@ -806,7 +824,7 @@
                             <div>
                                 <div class="fw-semibold" style="color: #0f172a;">Acciones disponibles</div>
                                 <div style="color: rgba(15,23,42,.72); font-size: .92rem;">
-                                    Elige una opciÃƒÂ³n para continuar con la mesa seleccionada.
+                                    Elige una opci&oacute;n para continuar con la mesa seleccionada.
                                 </div>
                             </div>
                         </div>
@@ -829,6 +847,12 @@
                             Amarrar mesa
                         </button>
 
+                        <button type="button" id="btnLiberarMesa" class="btn btn-outline-danger btn-lg"
+                            style="border-radius: 14px; font-weight: 800;"
+                            onclick="ConfirmarLiberarMesa(this)">
+                            <i class="bi bi-unlock-fill me-2"></i>
+                            Liberar mesa
+                        </button>
                         <button type="button" class="btn btn-light btn-lg"
                             style="border-radius: 14px; font-weight: 800;"
                             data-bs-dismiss="modal">
@@ -897,7 +921,7 @@
 
                     </div>
 
-                    <!-- VacÃƒÂ­o -->
+                    <!-- Vacio -->
                     <div class="cuentas-empty d-none" id="cuentasEmpty">
                         <div class="cuentas-empty__box">
                             <i class="bi bi-inboxes"></i>
@@ -931,7 +955,7 @@
             }
         };
 
-        // ? En la carga inicial: ocultar cuando ya se pintÃƒÂ³ la pÃƒÂ¡gina
+        // En la carga inicial: ocultar cuando ya se pinto la pagina
         window.addEventListener('load', function () {
             SerinsisLoading.hide();
         });
@@ -940,4 +964,6 @@
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
+
+
 

@@ -1,4 +1,4 @@
-using DAL.Controler;
+﻿using DAL.Controler;
 using DAL.Funciones;
 using DAL.Model;
 using Newtonsoft.Json;
@@ -21,6 +21,11 @@ namespace WebApplication
         private const string ok = "Ok";
         private const string SessionModelsJson = "ModelsJson";
         protected MenuViewModels models = new MenuViewModels();
+        protected bool PuedeEliminarServicioActivo()
+        {
+            return models?.detalleCaja == null || !models.detalleCaja.Any();
+        }
+
         protected async void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -93,15 +98,15 @@ namespace WebApplication
                 idVenta = await TablaVentas_f.NuevaVenta(models.db, models.Sede.porcentaje_propina);
                 if (idVenta <= 0)
                 {
-                    AlertModerno.Error(this, "ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡Error!", "No fue posible crear una nueva cuenta.", true);
+                    AlertModerno.Error(this, "Error", "No fue posible crear una nueva cuenta.", true);
                     return;
                 }
 
                 var relacionado = await R_VentaVendedor_f.Relacionar_Vendedor_Venta(models.db, idVenta, models.vendedor.id);
                 if (!relacionado)
                 {
-                    AlertModerno.Error(this, "ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡Error!", "No fue posible crear la relaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n del vendedor con la venta.", true);
-                    // aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn asÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­ intentamos recargar cuentas para que la UI no quede rota
+                    AlertModerno.Error(this, "Error", "No fue posible crear la relaci\u00f3n del vendedor con la venta.", true);
+                    // a\u00fan as\u00ed intentamos recargar cuentas para que la UI no quede rota
                 }
 
                 // recargar cuentas
@@ -129,7 +134,7 @@ namespace WebApplication
             var productos = await v_productoVentaControler.Lista(models.db) ?? new List<v_productoVenta>();
             if (!productos.Any())
             {
-                AlertModerno.Error(this, "ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡Error!", "No fue posible cargar la lista de productos.", true);
+                AlertModerno.Error(this, "Error", "No fue posible cargar la lista de productos.", true);
             }
             int idZonaActiva = zonas.FirstOrDefault()?.id ?? 0;
             int idCategoriaActiva = categorias.FirstOrDefault()?.id ?? 0;
@@ -219,6 +224,10 @@ namespace WebApplication
                     await NuevoServicio();
                     break;
 
+                case "EliminarServicio":
+                    await EliminarServicio();
+                    break;
+
                 case "SeleccionarCuenta":
                     await SeleccionarCuenta(eventArgument);
                     break;
@@ -241,6 +250,10 @@ namespace WebApplication
 
                 case "AccionMesa_AmarrarMesa":
                     await AccionMesa_AmarrarMesa();
+                    break;
+
+                case "LiberarMesa":
+                    await LiberarMesa();
                     break;
 
                 case "AmarrarMesaCuenta":
@@ -266,7 +279,7 @@ namespace WebApplication
             int idVenta = await TablaVentas_f.NuevaVenta(models.db, models.Sede.porcentaje_propina);
             if (idVenta <= 0)
             {
-                AlertModerno.Error(this, "Error", "No se creÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ el servicio.", true, 2000);
+                AlertModerno.Error(this, "Error", "No se cre\u00f3 el servicio.", true, 2000);
                 return;
             }
             else
@@ -295,13 +308,72 @@ namespace WebApplication
                 models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
 
                 await CargarDATA();
-                AlertModerno.Success(this, "Listo", $"Servicio #{idVenta} creado con ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©xito.", true, 2000);
+                AlertModerno.Success(this, "Listo", $"Servicio #{idVenta} creado con \u00e9xito.", true, 2000);
             }
             else
             {
-                AlertModerno.Error(this, "Error", $"Servicio #{idVenta} creado con ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©xito, pero no se amarrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ al vendedor.", true, 2000);
+                AlertModerno.Error(this, "Error", $"Servicio #{idVenta} creado con \u00e9xito, pero no se amarr\u00f3 al vendedor.", true, 2000);
             }
 
+        }
+
+        private async Task EliminarServicio()
+        {
+            int idVenta = models.IdCuentaActiva;
+            if (idVenta <= 0)
+            {
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No hay un servicio activo para eliminar.", true, 2200);
+                return;
+            }
+
+            var detalles = await V_DetalleCajaControler.Lista_IdVenta(models.db, idVenta, models.IdCuenteClienteActiva);
+            if (detalles != null && detalles.Count > 0)
+            {
+                AlertModerno.Error(this, "Error", $"El servicio #{idVenta} a\u00fan tiene items cargados.", true, 2200);
+                return;
+            }
+
+            var rsp = await TablaVentasControler.Consultar_Id(models.db, idVenta);
+            if (!rsp.estado)
+            {
+                AlertModerno.Error(this, "Error", $"El servicio #{idVenta} no se pudo eliminar.", true, 2200);
+                return;
+            }
+
+            var venta = rsp.data as TablaVentas;
+            if (venta == null)
+            {
+                venta = JsonConvert.DeserializeObject<TablaVentas>(rsp.data);
+            }
+            if (venta == null)
+            {
+                AlertModerno.Error(this, "Error", $"El servicio #{idVenta} no se pudo eliminar.", true, 2200);
+                return;
+            }
+
+            venta.eliminada = true;
+            var rspCrud = await TablaVentasControler.CRUD(models.db, venta, 1);
+            if (!rspCrud.estado)
+            {
+                AlertModerno.Error(this, "Error", $"El servicio #{idVenta} no se pudo eliminar.", true, 2200);
+                return;
+            }
+
+            var relaciones = await R_VentaMesaControler.ListaRelacion(models.db, idVenta) ?? new List<R_VentaMesa>();
+            foreach (var relacion in relaciones)
+            {
+                var mesa = await MesasControler.Consultar_id(models.db, relacion.idMesa);
+                if (mesa != null)
+                {
+                    mesa.estadoMesa = 0;
+                    await MesasControler.CRUD(models.db, mesa, 1);
+                }
+
+                await R_VentaMesaControler.CRUD(models.db, relacion, 2);
+            }
+
+            await IniciarPagina();
+            AlertModerno.Success(this, "OK", $"Servicio #{idVenta} eliminado con \u00e9xito.", true, 1600);
         }
 
         private async Task EditarAliasCuenta(string parametros)
@@ -316,13 +388,13 @@ namespace WebApplication
 
                 if (idCuenta <= 0)
                 {
-                    AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", "No se recibiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ un ID vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido.", true, 2500);
+                    AlertModerno.Warning(this, "Atenci\u00f3n", "No se recibi\u00f3 un ID v\u00e1lido.", true, 2500);
                     return;
                 }
 
                 if (string.IsNullOrWhiteSpace(alias) || alias.Length < 2)
                 {
-                    AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", "El nombre debe tener mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­nimo 2 caracteres.", true, 2500);
+                    AlertModerno.Warning(this, "Atenci\u00f3n", "El nombre debe tener m\u00ednimo 2 caracteres.", true, 2500);
                     return;
                 }
 
@@ -413,7 +485,7 @@ namespace WebApplication
 
                 if (idMesa <= 0)
                 {
-                    AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", "No se recibiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ una mesa vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida.", true, 2200);
+                    AlertModerno.Warning(this, "Atenci\u00f3n", "No se recibi\u00f3 una mesa v\u00e1lida.", true, 2200);
                     return;
                 }
 
@@ -424,11 +496,11 @@ namespace WebApplication
                 var mesa = models.MesasLista?.FirstOrDefault(x => x.id == idMesa);
                 lblMesaSeleccionada.InnerText = mesa != null ? mesa.nombreMesa : $"Mesa #{idMesa}";
 
-                // ? Cargar data dependiente (tu lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³gica)
+                // Cargar data dependiente (tu l\u00f3gica)
                 await CargarDATA();
 
 
-                // ? Abrir modal (despuÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s de cargar/persistir)
+                // Abrir modal (despu\u00e9s de cargar/persistir)
                 ModalHelper.Open(this, modalAccionesMesa);
             }
             catch (Exception ex)
@@ -441,7 +513,7 @@ namespace WebApplication
             int idVenta = await TablaVentas_f.NuevaVenta(models.db, models.Sede.porcentaje_propina);
             if (idVenta <= 0)
             {
-                AlertModerno.Error(this, "Error", "No se creÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ el servicio.", true, 2000);
+                AlertModerno.Error(this, "Error", "No se cre\u00f3 el servicio.", true, 2000);
                 return;
             }
             else
@@ -461,7 +533,7 @@ namespace WebApplication
             var rvv = await R_VentaVendedor_f.Relacionar_Vendedor_Venta(models.db, idVenta, models.vendedor.id);
             if (!rvv)
             {
-                AlertModerno.Error(this, "Error", $"Servicio #{idVenta} creado con ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©xito, pero no se amarrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ al vendedor.", true, 2000);
+                AlertModerno.Error(this, "Error", $"Servicio #{idVenta} creado con \u00e9xito, pero no se amarr\u00f3 al vendedor.", true, 2000);
                 return;
             }
 
@@ -470,7 +542,7 @@ namespace WebApplication
             var rv = await R_VentaMesaControler.Consultar_relacion(models.db, idVenta, models.IdMesaActiva);
             if (rv != null)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"La mesa seleccionada ya esta amarrada con el cuenta {idVenta}.", true, 2200);
+                                AlertModerno.Warning(this, "Atenci\u00f3n", $"La mesa seleccionada ya est\u00e1 amarrada con la cuenta {idVenta}.", true, 2200);
                 return;
             }
 
@@ -478,7 +550,7 @@ namespace WebApplication
             var resp = await R_VentaMesaControler.CRUD(models.db, rv, 0);
             if (!resp.estado)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No fue posible terminar el proceso.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No fue posible terminar el proceso.", true, 2200);
                 return;
             }
 
@@ -486,7 +558,7 @@ namespace WebApplication
             var mesa = await MesasControler.Consultar_id(models.db, models.IdMesaActiva);
             if (mesa == null)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No se encontro la mesa.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No se encontr\u00f3 la mesa.", true, 2200);
                 return;
             }
 
@@ -494,14 +566,14 @@ namespace WebApplication
             var respm = await MesasControler.CRUD(models.db, mesa, 1);
             if (!respm.estado)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No se logro cambiar el estado de la Mesa:{mesa.nombreMesa}.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", $"No se logr\u00f3 cambiar el estado de la mesa: {mesa.nombreMesa}.", true, 2200);
                 return;
             }
 
             var mesas = await MesasControler.Lista(models.db);
             if (mesas.Count == 0)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No se logro cargar la lista de las mesas.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No se logr\u00f3 cargar la lista de las mesas.", true, 2200);
                 return;
             }
 
@@ -523,9 +595,61 @@ namespace WebApplication
 
             await CargarDATA();
 
-            AlertModerno.Success(this, "Listo", $"La mesa {mesa.nombreMesa} se relaciono correctamente con la cuenta {idVenta}", true, 2000);
+            AlertModerno.Success(this, "Listo", $"La mesa {mesa.nombreMesa} se relacion\u00f3 correctamente con la cuenta {idVenta}", true, 2000);
         }
 
+        private async Task LiberarMesa()
+        {
+            try
+            {
+                if (models.IdMesaActiva <= 0)
+                {
+                    AlertModerno.Warning(this, "Atenci\u00f3n", "No se ha seleccionado una mesa v\u00e1lida.", true, 2200);
+                    return;
+                }
+
+                var mesa = await MesasControler.Consultar_id(models.db, models.IdMesaActiva);
+                if (mesa == null)
+                {
+                    AlertModerno.Warning(this, "Atenci\u00f3n", "No se encontr\u00f3 la mesa seleccionada.", true, 2200);
+                    return;
+                }
+
+                mesa.estadoMesa = 0;
+                var actualizarMesa = await MesasControler.CRUD(models.db, mesa, 1);
+                if (!actualizarMesa.estado)
+                {
+                    AlertModerno.Error(this, "Error", $"No fue posible liberar la mesa {mesa.nombreMesa}.", true);
+                    return;
+                }
+
+                var cuentasMesa = await V_CuentasControler.Lista_Mesa(models.db, mesa.nombreMesa) ?? new List<V_Cuentas>();
+                if (cuentasMesa.Any())
+                {
+                    var relacion = await R_VentaMesaControler.Consultar_relacion(models.db, cuentasMesa.First().id, mesa.id);
+                    if (relacion != null)
+                    {
+                        var eliminarRelacion = await R_VentaMesaControler.CRUD(models.db, relacion, 2);
+                        if (!eliminarRelacion.estado)
+                        {
+                            AlertModerno.Error(this, "Error", $"La mesa {mesa.nombreMesa} cambi\u00f3 de estado, pero no se elimin\u00f3 la relaci\u00f3n con la cuenta.", true);
+                            return;
+                        }
+                    }
+                }
+
+                var mesas = await MesasControler.Lista(models.db) ?? new List<Mesas>();
+                models.MesasLista = mesas;
+                models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
+                await CargarDATA();
+
+                AlertModerno.Success(this, "OK", $"Mesa {mesa.nombreMesa} liberada correctamente.", true, 1500);
+            }
+            catch (Exception ex)
+            {
+                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+            }
+        }
         private async Task AccionMesa_AmarrarMesa()
         {
             ModalHelper.Open(this,mdlCuentas);
@@ -538,14 +662,14 @@ namespace WebApplication
 
             if (idCuentaAmarrar <= 0)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", "No se recibiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ una cuenta vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lida.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No se recibi\u00f3 una cuenta v\u00e1lida.", true, 2200);
                 return;
             }
 
             var rv = await R_VentaMesaControler.Consultar_relacion(models.db,idCuentaAmarrar,models.IdMesaActiva);
             if (rv != null)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"La mesa seleccionada ya esta amarrada con el cuenta {idCuentaAmarrar}.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", $"La mesa seleccionada ya est\u00e1 amarrada con la cuenta {idCuentaAmarrar}.", true, 2200);
                 return;
             }
 
@@ -553,7 +677,7 @@ namespace WebApplication
             var resp = await R_VentaMesaControler.CRUD(models.db,rv,0);
             if (!resp.estado)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No fue posible terminar el proceso.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No fue posible terminar el proceso.", true, 2200);
                 return;
             }
 
@@ -561,7 +685,7 @@ namespace WebApplication
             var mesa = await MesasControler.Consultar_id(models.db,models.IdMesaActiva);
             if (mesa == null)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No se encontro la mesa.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No se encontr\u00f3 la mesa.", true, 2200);
                 return;
             }
 
@@ -569,14 +693,14 @@ namespace WebApplication
             var respm = await MesasControler.CRUD(models.db,mesa,1);
             if (!respm.estado)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No se logro cambiar el estado de la Mesa:{mesa.nombreMesa}.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", $"No se logr\u00f3 cambiar el estado de la mesa: {mesa.nombreMesa}.", true, 2200);
                 return;
             }
 
             var mesas = await MesasControler.Lista(models.db);
             if (mesas.Count == 0)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"No se logro cargar la lista de las mesas.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "No se logr\u00f3 cargar la lista de las mesas.", true, 2200);
                 return;
             }
 
@@ -611,7 +735,7 @@ namespace WebApplication
 
                 if (producto == null)
                 {
-                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Producto no encontrado", true, 2000);
+                    AlertModerno.Warning(this, "Atenci\u00f3n", "Producto no encontrado", true, 2000);
                     btnbuscar.Focus();
                     return;
                 }
@@ -652,7 +776,7 @@ namespace WebApplication
 
             if(idCategoria == 0)
             {
-                AlertModerno.Warning(this, "AtenciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n", $"Id Categoria no se recivio.", true, 2200);
+                AlertModerno.Warning(this, "Atenci\u00f3n", "Id de categor\u00eda no recibido.", true, 2200);
                 return;
             }
 

@@ -1,7 +1,7 @@
-/* =========================================================
+﻿/* =========================================================
    CAJA MASTER - CSS (Look SaaS como tu imagen)
-   ✅ No cambia estructura HTML
-   ✅ Solo colores / sombras / bordes / detalle visual
+   âœ… No cambia estructura HTML
+   âœ… Solo colores / sombras / bordes / detalle visual
    ========================================================= */
 
 /* =========================================================
@@ -95,7 +95,7 @@ body {
 }
 
 /* =========================================================
-   5) BOX (contenedor “azul” anterior -> ahora card clean)
+   5) BOX (contenedor â€œazulâ€ anterior -> ahora card clean)
    ========================================================= */
 .box {
     background: var(--card);
@@ -160,7 +160,7 @@ body {
 }
 
 /* =========================================================
-   8) CUENTAS (cards pequeñas arriba)
+   8) CUENTAS (cards pequeÃ±as arriba)
    ========================================================= */
 .cuentas-box {
     justify-content: flex-start !important;
@@ -206,16 +206,51 @@ body {
     }
 
     .cuenta-card.cuenta-activa {
-        border-color: rgba(31, 107, 255, .55);
-        box-shadow: 0 0 0 3px var(--primary-soft), var(--shadow-md);
+        transform: translateY(-3px) scale(1.01);
+        border-color: rgba(31, 107, 255, .92);
+        background: linear-gradient(180deg, rgba(31,107,255,.18), rgba(255,255,255,1) 48%);
+        box-shadow: 0 0 0 4px rgba(31, 107, 255, .18), 0 18px 36px rgba(31, 107, 255, .20);
+    }
+
+    .cuenta-card.cuenta-activa::after {
+        content: "ACTIVO";
+        position: absolute;
+        left: 12px;
+        bottom: 10px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #1f6bff;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .7px;
+        box-shadow: 0 6px 14px rgba(31, 107, 255, .24);
+    }
+
+    .cuenta-card.cuenta-activa .cuenta-num {
+        color: #0b3a7e;
+        font-weight: 800;
+        text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    }
+
+    .cuenta-card.cuenta-activa .cuenta-name {
+        color: rgba(11, 58, 126, .88);
+        font-weight: 800;
+    }
+
+    .cuenta-card.cuenta-activa .cuenta-edit {
+        background: rgba(255,255,255,.78);
+        border: 1px solid rgba(31, 107, 255, .18);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, .10);
     }
 
 .cuenta-num {
     font-size: 20px;
     line-height: 1.05;
-    font-weight: 400;
+    font-weight: 500;
     color: var(--primary);
     margin-bottom: 6px;
+    transition: color .12s ease, font-weight .12s ease;
 }
 
 .cuenta-name {
@@ -224,6 +259,7 @@ body {
     color: var(--muted);
     font-weight: 600;
     text-transform: uppercase;
+    transition: color .12s ease, font-weight .12s ease;
 }
 
 .cuenta-edit {
@@ -239,7 +275,7 @@ body {
     color: #f5b000;
     background: transparent;
     font-size: 14px;
-    pointer-events: auto; /* ✅ CLAVE */
+    pointer-events: auto; /* âœ… CLAVE */
     cursor: pointer;
     z-index: 20;
 }
@@ -547,7 +583,7 @@ body {
     }
 
 /* =========================================================
-   12) CATEGORÍAS
+   12) CATEGORÃAS
    ========================================================= */
 .categorias-box {
     display: flex;
@@ -604,7 +640,7 @@ body {
     max-height: 107px;
 }
 
-/* Responsive categorías */
+/* Responsive categorÃ­as */
 @media (max-width: 1200px) {
     .categorias-grid {
         grid-template-columns: repeat(3, minmax(140px, 1fr));
@@ -670,10 +706,10 @@ body {
     gap: 10px;
 }
 
-/* ✅ tarjeta full ancho SIEMPRE */
+/* âœ… tarjeta full ancho SIEMPRE */
 .producto-item {
     width: 100% !important;
-    min-width: 100% !important; /* 🔥 clave para que no se encoja */
+    min-width: 100% !important; /* ðŸ”¥ clave para que no se encoja */
     display: block;
     background: var(--card);
     border: 1px solid var(--line);
@@ -688,7 +724,7 @@ body {
         box-shadow: var(--shadow-md);
     }
 
-    /* ✅ bootstrap row/cols dentro: ocupar todo el ancho */
+    /* âœ… bootstrap row/cols dentro: ocupar todo el ancho */
     .producto-item .row {
         width: 100% !important;
         margin-left: 0 !important;
@@ -700,7 +736,7 @@ body {
         max-width: 100% !important;
     }
 
-    /* ✅ Evita que algo herede centrado */
+    /* âœ… Evita que algo herede centrado */
     .producto-item,
     .producto-item * {
         text-align: left;
@@ -753,7 +789,7 @@ body {
     gap: 8px;
 }
 
-/* ✅ Botones modernos */
+/* âœ… Botones modernos */
 .prod-btn {
     width: 40px;
     height: 38px;
@@ -920,7 +956,7 @@ body {
         filter: saturate(1.05);
     }
 
-/* Colores (como tu estilo actual, más elegantes) */
+/* Colores (como tu estilo actual, mÃ¡s elegantes) */
 .accion-comandar {
     background: linear-gradient(135deg, #ff8a00, #ff6a00) !important;
 }
@@ -1292,7 +1328,7 @@ body {
         }
 }
 
-/* Menor a 680px → 1 columna */
+/* Menor a 680px â†’ 1 columna */
 @media (max-width: 679px) {
     .lista-productos .item-col {
         flex: 0 0 100%;
@@ -1397,7 +1433,7 @@ body {
     color: #fff;
 }
 
-/* Cerrar sesión - rojo moderno */
+/* Cerrar sesiÃ³n - rojo moderno */
 .btn-logout {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
@@ -1504,7 +1540,7 @@ body {
     gap: 10px;
 }
 
-/* Botón alargado por item */
+/* BotÃ³n alargado por item */
 .cuenta-item {
     width: 100%;
     text-align: left;

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     let busy = false;
 
     window.EjecutarAccion = function (accion, argumento, btn) {
@@ -48,6 +48,74 @@
 
     window.Actualizar = function () {
         EjecutarAccion("Actualizar", "");
+    };
+
+    window.ConfirmarLiberarMesa = function (btn) {
+        if (!window.Swal || typeof window.Swal.fire !== "function") {
+            const ok = window.confirm("\u00bfSeguro que desea liberar esta mesa?");
+            if (!ok) {
+                return false;
+            }
+
+            EjecutarAccion("LiberarMesa", "", btn);
+            return true;
+        }
+
+        Swal.fire({
+            icon: "warning",
+            title: "Liberar mesa",
+            text: "\u00bfSeguro que desea liberar esta mesa?",
+            showCancelButton: true,
+            confirmButtonText: "S\u00ed, liberar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#dc3545",
+            cancelButtonColor: "#94a3b8",
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: "shadow-lg rounded-4"
+            }
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                EjecutarAccion("LiberarMesa", "", btn);
+            }
+        });
+
+        return false;
+    };
+
+    window.ConfirmarEliminarServicio = function (btn) {
+        if (!window.Swal || typeof window.Swal.fire !== "function") {
+            const ok = window.confirm("\u00bfSeguro que desea eliminar el servicio activo?");
+            if (!ok) {
+                return false;
+            }
+
+            EjecutarAccion("EliminarServicio", "", btn);
+            return true;
+        }
+
+        Swal.fire({
+            icon: "warning",
+            title: "Eliminar servicio",
+            text: "\u00bfSeguro que desea eliminar el servicio activo?",
+            showCancelButton: true,
+            confirmButtonText: "S\u00ed, eliminar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#dc3545",
+            cancelButtonColor: "#94a3b8",
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: "shadow-lg rounded-4"
+            }
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                EjecutarAccion("EliminarServicio", "", btn);
+            }
+        });
+
+        return false;
     };
 })();
 
@@ -279,3 +347,5 @@ function configurarCantidadProductos() {
         normalizarCantidad(input);
     }, true);
 }
+
+
