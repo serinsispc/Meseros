@@ -106,6 +106,143 @@
                 transform: rotate(360deg);
             }
         }
+        .ventas-vista {
+            background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
+            border: 1px solid rgba(148,163,184,.18);
+            border-radius: 24px;
+            padding: 18px;
+            box-shadow: 0 20px 40px rgba(15,23,42,.08);
+        }
+
+        .ventas-vista__hero {
+            background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(14,165,233,.08));
+            border: 1px solid rgba(37,99,235,.14);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        .ventas-vista__title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .ventas-vista__sub {
+            color: rgba(15,23,42,.68);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .ventas-kpi {
+            background: #fff;
+            border: 1px solid rgba(148,163,184,.18);
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 0 12px 24px rgba(15,23,42,.06);
+            height: 100%;
+        }
+
+        .ventas-kpi__label {
+            color: rgba(15,23,42,.60);
+            font-size: .82rem;
+            font-weight: 800;
+        }
+
+        .ventas-kpi__value {
+            color: #0f172a;
+            font-size: 1.35rem;
+            font-weight: 900;
+            margin-top: 6px;
+        }
+
+        .ventas-kpi__muted {
+            color: rgba(15,23,42,.56);
+            font-weight: 700;
+            margin-top: 4px;
+            font-size: .84rem;
+        }
+
+        .ventas-tabla-wrap {
+            margin-top: 14px;
+            background: #fff;
+            border: 1px solid rgba(148,163,184,.18);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 14px 28px rgba(15,23,42,.06);
+        }
+
+        .ventas-tabla-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(148,163,184,.18);
+        }
+
+        .ventas-tabla-head h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .ventas-tabla-responsive {
+            overflow: auto;
+            max-height: 62vh;
+        }
+
+        .ventas-tabla {
+            width: 100%;
+            min-width: 980px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .ventas-tabla thead th {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            color: rgba(15,23,42,.72);
+            font-size: .8rem;
+            font-weight: 900;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(148,163,184,.18);
+            white-space: nowrap;
+        }
+
+        .ventas-tabla tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(226,232,240,.85);
+            vertical-align: middle;
+            color: #0f172a;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ventas-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: .78rem;
+            font-weight: 900;
+        }
+
+        .ventas-badge.ok { background: rgba(22,163,74,.10); color: #15803d; }
+        .ventas-badge.warn { background: rgba(245,158,11,.12); color: #b45309; }
+        .ventas-badge.bad { background: rgba(239,68,68,.10); color: #dc2626; }
+        .ventas-badge.info { background: rgba(14,165,233,.10); color: #0369a1; }
+        .ventas-badge.gray { background: rgba(148,163,184,.16); color: #475569; }
+
+        .ventas-empty {
+            padding: 32px 18px;
+            text-align: center;
+            color: rgba(15,23,42,.60);
+            font-weight: 700;
+        }
     </style>
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
@@ -125,6 +262,7 @@
 
     <asp:HiddenField ID="hidAccion" runat="server" ClientIDMode="Static" />
     <asp:HiddenField ID="hidArgumento" runat="server" ClientIDMode="Static" />
+    <asp:HiddenField ID="hdIdClienteDomicilio" runat="server" ClientIDMode="Static" />
 
     <asp:Button ID="btnBridge" runat="server"
         ClientIDMode="Static"
@@ -138,7 +276,7 @@
         <div class="row g-1 h-100">
 
             <!-- ================= IZQUIERDA ================= -->
-            <section class="col-12 col-xl-8 d-flex flex-column">
+            <section class="col-12 <%= EnVistaVentas() ? string.Empty : "col-xl-8" %> d-flex flex-column">
 
                 <!-- Top: nombre mesero + botones -->
                 <div class="panel panel-alto-auto b-orange mb-1 py-2 border-0">
@@ -170,14 +308,14 @@
                                 Eliminar servicio
                             </button>
 
-                            <button type="button" class="btn-top btn-domicilio" onclick="return Swal.fire({ icon: 'info', title: 'Domicilios', text: 'El flujo de domicilios de caja lo conectamos en la siguiente fase para no romper el proceso actual.', confirmButtonText: 'Entendido' }), false;">
+                            <button type="button" class="btn-top btn-domicilio" data-idmesa="<%= models.IdMesaActiva %>" data-idservicio="<%= models.IdCuentaActiva %>" onclick="return btnDomicilioCaja(this);">
                                 <i class="bi bi-house-door-fill"></i>
                                 Domicilio
                             </button>
 
-                            <button type="button" class="btn-top btn-ventas">
-                                <i class="bi bi-graph-up-arrow"></i>
-                                Ventas
+                            <button type="button" class="btn-top btn-ventas" onclick="EjecutarAccion('<%= AccionBotonVentas() %>','',this)">
+                                <i class="bi <%= EnVistaVentas() ? "bi-cash-coin" : "bi-graph-up-arrow" %>"></i>
+                                <%= TextoBotonVentas() %>
                             </button>
 
                             <button type="button" class="btn-top btn-cerrar-caja" onclick="return ConfirmarCerrarCaja(this)">
@@ -185,7 +323,7 @@
                                 Cerrar caja
                             </button>
 
-                            <button type="button" class="btn-top btn-logout">
+                            <button type="button" class="btn-top btn-logout" onclick="return ConfirmarCerrarSesion(this)">
                                 <i class="bi bi-box-arrow-right"></i>
                                 Cerrar sesi&oacute;n
                             </button>
@@ -196,6 +334,7 @@
 
                 </div>
 
+                <% if (!EnVistaVentas()) { %>
                 <!-- Top: cuentas + nuevo servicio -->
                 <div class="panel panel-alto-auto b-orange mb-1 border-0">
                     <div class="row g-1">
@@ -413,8 +552,123 @@
                     </div>
 
                 </div>
+                <% } else { %>
+                <div class="ventas-vista flex-grow-1">
+                    <div class="ventas-vista__hero">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                            <div>
+                                <h2 class="ventas-vista__title">Historial de ventas del turno</h2>
+                                <div class="ventas-vista__sub">Consulta las ventas de la base activa sin salir de caja.</div>
+                            </div>
+                            <span class="ventas-badge info"><i class="bi bi-collection"></i><%= VentasCajaCantidad %> facturas</span>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-12 col-md-6 col-xl-3">
+                                <div class="ventas-kpi">
+                                    <div class="ventas-kpi__label">Total ventas</div>
+                                    <div class="ventas-kpi__value"><%= MonedaVistaVentas(VentasCajaTotal) %></div>
+                                    <div class="ventas-kpi__muted">Periodo del turno activo</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-xl-3">
+                                <div class="ventas-kpi">
+                                    <div class="ventas-kpi__label">Facturas</div>
+                                    <div class="ventas-kpi__value"><%= VentasCajaCantidad %></div>
+                                    <div class="ventas-kpi__muted">Cantidad emitida</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-xl-3">
+                                <div class="ventas-kpi">
+                                    <div class="ventas-kpi__label">Pendiente</div>
+                                    <div class="ventas-kpi__value"><%= MonedaVistaVentas(VentasCajaPendiente) %></div>
+                                    <div class="ventas-kpi__muted">Cartera / credito</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-xl-3">
+                                <div class="ventas-kpi">
+                                    <div class="ventas-kpi__label">Anuladas</div>
+                                    <div class="ventas-kpi__value"><%= VentasCajaAnuladas %></div>
+                                    <div class="ventas-kpi__muted">Ventas canceladas</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ventas-tabla-wrap">
+                        <div class="ventas-tabla-head">
+                            <h3><i class="bi bi-receipt-cutoff me-2"></i>Ventas de la base activa</h3>
+                            <span class="ventas-badge gray"><i class="bi bi-clock-history"></i>Actualizado en tiempo de recarga</span>
+                        </div>
+                        <div class="ventas-tabla-responsive">
+                            <table class="ventas-tabla">
+                                <thead>
+                                    <tr>
+                                        <th>Cuenta</th>
+                                        <th>Fecha</th>
+                                        <th>Factura</th>
+                                        <th>Cliente</th>
+                                        <th>Medio</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Pagado</th>
+                                        <th class="text-end">Pendiente</th>
+                                        <th>Estado</th>
+                                        <th>FE</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (VentasCaja != null && VentasCaja.Any()) { %>
+                                        <% foreach (var venta in VentasCaja) { %>
+                                        <tr>
+                                            <td><span class="ventas-badge gray"><i class="bi bi-hash"></i><%= venta.id %></span></td>
+                                            <td>
+                                                <div><%= venta.fechaVenta.ToString("yyyy-MM-dd") %></div>
+                                                <div class="text-muted small"><%= venta.fechaVenta.ToString("hh:mm tt") %></div>
+                                            </td>
+                                            <td>
+                                                <div><strong><%= FacturaLabelVista(venta) %></strong></div>
+                                                <div class="text-muted small">Alias: <%= string.IsNullOrWhiteSpace(venta.aliasVenta) ? "Sin alias" : venta.aliasVenta %></div>
+                                            </td>
+                                            <td>
+                                                <div><strong><%= string.IsNullOrWhiteSpace(venta.nombreCliente) ? "Cliente contado" : venta.nombreCliente %></strong></div>
+                                                <div class="text-muted small">NIT: <%= string.IsNullOrWhiteSpace(venta.nit) ? "0" : venta.nit %></div>
+                                            </td>
+                                            <td><span class="ventas-badge info"><i class="bi bi-credit-card-2-front"></i><%= string.IsNullOrWhiteSpace(venta.medioDePago) ? "Sin definir" : venta.medioDePago %></span></td>
+                                            <td class="text-end"><strong><%= MonedaVistaVentas(venta.total_A_Pagar) %></strong></td>
+                                            <td class="text-end"><strong><%= MonedaVistaVentas(venta.totalPagadoVenta) %></strong></td>
+                                            <td class="text-end"><strong><%= MonedaVistaVentas(venta.totalPendienteVenta) %></strong></td>
+                                            <td>
+                                                <span class='ventas-badge <%= EsVentaAnulada(venta) ? "bad" : (venta.totalPendienteVenta > 0 ? "warn" : "ok") %>'>
+                                                    <i class='bi <%= EsVentaAnulada(venta) ? "bi-x-octagon" : (venta.totalPendienteVenta > 0 ? "bi-hourglass-split" : "bi-check2-circle") %>'></i>
+                                                    <%= EstadoVentaVista(venta) %>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class='ventas-badge <%= !string.IsNullOrWhiteSpace(venta.cufe) || !string.IsNullOrWhiteSpace(venta.estadoFE) ? "ok" : "gray" %>'>
+                                                    <i class='bi <%= !string.IsNullOrWhiteSpace(venta.cufe) || !string.IsNullOrWhiteSpace(venta.estadoFE) ? "bi-qr-code-scan" : "bi-dash-circle" %>'></i>
+                                                    <%= !string.IsNullOrWhiteSpace(venta.cufe) || !string.IsNullOrWhiteSpace(venta.estadoFE) ? (string.IsNullOrWhiteSpace(venta.estadoFE) ? "Emitida" : venta.estadoFE) : "No aplica" %>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <% } %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="10">
+                                                <div class="ventas-empty">
+                                                    <i class="bi bi-inboxes d-block mb-2" style="font-size:2rem;color:#94a3b8;"></i>
+                                                    No hay ventas registradas en la base activa del turno.
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
             </section>
 
+            <% if (!EnVistaVentas()) { %>
             <!-- ================= DERECHA ================= -->
                         <aside class="col-12 col-xl-4 d-flex">
                 <div class="panel w-100">
@@ -566,7 +820,7 @@
                                     <div class="col-12">
                                         <div class="detalle-empty">
                                             <i class="bi bi-bag-x"></i>
-                                            Este servicio aún no tiene productos cargados.
+                                            Este servicio aÃºn no tiene productos cargados.
                                         </div>
                                     </div>
                                     <% } %>
@@ -576,11 +830,67 @@
                     </div>
                 </div>
             </aside>
+            <% } %>
 
         </div>
     </main>
 
 
+    <div class="modal fade" id="modalDomicilio" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-phone"></i> Domicilios</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Buscar celular</label>
+                        <input type="text" id="txtBuscarCelular" class="form-control" placeholder="Escriba el celular y presione Enter..." />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Telefono</label>
+                            <input type="text" id="txtTelefono" class="form-control" />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Nombre Cliente</label>
+                            <input type="text" id="txtNombreCliente" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2 align-items-end">
+                        <div class="col-md-9">
+                            <label class="form-label">Direccion</label>
+                            <input type="text" id="txtDireccion" class="form-control" />
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <a href="#" id="btnCrearDomicilio" class="btn btn-link">
+                                <i class="bi bi-save2"></i>
+                                Crear / Actualizar
+                            </a>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <button id="btnSeleccionarDomicilio" type="button" class="btn btn-success w-100">
+                            <i class="bi bi-check-circle"></i> Seleccionar
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tblDomicilios">
+                            <thead>
+                                <tr>
+                                    <th>Telefono</th>
+                                    <th>Nombre</th>
+                                    <th>Direccion</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Modal: Crear / Editar Nombre de Cuenta -->
     <div class="modal fade" id="modalCuentaCliente" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -825,9 +1135,36 @@
         });
     </script>
 
+    <script>
+        window.ListaClientesDomicilio = <%= ClienteDomiciliosJson() %>;
+    </script>
+
+    <% if (models.AbrirModalDomicilio) { %>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modalEl = document.getElementById('modalDomicilio');
+            if (modalEl && window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static' }).show();
+                if (typeof cargarTablaDomicilios === 'function') {
+                    cargarTablaDomicilios();
+                }
+            }
+        });
+    </script>
+    <% } %>
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
+
+
+
+
+
+
+
+
+
+
 
 
 

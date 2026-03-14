@@ -1,4 +1,4 @@
-﻿//con esta función llamamos en boton oculto que hace puente con el código C# 
+//con esta función llamamos en boton oculto que hace puente con el código C# 
 function EjecutarAccion(accion, argumento) {
     document.getElementById("hidAccion").value = accion || "";
     document.getElementById("hidArgumento").value = argumento || "";
@@ -40,3 +40,15 @@ function BuildArgs(obj) {
 ///        desde esta parte en adelante van las funciones reales      ///
 /////////////////////////////////////////////////////////////////////////
 
+
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('btnConfirmarCierre');
+        if (!btn) return;
+
+        btn.addEventListener('click', function () {
+            var obs = (document.getElementById('txtObsCierre') || {}).value || '';
+            EjecutarAccion('ConfirmarCierre', BuildArgs({ OBS: obs }));
+        });
+    });
+})();

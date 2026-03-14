@@ -785,3 +785,114 @@ body {
         grid-template-columns: minmax(420px, 0.95fr) minmax(620px, 1.35fr);
     }
 }
+
+.wrap.cobrar-wrap {
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    padding: 12px;
+}
+
+.cobrar-card {
+    min-height: calc(100vh - 112px);
+    display: flex;
+    flex-direction: column;
+}
+
+.cobrar-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+}
+
+.cobrar-total-top {
+    width: 100%;
+}
+
+.totalBox-top {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.totalBox-top .val {
+    width: 100%;
+    font-size: clamp(2rem, 3.8vw, 3.6rem);
+    padding: 18px 16px;
+}
+
+.cobrar-main-grid {
+    flex: 1;
+    min-height: 0;
+}
+
+.cobrar-summary-panel,
+.cobrar-payment-panel,
+.cobrar-payment-card {
+    min-height: 0;
+}
+
+@media (min-width: 1200px) {
+    .wrap.cobrar-wrap {
+        padding: 10px 14px;
+    }
+
+    .cobrar-card {
+        min-height: calc(100vh - 92px);
+    }
+
+    .cobrar-main-grid {
+        grid-template-columns: minmax(430px, 0.95fr) minmax(720px, 1.45fr);
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .wrap.cobrar-wrap {
+        min-height: auto;
+        padding: 10px;
+    }
+
+    .cobrar-card {
+        min-height: auto;
+    }
+}
+
+.cobrar-dual-card .row {
+    align-items: end;
+}
+
+.cobrar-dual-card .form-control {
+    width: 100%;
+}
+
+.cobrar-top-band {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 14px;
+    align-items: stretch;
+}
+
+.cobrar-mode-stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 0 !important;
+}
+
+.cobrar-mode-stack .form-check {
+    margin: 0;
+}
+
+@media (max-width: 991.98px) {
+    .cobrar-top-band {
+        grid-template-columns: 1fr;
+    }
+
+    .cobrar-mode-stack {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+}

@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     let busy = false;
 
     window.EjecutarAccion = function (accion, argumento, btn) {
@@ -73,7 +73,7 @@
     window.ConfirmarCerrarCaja = function (btn) {
         mostrarConfirmacion({
             title: "Cerrar caja",
-            text: "Se cerrará la caja activa y se enviará al cierre de sesión. ¿Desea continuar?",
+            text: "Se abrirá el modulo de cierre de caja para revisar el resumen y confirmar el arqueo. ¿Desea continuar?",
             confirmText: "Sí, cerrar",
             confirmColor: "#d97706"
         }, function () {
@@ -814,5 +814,132 @@ function editarNombreDetalle(btn) {
             if (lastEdited === 'value') syncFromValue(); else syncFromPercent();
             EjecutarAccion('EditarPropina', JSON.stringify({ porcentaje: porcentaje, propina: propina, idventa: idventa, idcuenta: idcuenta }), btnGuardar);
         });
+    });
+
+    window.ConfirmarCerrarSesion = function (btn) {
+        mostrarConfirmacion({
+            title: "Cerrar sesion",
+            text: "La sesion actual se cerrara, pero la caja seguira activa. ¿Desea continuar?",
+            confirmText: "Si, salir",
+            confirmColor: "#dc2626"
+        }, function () {
+            EjecutarAccion("CerrarSesion", "", btn);
+        });
+        return false;
+    };
+})();
+
+window.btnDomicilioCaja = function (btn) {
+    const idMesa = btn.getAttribute("data-idmesa") || "0";
+    const idServicio = btn.getAttribute("data-idservicio") || "0";
+    EjecutarAccion("Domicilio", idMesa + "|" + idServicio, btn);
+    return false;
+};
+
+window.cargarTablaDomicilios = function (filtro) {
+    const lista = window.ListaClientesDomicilio || [];
+    const tbody = document.querySelector('#tblDomicilios tbody');
+    if (!tbody) return 0;
+
+    tbody.innerHTML = "";
+    const valor = (filtro || "").trim();
+    const busqueda = valor.toUpperCase();
+    const filtrados = valor
+        ? lista.filter(function (item) {
+            const tel = (item.celularCliente || "").toString();
+            const nom = (item.nombreCliente || "").toString().toUpperCase();
+            return tel.indexOf(valor) === 0 || nom.indexOf(busqueda) !== -1;
+        })
+        : lista;
+
+    filtrados.forEach(function (item) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + (item.celularCliente || '') + '</td><td>' + (item.nombreCliente || '') + '</td><td>' + (item.direccionCliente || '') + '</td>';
+        tr.addEventListener('click', function () {
+            document.getElementById('txtTelefono').value = item.celularCliente || '';
+            document.getElementById('txtNombreCliente').value = item.nombreCliente || '';
+            document.getElementById('txtDireccion').value = item.direccionCliente || '';
+            const hd = document.getElementById('hdIdClienteDomicilio');
+            if (hd) hd.value = item.id || '';
+        });
+        tbody.appendChild(tr);
+    });
+
+    return filtrados.length;
+};
+
+(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+        const txtBuscar = document.getElementById('txtBuscarCelular');
+        const txtTelefono = document.getElementById('txtTelefono');
+        const hdIdCliente = document.getElementById('hdIdClienteDomicilio');
+        const btnCrear = document.getElementById('btnCrearDomicilio');
+        const btnSeleccionar = document.getElementById('btnSeleccionarDomicilio');
+
+        if (txtBuscar) {
+            txtBuscar.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').substring(0, 10);
+                cargarTablaDomicilios(this.value);
+            });
+
+            txtBuscar.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const filtro = (this.value || '').trim();
+                if (filtro.length !== 10) {
+                    if (window.Swal) {
+                        Swal.fire({ icon: 'warning', title: 'Numero invalido', text: 'El numero debe tener exactamente 10 digitos.' });
+                    }
+                    return;
+                }
+                const cantidad = cargarTablaDomicilios(filtro);
+                if (cantidad === 0) {
+                    if (txtTelefono) txtTelefono.value = filtro;
+                    if (hdIdCliente) hdIdCliente.value = '';
+                    const txtNombre = document.getElementById('txtNombreCliente');
+                    if (txtNombre) txtNombre.focus();
+                }
+            });
+        }
+
+        if (txtTelefono) {
+            txtTelefono.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').substring(0, 10);
+            });
+        }
+
+        if (btnCrear) {
+            btnCrear.addEventListener('click', function (e) {
+                e.preventDefault();
+                const id = hdIdCliente ? (hdIdCliente.value || '').trim() : '';
+                const tel = (document.getElementById('txtTelefono').value || '').trim();
+                const nom = (document.getElementById('txtNombreCliente').value || '').trim();
+                const dir = (document.getElementById('txtDireccion').value || '').trim();
+                if (!tel || !nom || !dir) {
+                    if (window.Swal) {
+                        Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Debe llenar Telefono, Nombre y Direccion.' });
+                    }
+                    return;
+                }
+                EjecutarAccion('CrearActualizarClienteDomicilio', [id, tel, nom, dir].join('|'), btnCrear);
+            });
+        }
+
+        if (btnSeleccionar) {
+            btnSeleccionar.addEventListener('click', function (e) {
+                e.preventDefault();
+                const id = hdIdCliente ? (hdIdCliente.value || '').trim() : '';
+                const tel = (document.getElementById('txtTelefono').value || '').trim();
+                const nom = (document.getElementById('txtNombreCliente').value || '').trim();
+                const dir = (document.getElementById('txtDireccion').value || '').trim();
+                if (!id) {
+                    if (window.Swal) {
+                        Swal.fire({ icon: 'warning', title: 'Seleccione un cliente', text: 'Debe seleccionar un cliente de la lista o crearlo antes.' });
+                    }
+                    return;
+                }
+                EjecutarAccion('SeleccionarClienteDomicilio', [id, tel, nom, dir].join('|'), btnSeleccionar);
+            });
+        }
     });
 })();

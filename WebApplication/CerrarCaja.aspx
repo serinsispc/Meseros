@@ -13,7 +13,16 @@
 
 
     <style>
-        /* =========================
+
+        #topActionBar {
+            justify-content: flex-start !important;
+            gap: 12px;
+        }
+
+        #topActionBar > div:last-child,
+        #topActionBar a:not([data-nav="caja"]) {
+            display: none !important;
+        }/* =========================
            CIERRE DE CAJA - UI PRO
            (1 registro - turno activo)
            ========================= */
@@ -140,6 +149,9 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 cc-actions">
+                    <a href="caja.aspx" class="btn btn-success shadow-sm">
+                        <i class="bi bi-cash-coin me-2"></i>Caja
+                    </a>
                     <button type="button" class="btn btn-outline-primary shadow-sm" id="btnImprimir">
                         <i class="bi bi-printer me-2"></i>Imprimir
                     </button>
@@ -444,3 +456,6 @@
 
 
 </asp:Content>
+
+
+

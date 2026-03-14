@@ -1,4 +1,5 @@
-﻿using DAL.Controler;
+﻿using DAL;
+using DAL.Controler;
 using DAL.Funciones;
 using DAL.Model;
 using Newtonsoft.Json;
@@ -18,8 +19,93 @@ namespace WebApplication
     public partial class caja : System.Web.UI.Page
     {
         private const string ok = "Ok";
+        private const string SessionVistaCaja = "CajaVistaActual";
+        private const string VistaCaja = "caja";
+        private const string VistaVentas = "ventas";
         private const string SessionModelsJson = "ModelsJson";
-        protected MenuViewModels models = new MenuViewModels();
+        protected MenuViewModels models = new MenuViewModels();
+        protected List<V_TablaVentas> VentasCaja = new List<V_TablaVentas>();
+        protected decimal VentasCajaTotal;
+        protected int VentasCajaCantidad;
+        protected decimal VentasCajaPendiente;
+        protected int VentasCajaAnuladas;
+
+        protected bool EnVistaVentas()
+        {
+            return string.Equals(Convert.ToString(Session[SessionVistaCaja] ?? VistaCaja), VistaVentas, StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected string TextoBotonVentas()
+        {
+            return EnVistaVentas() ? "Caja" : "Ventas";
+        }
+
+        protected string AccionBotonVentas()
+        {
+            return EnVistaVentas() ? "VerCaja" : "Ventas";
+        }
+
+        protected string MonedaVistaVentas(decimal valor)
+        {
+            return valor.ToString("C0");
+        }
+
+        protected string FacturaLabelVista(V_TablaVentas venta)
+        {
+            if (!string.IsNullOrWhiteSpace(venta?.prefijo) && venta.numeroVenta > 0)
+            {
+                return venta.prefijo + "-" + venta.numeroVenta.ToString("000000");
+            }
+            if (venta?.numeroVenta > 0)
+            {
+                return venta.numeroVenta.ToString();
+            }
+            return "Sin numerar";
+        }
+
+        protected bool EsVentaAnulada(V_TablaVentas venta)
+        {
+            return string.Equals(venta?.estadoVenta, "CANCELADO", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(venta?.estadoVenta, "ANULADA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected string EstadoVentaVista(V_TablaVentas venta)
+        {
+            if (EsVentaAnulada(venta)) return "Anulada";
+            if ((venta?.totalPendienteVenta ?? 0) > 0) return "Pendiente";
+            return "Pagada";
+        }
+
+        private void EstablecerVistaCaja(string vista)
+        {
+            Session[SessionVistaCaja] = string.IsNullOrWhiteSpace(vista) ? VistaCaja : vista;
+        }
+
+        private async Task CargarVistaVentasCaja()
+        {
+            VentasCaja = new List<V_TablaVentas>();
+            VentasCajaTotal = 0;
+            VentasCajaCantidad = 0;
+            VentasCajaPendiente = 0;
+            VentasCajaAnuladas = 0;
+
+            var db = models?.db ?? Convert.ToString(Session[SessionContextHelper.DbKey]);
+            var idBase = SessionContextHelper.ResolveBaseCajaId(Session, models);
+            if (string.IsNullOrWhiteSpace(db) || idBase <= 0)
+            {
+                return;
+            }
+
+            var dal = new SqlAutoDAL();
+            VentasCaja = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == idBase && x.eliminada == false) ?? new List<V_TablaVentas>();
+            VentasCaja = VentasCaja.OrderByDescending(x => x.fechaVenta).ToList();
+
+            VentasCajaTotal = VentasCaja.Where(x => !EsVentaAnulada(x)).Sum(x => x.total_A_Pagar);
+            VentasCajaCantidad = VentasCaja.Count(x => x.numeroVenta > 0);
+            VentasCajaPendiente = VentasCaja.Where(x => !EsVentaAnulada(x)).Sum(x => x.totalPendienteVenta);
+            VentasCajaAnuladas = VentasCaja.Count(EsVentaAnulada);
+        }
+
         protected bool PuedeEliminarServicioActivo()
         {
             return models?.IdCuentaActiva > 0 && (models.detalleCaja == null || !models.detalleCaja.Any());
@@ -82,6 +168,11 @@ namespace WebApplication
         {
             decimal numero;
             return decimal.TryParse(Convert.ToString(valor), out numero) ? numero.ToString("C0") : "$ 0";
+        }
+        protected string ClienteDomiciliosJson()
+        {
+            var lista = models?.clienteDomicilios ?? new List<ClienteDomicilio>();
+            return JsonConvert.SerializeObject(lista).Replace("</", "<\\/");
         }
         protected async void Page_Load(object sender, EventArgs e)
         {
@@ -323,7 +414,8 @@ namespace WebApplication
                 case "SeleccionarCategoria":
                     await SeleccionarCategoria(eventArgument);
                     break;
-
+
+
                 case "BuscarCodigoProducto":
                     await BuscarCodigoProducto(eventArgument);
                     break;
@@ -372,6 +464,18 @@ namespace WebApplication
                     await EditarPropina(eventArgument);
                     break;
 
+                case "Domicilio":
+                    await Domicilio(eventArgument);
+                    break;
+
+                case "CrearActualizarClienteDomicilio":
+                    await CrearActualizarClienteDomicilio(eventArgument);
+                    break;
+
+                case "SeleccionarClienteDomicilio":
+                    await SeleccionarClienteDomicilio(eventArgument);
+                    break;
+
                 case "Comandar":
                     await Comandar();
                     break;
@@ -386,6 +490,14 @@ namespace WebApplication
 
                 case "CerrarCaja":
                     await CerrarCaja();
+                    break;
+
+                case "CerrarSesion":
+                    await CerrarSesion();
+                    break;
+
+                case "Ventas":
+                    await Ventas();
                     break;
             }
         }
@@ -857,7 +969,7 @@ namespace WebApplication
 
                 if (producto == null)
                 {
-                    AlertModerno.Warning(this, "Atención", "Producto no encontrado", true, 2000);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Producto no encontrado", true, 2000);
                     btnbuscar.Focus();
                     return;
                 }
@@ -910,13 +1022,13 @@ namespace WebApplication
 
                 if (idPresentacion <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "No se recibió un producto válido.", true, 2200);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se recibiÃƒÂ³ un producto vÃƒÂ¡lido.", true, 2200);
                     return;
                 }
 
                 if (cantidad <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "La cantidad debe ser mayor a cero.", true, 2200);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "La cantidad debe ser mayor a cero.", true, 2200);
                     return;
                 }
 
@@ -965,7 +1077,7 @@ namespace WebApplication
                 string nombreCuenta = (parametros ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(nombreCuenta) || nombreCuenta.Length < 2)
                 {
-                    AlertModerno.Warning(this, "Atención", "El nombre de la cuenta debe tener mínimo 2 caracteres.", true, 2200);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "El nombre de la cuenta debe tener mÃƒÂ­nimo 2 caracteres.", true, 2200);
                     return;
                 }
 
@@ -996,7 +1108,7 @@ namespace WebApplication
 
                 if (idDetalle <= 0 || cantidad <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "No se recibió una cantidad válida.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se recibiÃƒÂ³ una cantidad vÃƒÂ¡lida.", true, 1800);
                     return;
                 }
 
@@ -1026,7 +1138,7 @@ namespace WebApplication
 
                 if (idDetalle <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "No se recibió un detalle válido.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se recibiÃƒÂ³ un detalle vÃƒÂ¡lido.", true, 1800);
                     return;
                 }
 
@@ -1056,7 +1168,7 @@ namespace WebApplication
 
                 if (idDetalle <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "No se recibió un detalle válido.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se recibiÃƒÂ³ un detalle vÃƒÂ¡lido.", true, 1800);
                     return;
                 }
 
@@ -1087,7 +1199,7 @@ namespace WebApplication
 
                 if (idDetalle <= 0 || cantidadActual <= 1 || cantidadDividir <= 0 || cantidadDividir >= cantidadActual)
                 {
-                    AlertModerno.Warning(this, "Atención", "La cantidad a dividir no es válida.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "La cantidad a dividir no es vÃƒÂ¡lida.", true, 1800);
                     return;
                 }
 
@@ -1117,7 +1229,7 @@ namespace WebApplication
 
                 if (idDetalle <= 0 || idCuentaCliente <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "Seleccione una cuenta válida para anclar el detalle.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Seleccione una cuenta vÃƒÂ¡lida para anclar el detalle.", true, 1800);
                     return;
                 }
 
@@ -1148,14 +1260,14 @@ namespace WebApplication
 
                 if (idDetalle <= 0 || valor <= 0)
                 {
-                    AlertModerno.Warning(this, "Atención", "Ingrese un valor válido.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Ingrese un valor vÃƒÂ¡lido.", true, 1800);
                     return;
                 }
 
                 var detalle = await DetalleVentaControler.ConsultarId(models.db, idDetalle);
                 if (detalle == null)
                 {
-                    AlertModerno.Error(this, "Error", "No se encontró el detalle a modificar.", true, 1800);
+                    AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ el detalle a modificar.", true, 1800);
                     return;
                 }
 
@@ -1186,14 +1298,14 @@ namespace WebApplication
 
                 if (idDetalle <= 0 || string.IsNullOrWhiteSpace(nombre))
                 {
-                    AlertModerno.Warning(this, "Atención", "Ingrese una descripción válida.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Ingrese una descripciÃƒÂ³n vÃƒÂ¡lida.", true, 1800);
                     return;
                 }
 
                 var detalle = await DetalleVentaControler.ConsultarId(models.db, idDetalle);
                 if (detalle == null)
                 {
-                    AlertModerno.Error(this, "Error", "No se encontró el detalle a modificar.", true, 1800);
+                    AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ el detalle a modificar.", true, 1800);
                     return;
                 }
 
@@ -1228,14 +1340,14 @@ namespace WebApplication
             {
                 if (string.IsNullOrWhiteSpace(parametros))
                 {
-                    AlertModerno.Warning(this, "Atención", "No se recibió información de propina.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se recibiÃƒÂ³ informaciÃƒÂ³n de propina.", true, 1800);
                     return;
                 }
 
                 var dto = JsonConvert.DeserializeObject<EditarPropinaDto>(parametros);
                 if (dto == null)
                 {
-                    AlertModerno.Warning(this, "Atención", "No se pudo interpretar la información de propina.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se pudo interpretar la informaciÃƒÂ³n de propina.", true, 1800);
                     return;
                 }
 
@@ -1245,7 +1357,7 @@ namespace WebApplication
                     var cuenta = await CuentaClienteControler.CuentaCliente(models.db, dto.idcuenta);
                     if (cuenta == null)
                     {
-                        AlertModerno.Error(this, "Error", "No se encontró la cuenta cliente para actualizar la propina.", true, 1800);
+                        AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ la cuenta cliente para actualizar la propina.", true, 1800);
                         return;
                     }
 
@@ -1263,7 +1375,7 @@ namespace WebApplication
                     var respuesta = await TablaVentasControler.Consultar_Id(models.db, dto.idventa);
                     if (!respuesta.estado)
                     {
-                        AlertModerno.Error(this, "Error", "No se encontró la venta para actualizar la propina.", true, 1800);
+                        AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ la venta para actualizar la propina.", true, 1800);
                         return;
                     }
 
@@ -1274,7 +1386,7 @@ namespace WebApplication
                     }
                     if (venta == null)
                     {
-                        AlertModerno.Error(this, "Error", "No se encontró la venta para actualizar la propina.", true, 1800);
+                        AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ la venta para actualizar la propina.", true, 1800);
                         return;
                     }
 
@@ -1301,13 +1413,13 @@ namespace WebApplication
         {
             if (models.detalleCaja == null || !models.detalleCaja.Any())
             {
-                AlertModerno.Warning(this, "Atención", "No hay productos cargados para comandar.", true, 1800);
+                AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No hay productos cargados para comandar.", true, 1800);
                 return;
             }
 
             if (models.detalleCaja.Where(x => x.itemComandado == 0).ToList().Count == 0)
             {
-                AlertModerno.Warning(this, "Atención", "No hay items pendientes por comandar.", true, 1800);
+                AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No hay items pendientes por comandar.", true, 1800);
                 return;
             }
 
@@ -1335,7 +1447,7 @@ namespace WebApplication
         {
             if (models.IdCuentaActiva <= 0)
             {
-                AlertModerno.Warning(this, "Atención", "No hay un servicio activo para imprimir la cuenta.", true, 1800);
+                AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No hay un servicio activo para imprimir la cuenta.", true, 1800);
                 return;
             }
 
@@ -1358,12 +1470,7 @@ namespace WebApplication
 
         private async Task Cobrar()
         {
-            Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
-            Session["modelsJSON"] = JsonConvert.SerializeObject(models);
-            Session["Models"] = models;
-            Session["db"] = models.db;
-            Session["idvendedor"] = models.vendedor?.id ?? 0;
-            Session["Vendedor"] = JsonConvert.SerializeObject(models.vendedor);
+            SessionContextHelper.ApplyOperationalContext(Session, models);
             Response.Redirect("~/Cobrar.aspx", false);
             Context.ApplicationInstance.CompleteRequest();
             await Task.CompletedTask;
@@ -1371,38 +1478,192 @@ namespace WebApplication
 
         private async Task CerrarCaja()
         {
-            try
+            SessionContextHelper.ApplyOperationalContext(Session, models);
+            Response.Redirect("~/CerrarCaja.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
+            await Task.CompletedTask;
+        }
+
+        private async Task CerrarSesion()
+        {
+            SessionContextHelper.ApplyOperationalContext(Session, models);
+            Response.Redirect("~/Salir.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
+            await Task.CompletedTask;
+        }
+
+        private async Task Ventas()
+        {
+            SessionContextHelper.ApplyOperationalContext(Session, models);
+            Response.Redirect("~/HVentas.aspx", false);
+            Context.ApplicationInstance.CompleteRequest();
+            await Task.CompletedTask;
+        }
+
+        private async Task Domicilio(string eventArgument)
+        {
+            if (string.IsNullOrWhiteSpace(eventArgument))
             {
-                var baseCaja = models.BaseCaja;
-                if (baseCaja == null || baseCaja.id <= 0)
-                {
-                    AlertModerno.Warning(this, "Atención", "No hay una caja activa para cerrar.", true, 2200);
-                    return;
-                }
-
-                if (!string.Equals(baseCaja.estadoBase, "ACTIVA", StringComparison.OrdinalIgnoreCase))
-                {
-                    AlertModerno.Warning(this, "Atención", "La caja actual ya se encuentra cerrada.", true, 2200);
-                    return;
-                }
-
-                baseCaja.estadoBase = "CERRADA";
-                baseCaja.fechaCierre = DateTime.Now;
-                baseCaja.idUsuarioCierre = models.vendedor.id;
-                var resp = await BaseCajaControler.CRUD(models.db, baseCaja, 1);
-                if (!resp)
-                {
-                    AlertModerno.Error(this, "Error", "No fue posible cerrar la caja. Verifique e intente nuevamente.", true, 2200);
-                    return;
-                }
-
-                Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
-                AlertModerno.SuccessGoTo(this, "OK", "Caja cerrada con éxito.", "~/Salir.aspx", false, 1200);
+                AlertModerno.Error(this, "Error", "No hay una mesa seleccionada.", true);
+                return;
             }
-            catch (Exception ex)
+
+            var parts = eventArgument.Split('|');
+            if (!int.TryParse(parts[0], out int idMesa) || idMesa <= 0)
             {
-                AlertModerno.Error(this, "Error", ex.Message, true, 2500);
+                AlertModerno.Error(this, "Error", "Mesa invÃƒÂ¡lida.", true);
+                return;
             }
+
+            int idServicio = models.IdCuentaActiva;
+            if (parts.Length > 1)
+            {
+                int.TryParse(parts[1], out idServicio);
+            }
+
+            if (idServicio <= 0)
+            {
+                AlertModerno.Error(this, "Error", "No hay un servicio activo.", true);
+                return;
+            }
+
+            var mesa = await MesasControler.Consultar_id(models.db, idMesa);
+            if (mesa == null)
+            {
+                AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ la mesa.", true);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(mesa.nombreMesa) || !mesa.nombreMesa.ToUpperInvariant().Contains("DOMICILIO"))
+            {
+                AlertModerno.Error(this, "Error", "La mesa seleccionada no es un domicilio.", true);
+                return;
+            }
+
+            models.IdMesaActiva = idMesa;
+            models.IdCuentaActiva = idServicio;
+            models.IdCuenteClienteActiva = 0;
+            models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idServicio);
+            models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, idServicio, 0);
+            models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, idServicio);
+            models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
+            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            models.AbrirModalDomicilio = true;
+
+            await CargarDATA();
+        }
+
+        private async Task CrearActualizarClienteDomicilio(string eventArgument)
+        {
+            if (string.IsNullOrWhiteSpace(eventArgument))
+            {
+                return;
+            }
+
+            var parts = eventArgument.Split('|');
+            if (parts.Length < 4)
+            {
+                return;
+            }
+
+            var idStr = parts[0];
+            var tel = parts[1];
+            var nom = parts[2];
+            var dir = parts[3];
+
+            Guid id;
+            var esNuevo = string.IsNullOrWhiteSpace(idStr);
+            if (esNuevo)
+            {
+                id = Guid.NewGuid();
+            }
+            else
+            {
+                id = new Guid(idStr);
+            }
+
+            var entidad = new ClienteDomicilio
+            {
+                id = id,
+                celularCliente = tel,
+                nombreCliente = nom,
+                direccionCliente = dir
+            };
+
+            var funcion = esNuevo ? 0 : 1;
+            var resp = await ClienteDomicilioControler.CRUD(models.db, entidad, funcion);
+            if (!resp.estado)
+            {
+                AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo guardar el cliente.", true);
+                return;
+            }
+
+            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            models.AbrirModalDomicilio = true;
+
+            AlertModerno.Success(this, "OK", resp.mensaje ?? "Cliente guardado correctamente.", true, 1200);
+            await CargarDATA();
+        }
+
+        private async Task SeleccionarClienteDomicilio(string eventArgument)
+        {
+            if (string.IsNullOrWhiteSpace(eventArgument))
+            {
+                return;
+            }
+
+            var parts = eventArgument.Split('|');
+            if (parts.Length < 4)
+            {
+                return;
+            }
+
+            var idStr = parts[0];
+            if (!Guid.TryParse(idStr, out Guid idCliente))
+            {
+                AlertModerno.Error(this, "Error", "ID de cliente invÃƒÂ¡lido.", true);
+                return;
+            }
+
+            var idVenta = models.IdCuentaActiva;
+            var consultarRelacion = await ClienteDomicilioControler.ConsultarRelacion(models.db, idVenta);
+            var funcion = consultarRelacion == null ? 0 : 1;
+
+            if (consultarRelacion == null)
+            {
+                consultarRelacion = new R_VentaClienteDomicilio
+                {
+                    id = 0,
+                    idVenta = idVenta,
+                    idClienteDomicilio = idCliente
+                };
+            }
+            else
+            {
+                consultarRelacion.idClienteDomicilio = idCliente;
+            }
+
+            var resp = await ClienteDomicilioControler.RelacionarConVenta(models.db, consultarRelacion, funcion);
+            if (!resp.estado)
+            {
+                AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo relacionar el cliente con la venta.", true);
+                return;
+            }
+
+            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            models.cuentas = await CargarCuentas();
+            models.AbrirModalDomicilio = false;
+
+            AlertModerno.Success(this, "OK", resp.mensaje ?? "Cliente relacionado con la venta.", true, 1200);
+            await CargarDATA();
+
+            ScriptManager.RegisterStartupScript(
+                this,
+                GetType(),
+                "CerrarModalDomicilioCaja",
+                "(function(){var modalEl=document.getElementById('modalDomicilio');if(modalEl&&window.bootstrap){bootstrap.Modal.getOrCreateInstance(modalEl).hide();}})();",
+                true
+            );
         }
 
         private async Task RecargarVentaActiva()
@@ -1433,6 +1694,13 @@ namespace WebApplication
         }
     }
 }
+
+
+
+
+
+
+
 
 
 

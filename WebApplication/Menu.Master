@@ -46,13 +46,13 @@
                 };
             } catch (e) { }
 
-            // 2) Capturar submit (algún submit directo)
+            // 2) Capturar submit (algÃºn submit directo)
             try {
                 const forms = document.getElementsByTagName('form');
                 if (forms && forms[0]) forms[0].addEventListener('submit', guardarPos, true);
             } catch (e) { }
 
-            // 3) Click por si algún elemento no llega por submit/__doPostBack
+            // 3) Click por si algÃºn elemento no llega por submit/__doPostBack
             document.addEventListener('click', function (e) {
                 try {
                     const el = e.target.closest('a, button, input[type="submit"], [role="button"]');
@@ -73,7 +73,7 @@
                             const val = sessionStorage.getItem(KEY);
                             if (val !== null) {
                                 const y = parseInt(val, 10) || 0;
-                                // Pequeño timeout para que el DOM finalice los cambios del UpdatePanel
+                                // PequeÃ±o timeout para que el DOM finalice los cambios del UpdatePanel
                                 setTimeout(function () {
                                     window.scrollTo(0, y);
                                     sessionStorage.removeItem(KEY);
@@ -86,7 +86,7 @@
                 }
             } catch (e) { }
 
-            // 6) Restauración en carga completa (full postback)
+            // 6) RestauraciÃ³n en carga completa (full postback)
             document.addEventListener('DOMContentLoaded', function () {
                 try {
                     const val = sessionStorage.getItem(KEY);
@@ -97,10 +97,10 @@
                         const prevScrollBehavior = html.style.scrollBehavior;
                         html.style.scrollBehavior = 'auto';
 
-                        // Fijar la posición antes del primer paint
+                        // Fijar la posiciÃ³n antes del primer paint
                         window.scrollTo(0, y);
 
-                        // en el siguiente frame, mostrar la página y limpiar
+                        // en el siguiente frame, mostrar la pÃ¡gina y limpiar
                         requestAnimationFrame(function () {
                             document.documentElement.classList.remove('restore-scroll');
                             html.style.scrollBehavior = prevScrollBehavior || '';
@@ -108,7 +108,7 @@
                             try { if (document.activeElement) document.activeElement.blur(); } catch (e) { }
                         });
                     } else {
-                        // no había nada que restaurar: asegurar que si la clase quedó por error se quite
+                        // no habÃ­a nada que restaurar: asegurar que si la clase quedÃ³ por error se quite
                         document.documentElement.classList.remove('restore-scroll');
                     }
                 } catch (e) { }
@@ -140,7 +140,7 @@
     <!-- Tu JS de alertas -->
     <script src="Scripts/js/AlertModerno.js"></script>
 
-    <!-- Estilos específicos de esta vista -->
+    <!-- Estilos especÃ­ficos de esta vista -->
     <link href="Content/css/menu.css?v=20260212_4" rel="stylesheet" />
 
 
@@ -149,9 +149,20 @@
     <form runat="server">
 
 
-        <div class="d-flex justify-content-between align-items-center m-3">
+<%--        <div id="topActionBar" class="d-flex justify-content-between align-items-center m-3">
+            <% if (SoloBotonCaja) { %>
             <div>
-                <a href="Menu.aspx" class="btn btn-primary shadow rounded-pill px-4">
+                <a href="caja.aspx" data-nav="caja"
+                    class="btn shadow rounded-pill px-4 me-2"
+                    style="background: linear-gradient(135deg,#2ecc71,#27ae60); color: #fff;">
+                    <i class="bi bi-cash-coin me-2"></i>
+                    Caja
+                </a>
+            </div>
+            <div></div>
+            <% } else { %>
+            <div>
+                <a href="Menu.aspx" data-nav="actualizar" class="btn btn-primary shadow rounded-pill px-4">
                     <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
                 </a>
 
@@ -162,41 +173,36 @@
                     Caja
                 </a>
 
-                <a href="HVentas.aspx"
+                <a href="HVentas.aspx" data-nav="ventas"
                     class="btn shadow rounded-pill px-4"
                     style="background: linear-gradient(135deg,#4e73df,#224abe); color: #fff;">
                     <i class="bi bi-graph-up-arrow me-2"></i>
                     Ventas
                 </a>
 
-
-                <a href="PGastos.aspx"
+                <a href="PGastos.aspx" data-nav="gastos"
                    class="btn shadow rounded-pill px-4"
                    style="background: linear-gradient(135deg,#e74a3b,#be2617); color:#fff;">
                     <i class="bi bi-cash-coin me-2"></i>
                     Gastos
                 </a>
-
             </div>
 
             <div>
-                <%-- btnCerrarCaja --%>
-                <a href="CerrarCaja.aspx"
+                <a href="CerrarCaja.aspx" data-nav="cerrar-caja"
                     class="btn btn-danger shadow-sm rounded-pill px-3">
                     <i class="bi bi-journal-check me-2"></i>
                     Cerrar Caja
                 </a>
 
-
-                <a href="Salir.aspx"
+                <a href="Salir.aspx" data-nav="cerrar-sesion"
                     class="btn btn-outline-danger shadow-sm rounded-pill px-4">
                     <i class="bi bi-door-closed-fill me-2"></i>
-                    Cerrar sesión
+                    Cerrar sesiÃ³n
                 </a>
             </div>
-        </div>
-
-
+            <% } %>
+        </div>--%>
 
         <asp:ScriptManager runat="server" EnablePageMethods="true" />
         <div class="page-wrapper">
@@ -205,10 +211,10 @@
 
 
         <!-- Botones flotantes -->
-        <div class="scroll-buttons">
-            <button type="button" class="scroll-btn" onclick="scrollToTop()">▲</button>
-            <button type="button" class="scroll-btn" onclick="scrollToBottom()">▼</button>
-        </div>
+<%--        <div class="scroll-buttons">
+            <button type="button" class="scroll-btn" onclick="scrollToTop()" aria-label="Ir arriba">&#9650;</button>
+            <button type="button" class="scroll-btn" onclick="scrollToBottom()" aria-label="Ir abajo">&#9660;</button>
+        </div>--%>
 
     </form>
 
@@ -220,7 +226,7 @@
         </div>
     </div>
 
-    <!-- ================== CAMBIO IMPORTANTE AQUÍ ==================
+    <!-- ================== CAMBIO IMPORTANTE AQUÃ ==================
        Usa el BUNDLE de Bootstrap (incluye Popper y expone window.bootstrap)
        y evita cargar Popper/Bootstrap por separado -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
@@ -232,3 +238,5 @@
 
 </body>
 </html>
+
+

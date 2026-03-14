@@ -48,15 +48,24 @@
 
             <div class="body cobrar-card-body">
 
-                <!-- Contado / Crédito -->
-                <div class="d-flex flex-wrap gap-3 mb-3 cobrar-mode-row">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="chkContado" checked />
-                        <label class="form-check-label fw-bold" for="chkContado">Venta de Contado</label>
+                <div class="cobrar-top-band">
+                    <div class="cobrar-mode-row cobrar-mode-stack">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chkContado" checked />
+                            <label class="form-check-label fw-bold" for="chkContado">Venta de Contado</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="chkCredito" />
+                            <label class="form-check-label fw-bold" for="chkCredito">Venta Crédito</label>
+                        </div>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="chkCredito" />
-                        <label class="form-check-label fw-bold" for="chkCredito">Venta Crédito</label>
+
+                    <div class="cobrar-total-top">
+                        <div class="cobrar-section-label">Total a cobrar</div>
+                        <div class="totalBox totalBox-top">
+                            <div class="lbl">Total:</div>
+                            <div class="val" id="lblTotalGrande" runat="server" ClientIDMode="Static">0</div>
+                        </div>
                     </div>
                 </div>
 
@@ -65,15 +74,46 @@
                     <div class="cobrar-summary-panel">
                         <div class="cobrar-section-label">Resumen de venta</div>
 
-                        <div class="cobrar-mini-card cobrar-stack-card">
-                            <label class="form-label fw-bold mb-1">SubTotal</label>
-                            <input type="text" class="form-control" id="txtSubTotal" runat="server" ClientIDMode="Static" />
+                        <div class="cobrar-mini-card cobrar-stack-card cobrar-dual-card">
+                            <div class="row g-3">
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label fw-bold mb-1">SubTotal</label>
+                                    <input type="text" class="form-control" id="txtSubTotal" runat="server" ClientIDMode="Static" />
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label class="form-label fw-bold mb-1">IVA</label>
+                                    <input type="text" class="form-control" id="txtIVA" runat="server" ClientIDMode="Static" />
+                                </div>
+                            </div>
                         </div>
 
                         <div class="cobrar-mini-card cobrar-stack-card">
-                            <label class="form-label fw-bold mb-1">IVA</label>
-                            <input type="text" class="form-control" id="txtIVA" runat="server" ClientIDMode="Static" />
+                            <label class="form-label fw-bold mb-1">Propina</label>
+                            <div class="row g-2">
+                                <div class="col-5">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="txtPropinaPorcentaje" value="0" />
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                    <div class="hint mt-1">% sobre SubTotal</div>
+                                </div>
+                                <div class="col-7">
+                                    <input type="text" class="form-control" id="txtPropina" runat="server" ClientIDMode="Static" value="0" />
+                                    <div class="hint mt-1">Valor propina</div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
+                                        <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarPropina">
+                                            <i class="bi bi-check2-circle"></i> Guardar propina
+                                        </button>
+                                        <button type="button" class="btn btnx flex-fill" id="btnEliminarPropina">
+                                            <i class="bi bi-trash3"></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
 
                         <div class="cobrar-mini-card cobrar-stack-card">
                             <label class="form-label fw-bold mb-1">Descuento</label>
@@ -106,38 +146,8 @@
                             </div>
                         </div>
 
-                        <div class="cobrar-mini-card cobrar-stack-card">
-                            <label class="form-label fw-bold mb-1">Propina</label>
-                            <div class="row g-2">
-                                <div class="col-5">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="txtPropinaPorcentaje" value="0" />
-                                        <span class="input-group-text">%</span>
-                                    </div>
-                                    <div class="hint mt-1">% sobre SubTotal</div>
-                                </div>
-                                <div class="col-7">
-                                    <input type="text" class="form-control" id="txtPropina" runat="server" ClientIDMode="Static" value="0" />
-                                    <div class="hint mt-1">Valor propina</div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
-                                        <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarPropina">
-                                            <i class="bi bi-check2-circle"></i> Guardar propina
-                                        </button>
-                                        <button type="button" class="btn btnx flex-fill" id="btnEliminarPropina">
-                                            <i class="bi bi-trash3"></i> Eliminar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="cobrar-section-label">Total a cobrar</div>
-                        <div class="totalBox">
-                            <div class="lbl">Total:</div>
-                            <div class="val" id="lblTotalGrande" runat="server" ClientIDMode="Static">0</div>
-                        </div>
+
                     </div>
 
                     <div class="cobrar-payment-panel">
@@ -505,6 +515,7 @@
 
 
 </asp:Content>
+
 
 
 

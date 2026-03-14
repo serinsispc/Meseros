@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // <generado automáticamente>
 //     Este código fue generado por una herramienta.
 //
@@ -31,6 +31,14 @@ namespace WebApplication
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.WebControls.HiddenField hidArgumento;
+        /// <summary>
+        /// Control hdIdClienteDomicilio.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automaticamente.
+        /// Para modificarlo, mueva la declaracion del campo del archivo del disenador al archivo de codigo subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hdIdClienteDomicilio;
 
         /// <summary>
         /// Control btnBridge.

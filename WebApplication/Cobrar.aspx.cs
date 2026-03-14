@@ -176,6 +176,10 @@ namespace WebApplication
                     await btnSeleccionarCliente(eventArgument);
                     break;
 
+                case "btnGuardarCliente":
+                    await btnGuardarCliente(eventArgument);
+                    break;
+
                 case "btnGuardar":
                     await btnGuardar(eventArgument);
                     break;
@@ -432,7 +436,7 @@ namespace WebApplication
                     this,
                     GetType(),
                     "redirOK",
-                    "setTimeout(function(){ window.location.href='Menu.aspx'; }, 1500);",
+                    "setTimeout(function(){ if(window.bloquearCobroHastaSalir){ window.bloquearCobroHastaSalir('Finalizando cobro'); } }, 1150); setTimeout(function(){ window.location.href='caja.aspx'; }, 1500);",
                     true
                 );
 
@@ -535,6 +539,108 @@ namespace WebApplication
                 true);
         }
 
+        private async Task btnGuardarCliente(string eventArgument)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(eventArgument))
+                {
+                    AlertModerno.Warning(this, "Atención", "No llegó información del cliente.", true, 2000);
+                    return;
+                }
+
+                string json;
+                try
+                {
+                    var bytes = Convert.FromBase64String(eventArgument);
+                    json = System.Text.Encoding.UTF8.GetString(bytes);
+                }
+                catch
+                {
+                    json = eventArgument;
+                }
+
+                var payload = JsonConvert.DeserializeObject<ClienteGuardarPayload>(json);
+                if (payload == null)
+                {
+                    AlertModerno.Error(this, "Error", "Payload inválido para guardar el cliente.", true);
+                    return;
+                }
+
+                var db = DbActual;
+                var nit = (payload.nit ?? string.Empty).Trim();
+                var nombre = (payload.nombre ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(nit) || string.IsNullOrWhiteSpace(nombre))
+                {
+                    AlertModerno.Warning(this, "Atención", "Debes completar identificación y nombre del cliente.", true, 2200);
+                    return;
+                }
+
+                int funcion = 0;
+                var clientes = ModelSesion?.clientes ?? new List<Clientes>();
+                var existente = (payload.clienteId > 0)
+                    ? clientes.FirstOrDefault(x => x.id == payload.clienteId)
+                    : clientes.FirstOrDefault(x => (x.identificationNumber ?? "") == nit);
+
+                var cliente = existente ?? new Clientes();
+                if (existente != null)
+                {
+                    funcion = 1;
+                }
+
+                cliente.typeDocumentIdentification_id = payload.typeDocId;
+                cliente.identificationNumber = nit;
+                cliente.typeOrganization_id = payload.orgId;
+                cliente.municipality_id = payload.municipioId;
+                cliente.typeRegime_id = payload.regimenId;
+                cliente.typeLiability_id = payload.responsabilidadId;
+                cliente.typeTaxDetail_id = payload.impuestoId;
+                cliente.nameCliente = nombre;
+                cliente.tradeName = string.IsNullOrWhiteSpace(payload.comercio) ? "-" : payload.comercio.Trim();
+                cliente.phone = string.IsNullOrWhiteSpace(payload.telefono) ? "0" : payload.telefono.Trim();
+                cliente.adress = string.IsNullOrWhiteSpace(payload.direccion) ? "-" : payload.direccion.Trim();
+                cliente.email = string.IsNullOrWhiteSpace(payload.correo) ? string.Empty : payload.correo.Trim();
+                cliente.merchantRegistration = string.IsNullOrWhiteSpace(payload.matricula) ? "0" : payload.matricula.Trim();
+                cliente.idTipoTercero = payload.esCliente && payload.esProveedor ? 3 : (payload.esProveedor ? 2 : 1);
+
+                var respuesta = await ClientesControler.CRUD(db, cliente, funcion);
+                if (respuesta == null || !respuesta.estado)
+                {
+                    AlertModerno.Error(this, "Error", respuesta?.mensaje ?? "No fue posible guardar el cliente.", true);
+                    return;
+                }
+
+                int idClienteGuardado = existente?.id ?? 0;
+                if (idClienteGuardado <= 0 && respuesta.data != null)
+                {
+                    int.TryParse(respuesta.data.ToString(), out idClienteGuardado);
+                }
+
+                ModelSesion.clientes = await ClientesControler.ListaClientes(db);
+                await CargarClientesModal();
+                GuardarModelsEnSesion();
+
+                if (idClienteGuardado <= 0)
+                {
+                    var recargado = (ModelSesion.clientes ?? new List<Clientes>()).FirstOrDefault(x => (x.identificationNumber ?? "") == nit);
+                    idClienteGuardado = recargado?.id ?? 0;
+                }
+
+                if (idClienteGuardado <= 0)
+                {
+                    AlertModerno.Warning(this, "Atención", "El cliente se guardó, pero no fue posible seleccionarlo automáticamente.", true, 2200);
+                    return;
+                }
+
+                await btnSeleccionarCliente(idClienteGuardado.ToString());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error btnGuardarCliente: " + ex.Message);
+                AlertModerno.Error(this, "Error", "No fue posible guardar el cliente.", true);
+            }
+        }
         private async Task btnBuscarNIT(string nit)
         {
             try
@@ -653,6 +759,13 @@ namespace WebApplication
         {
             try
             {
+                var db = DbActual;
+                int idVentaActual = ModelSesion?.venta?.id ?? 0;
+                if (idVentaActual <= 0)
+                {
+                    AlertModerno.Error(this, "\u00a1Error!", "No se encontr\u00f3 una venta activa para guardar el descuento.", true);
+                    return;
+                }
                 int valor = 0;
                 string razon = "";
 
@@ -669,7 +782,7 @@ namespace WebApplication
                 var descuento = new CargoDescuentoVentas
                 {
                     id = 0,
-                    idVenta = ModelSesion.venta.id,
+                    idVenta = idVentaActual,
                     tipo = false,
                     codigo = 1,
                     razon = razon,
@@ -678,17 +791,15 @@ namespace WebApplication
                     descripcionCargoDescuento = razon
                 };
 
-                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(Session["db"].ToString(), descuento, 0);
+                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(db, descuento, 0);
 
                 if (!respuestaCRUD)
                 {
                     AlertModerno.Error(this, "\u00a1Error!", "No fue posible agregar el descuento.", true);
                     return;
                 }
-
-                ModelSesion.venta = new V_TablaVentas();
-                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
-                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
+                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(db, idVentaActual);
+                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(db, idVentaActual);
 
                 AlertModerno.Success(this, "\u00a1OK!", "Descuento agregado con \u00e9xito", true, 800);
 
@@ -730,11 +841,18 @@ namespace WebApplication
                 AlertModerno.Error(this, "\u00a1Error!", "No fue posible eliminar el descuento.", true);
             }
         }
-
         private async Task btnGuardarPropina(string eventArgument)
         {
             try
             {
+                int idVentaActual = ModelSesion?.venta?.id ?? 0;
+                var db = DbActual;
+                if (idVentaActual <= 0)
+                {
+                    AlertModerno.Error(this, "\u00a1Error!", "No se encontr\u00f3 una venta activa para guardar la propina.", true);
+                    return;
+                }
+
                 int valor = 0;
                 int pct = 0;
 
@@ -751,7 +869,7 @@ namespace WebApplication
                 var descuento = new CargoDescuentoVentas
                 {
                     id = 0,
-                    idVenta = ModelSesion.venta.id,
+                    idVenta = idVentaActual,
                     tipo = true,
                     codigo = 1,
                     razon = "propina",
@@ -760,7 +878,7 @@ namespace WebApplication
                     descripcionCargoDescuento = "propina"
                 };
 
-                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(Session["db"].ToString(), descuento, 0);
+                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(db, descuento, 0);
 
                 if (!respuestaCRUD)
                 {
@@ -768,9 +886,8 @@ namespace WebApplication
                     return;
                 }
 
-                ModelSesion.venta = new V_TablaVentas();
-                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), ModelSesion.venta.id);
-                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(Session["db"].ToString(), ModelSesion.venta.id);
+                ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(db, idVentaActual);
+                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(db, idVentaActual);
 
                 AlertModerno.Success(this, "\u00a1OK!", "Propina agregada con \u00e9xito", true, 800);
 
@@ -779,7 +896,7 @@ namespace WebApplication
             }
             catch
             {
-                    AlertModerno.Error(this, "\u00a1Error!", "No fue posible agregar la propina.", true);
+                AlertModerno.Error(this, "\u00a1Error!", "No fue posible agregar la propina.", true);
             }
         }
 
@@ -1043,6 +1160,25 @@ namespace WebApplication
             rptClientesModal.DataBind();
         }
 
+        private class ClienteGuardarPayload
+        {
+            public int clienteId { get; set; }
+            public int typeDocId { get; set; }
+            public string nit { get; set; }
+            public int orgId { get; set; }
+            public int municipioId { get; set; }
+            public int regimenId { get; set; }
+            public int responsabilidadId { get; set; }
+            public int impuestoId { get; set; }
+            public string nombre { get; set; }
+            public string comercio { get; set; }
+            public string telefono { get; set; }
+            public string direccion { get; set; }
+            public string correo { get; set; }
+            public string matricula { get; set; }
+            public bool esCliente { get; set; }
+            public bool esProveedor { get; set; }
+        }
         private class ClienteModalItem
         {
             public int ClienteId { get; set; }
@@ -1223,6 +1359,7 @@ namespace WebApplication
         }
     }
 }
+
 
 
 

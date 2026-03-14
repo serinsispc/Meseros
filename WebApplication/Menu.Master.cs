@@ -15,6 +15,15 @@ namespace WebApplication
 {
     public partial class Menu1 : System.Web.UI.MasterPage
     {
+        protected bool SoloBotonCaja
+        {
+            get
+            {
+                var ruta = Page?.AppRelativeVirtualPath ?? string.Empty;
+                return string.Equals(ruta, "~/HVentas.aspx", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["db"] == null)

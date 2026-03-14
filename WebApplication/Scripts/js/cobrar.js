@@ -50,6 +50,7 @@
     let postbackBusy = false;
     let busyTimer = null;
     let currentPostbackTarget = '';
+    let navigationLock = false;
 
     const mostrarProcesando = (mensaje) => {
         const overlay = byId('pageBusyOverlay');
@@ -66,7 +67,28 @@
         }, 12000);
     };
 
+    const bloquearHastaSalir = (mensaje) => {
+        const overlay = byId('pageBusyOverlay');
+        const title = overlay ? overlay.querySelector('.page-busy-title') : null;
+        const subtitle = overlay ? overlay.querySelector('.page-busy-subtitle') : null;
+
+        navigationLock = true;
+        postbackBusy = true;
+        currentPostbackTarget = 'navigation-lock';
+
+        if (busyTimer) {
+            clearTimeout(busyTimer);
+            busyTimer = null;
+        }
+
+        if (title) title.textContent = mensaje || 'Finalizando cobro';
+        if (subtitle) subtitle.textContent = 'Estamos cerrando la operación. Por favor espera.';
+        if (overlay) overlay.classList.add('is-visible');
+        if (document.body) document.body.classList.add('app-is-busy');
+    };
+
     const ocultarProcesando = () => {
+        if (navigationLock) return;
         const overlay = byId('pageBusyOverlay');
         if (overlay) overlay.classList.remove('is-visible');
         if (document.body) document.body.classList.remove('app-is-busy');
@@ -79,6 +101,7 @@
     };
 
     window.mostrarProcesando = mostrarProcesando;
+    window.bloquearCobroHastaSalir = bloquearHastaSalir;
     window.ocultarProcesando = ocultarProcesando;
     const firePostBack = (target, argument) => {
         if (postbackBusy && currentPostbackTarget === target) return;
@@ -874,6 +897,43 @@
         });
     }
 
+    const btnGuardarCliente = byId('btnGuardarCliente');
+    if (btnGuardarCliente) {
+        btnGuardarCliente.addEventListener('click', () => {
+            const selected = document.querySelector('#mdlCliente .cliente-row.selected');
+            const payload = {
+                clienteId: parseInt(selected?.dataset?.clienteId || '0', 10) || 0,
+                typeDocId: parseInt(byId('ddlTipoDocumento')?.value || '0', 10) || 0,
+                nit: (byId('txtIdentificacionCliente')?.value || '').trim(),
+                orgId: parseInt(byId('ddlTipoOrganizacion')?.value || '0', 10) || 0,
+                municipioId: parseInt(byId('ddlMunicipio')?.value || '0', 10) || 0,
+                regimenId: parseInt(byId('ddlTipoRegimen')?.value || '0', 10) || 0,
+                responsabilidadId: parseInt(byId('ddlTipoResponsabilidad')?.value || '0', 10) || 0,
+                impuestoId: parseInt(byId('ddlDetalleImpuesto')?.value || '0', 10) || 0,
+                nombre: (byId('txtNombreRazonCliente')?.value || '').trim(),
+                comercio: (byId('txtNombreComercioCliente')?.value || '').trim(),
+                telefono: (byId('txtTelefonoCliente')?.value || '').trim(),
+                direccion: (byId('txtDireccionCliente')?.value || '').trim(),
+                correo: (byId('txtCorreoCliente')?.value || '').trim(),
+                matricula: (byId('txtMatriculaCliente')?.value || '').trim(),
+                esCliente: !!byId('chkClientesModal')?.checked,
+                esProveedor: !!byId('chkProveedoresModal')?.checked
+            };
+
+            if (!payload.typeDocId || !payload.orgId || !payload.municipioId || !payload.regimenId || !payload.responsabilidadId || !payload.impuestoId || !payload.nit || !payload.nombre) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Información incompleta',
+                    text: 'Completa los campos obligatorios del cliente antes de guardar.',
+                    confirmButtonColor: '#2563eb'
+                });
+                return;
+            }
+
+            mostrarProcesando('Guardando cliente');
+            firePostBack('btnGuardarCliente', encodeB64(JSON.stringify(payload)));
+        });
+    }
     const btnBuscarNIT = byId('btnBuscarNIT');
     if (btnBuscarNIT) {
         btnBuscarNIT.addEventListener('click', () => {
