@@ -1,15 +1,30 @@
+@using Meseros.Blazor.Models
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+@inject OperationalContextStore ContextStore
+
 @page "/caja"
 
 <PageTitle>Caja</PageTitle>
 
 <section class="migration-note">
     <h2>Modulo Caja</h2>
-    <p>
-        Base para la apertura de caja, estado del turno y resumen operativo del cajero.
-    </p>
+    <p>El login Blazor ya entrega el `db` desde la URL y deja el contexto base del usuario autenticado.</p>
     <ul>
-        <li>Separar el estado de turno de la UI.</li>
-        <li>Construir componentes de resumen, movimientos y totales.</li>
-        <li>Definir autenticacion y permisos fuera de ViewState.</li>
+        <li>db actual: @_db</li>
+        <li>vendedor: @(string.IsNullOrWhiteSpace(ContextStore.VendedorNombre) ? "sin autenticar" : ContextStore.VendedorNombre)</li>
+        <li>id base caja: @ContextStore.BaseCajaId</li>
+        <li>id usuario caja: @ContextStore.CajaUsuarioId</li>
     </ul>
 </section>
+
+@code {
+    private string _db = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        _db = query.TryGetValue("db", out var dbValue) ? dbValue.ToString() : ContextStore.Db;
+    }
+}

@@ -1,60 +1,288 @@
+@using Meseros.Blazor.Models
+@using Meseros.Blazor.Services
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+@inject LoginDataService LoginDataService
+@inject OperationalContextStore ContextStore
+
 @page "/"
 
-<PageTitle>Meseros Blazor</PageTitle>
+<PageTitle>Login</PageTitle>
 
-<div class="hero">
-    <div>
-        <div class="hero-kicker">Nueva capa de presentacion</div>
-        <h1>Base inicial para migrar Web Forms a Blazor</h1>
-        <p class="hero-copy">
-            Este proyecto convive con la solucion actual y organiza la migracion por modulos:
-            menu, caja, cobro, cierre, ventas y gastos.
-        </p>
+<div class="login-screen">
+    <div class="login-shell">
+        <section class="login-panel">
+            <div class="logo-badge">
+                @if (!string.IsNullOrWhiteSpace(_bootstrap?.LogoDataUrl))
+                {
+                    <img src="@_bootstrap.LogoDataUrl" alt="Logo" />
+                }
+                else
+                {
+                    <div class="logo-fallback">@_logoFallback</div>
+                }
+            </div>
+
+            <div class="hero-kicker">Acceso</div>
+            <h1>Iniciar sesion</h1>
+            <p class="hero-copy">Selecciona tu usuario, escribe la clave y mantendremos el `db` del link durante todo el flujo.</p>
+
+            <div class="db-pill">db = @(_db is null or "" ? "sin valor" : _db)</div>
+            @if (!string.IsNullOrWhiteSpace(_bootstrap?.SedeNombre))
+            {
+                <div class="sede-pill">Sede: @_bootstrap.SedeNombre</div>
+            }
+        </section>
+
+        <section class="login-card-panel">
+            @if (_loading)
+            {
+                <div class="loading-box">
+                    <div class="login-loading-spinner"></div>
+                    <strong>Cargando acceso...</strong>
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(_errorMessage))
+            {
+                <div class="alert alert-danger mb-3">@_errorMessage</div>
+            }
+            else if (_bootstrap is not null)
+            {
+                <div class="users-grid-title">Meseros disponibles</div>
+                <div class="users-grid">
+                    @foreach (var vendedor in _bootstrap.Vendedores)
+                    {
+                        <button type="button"
+                                class="user-card @(vendedor.Id == _selectedVendedorId ? "selected" : string.Empty)"
+                                @onclick="() => SelectVendedor(vendedor)">
+                            <div class="user-avatar">@GetInitials(vendedor.Nombre)</div>
+                            <div class="user-name">@vendedor.Nombre</div>
+                        </button>
+                    }
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label">Contraseña</label>
+                    <input class="form-control with-icon"
+                           type="password"
+                           @bind="_password"
+                           @bind:event="oninput"
+                           @onkeydown="HandlePasswordKeyDown"
+                           placeholder="Escribe tu clave" />
+                </div>
+
+                <div class="d-grid mt-3">
+                    <button class="btn btn-primary btn-login"
+                            @onclick="LoginAsync"
+                            disabled="@(!_canSubmit)">
+                        @(_submitting ? "Procesando..." : "Ingresar")
+                    </button>
+                </div>
+            }
+        </section>
     </div>
+</div>
 
-    <div class="hero-panel">
-        <div class="hero-panel-label">Estado actual</div>
-        <div class="hero-panel-value">Proyecto Blazor agregado</div>
-        <div class="hero-panel-text">
-            Siguiente paso recomendado: extraer logica compartida desde .NET Framework 4.8 a servicios consumibles por .NET 8.
+@if (_showBaseModal)
+{
+    <div class="modal-backdrop-blz">
+        <div class="base-modal-card">
+            <h2>Aperturar caja</h2>
+            <p>No hay una base activa. Ingresa el valor de la base del dia para aperturar.</p>
+            <label class="form-label">Valor base (COP)</label>
+            <input class="form-control"
+                   @bind="_baseValue"
+                   @bind:event="oninput"
+                   placeholder="Ej: 200000" />
+            <div class="modal-actions">
+                <button class="btn btn-outline-secondary" @onclick="CloseBaseModal">Cancelar</button>
+                <button class="btn btn-primary" @onclick="OpenBaseAsync" disabled="@_submittingBase">
+                    @(_submittingBase ? "Aperturando..." : "Aperturar caja")
+                </button>
+            </div>
         </div>
     </div>
-</div>
+}
 
-<div class="module-grid">
-    <section class="module-card">
-        <h2>Menu</h2>
-        <p>Catalogo, navegacion principal y acceso rapido a mesas o comandas.</p>
-        <a class="module-link" href="/menu">Abrir modulo</a>
-    </section>
+@code {
+    private LoginBootstrapData? _bootstrap;
+    private LoginResult? _pendingLogin;
+    private string _db = string.Empty;
+    private string _password = string.Empty;
+    private string _baseValue = string.Empty;
+    private string _errorMessage = string.Empty;
+    private bool _loading = true;
+    private bool _submitting;
+    private bool _submittingBase;
+    private bool _showBaseModal;
+    private int _selectedVendedorId;
+    private string _logoFallback = "DB";
 
-    <section class="module-card">
-        <h2>Caja</h2>
-        <p>Apertura de turno, resumen operativo y metricas de efectivo.</p>
-        <a class="module-link" href="/caja">Abrir modulo</a>
-    </section>
+    private bool _canSubmit => !_submitting && _selectedVendedorId > 0 && !string.IsNullOrWhiteSpace(_password);
 
-    <section class="module-card">
-        <h2>Cobrar</h2>
-        <p>Flujo de pagos, propina, medios de pago y confirmacion.</p>
-        <a class="module-link" href="/cobrar">Abrir modulo</a>
-    </section>
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _errorMessage = string.Empty;
+        ContextStore.Clear();
 
-    <section class="module-card">
-        <h2>Cerrar caja</h2>
-        <p>Consolidacion de turno, diferencias y arqueo final.</p>
-        <a class="module-link" href="/cerrar-caja">Abrir modulo</a>
-    </section>
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        _db = LoginDataService.SanitizeDb(query.TryGetValue("db", out var dbValue) ? dbValue.ToString() : string.Empty);
 
-    <section class="module-card">
-        <h2>Ventas</h2>
-        <p>Consulta historica, filtros por fecha y resumen de transacciones.</p>
-        <a class="module-link" href="/ventas">Abrir modulo</a>
-    </section>
+        if (string.IsNullOrWhiteSpace(_db))
+        {
+            _bootstrap = null;
+            _loading = false;
+            _errorMessage = "No se encuentra la base de datos en la URL. Usa el link con ?db=...";
+            return;
+        }
 
-    <section class="module-card">
-        <h2>Gastos</h2>
-        <p>Registro operativo de egresos y control del turno.</p>
-        <a class="module-link" href="/gastos">Abrir modulo</a>
-    </section>
-</div>
+        _bootstrap = await LoginDataService.LoadBootstrapAsync(_db);
+        _loading = false;
+
+        if (_bootstrap is null)
+        {
+            _errorMessage = "No se pudo cargar la configuración de acceso para esta base.";
+            return;
+        }
+
+        _logoFallback = BuildLogoFallback(_bootstrap.SedeNombre, _db);
+    }
+
+    private void SelectVendedor(VendedorInfo vendedor)
+    {
+        _selectedVendedorId = vendedor.Id;
+        _password = string.Empty;
+        _errorMessage = string.Empty;
+    }
+
+    private async Task HandlePasswordKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && _canSubmit)
+        {
+            await LoginAsync();
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        if (_bootstrap is null)
+        {
+            return;
+        }
+
+        var vendedor = _bootstrap.Vendedores.FirstOrDefault(x => x.Id == _selectedVendedorId);
+        if (vendedor is null)
+        {
+            _errorMessage = "Debes seleccionar un usuario.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_password))
+        {
+            _errorMessage = "Debes ingresar la contraseña.";
+            return;
+        }
+
+        _submitting = true;
+        _errorMessage = string.Empty;
+
+        var result = await LoginDataService.AuthenticateAsync(_db, vendedor.Telefono, _password, _bootstrap.SedeId);
+        _submitting = false;
+
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        if (result.RequiresBaseAperture)
+        {
+            _pendingLogin = result;
+            _showBaseModal = true;
+            return;
+        }
+
+        CompleteLogin(result);
+    }
+
+    private void CloseBaseModal()
+    {
+        _showBaseModal = false;
+        _baseValue = string.Empty;
+        _pendingLogin = null;
+    }
+
+    private async Task OpenBaseAsync()
+    {
+        if (_pendingLogin is null)
+        {
+            _errorMessage = "No hay un login pendiente para aperturar caja.";
+            _showBaseModal = false;
+            return;
+        }
+
+        var normalized = (_baseValue ?? string.Empty).Replace(".", string.Empty).Replace(",", string.Empty).Trim();
+        if (!decimal.TryParse(normalized, out var valorBase) || valorBase <= 0)
+        {
+            _errorMessage = "Ingresa un valor de base valido.";
+            return;
+        }
+
+        _submittingBase = true;
+        _errorMessage = string.Empty;
+
+        var result = await LoginDataService.OpenBaseAsync(new BaseCajaRequest
+        {
+            Db = _pendingLogin.Db,
+            CajaUsuarioId = _pendingLogin.CajaUsuarioId,
+            SedeId = _pendingLogin.SedeId,
+            VendedorId = _pendingLogin.VendedorId,
+            VendedorNombre = _pendingLogin.VendedorNombre,
+            ValorBase = valorBase,
+            TokenEmpresa = _pendingLogin.TokenEmpresa
+        });
+
+        _submittingBase = false;
+
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _showBaseModal = false;
+        _baseValue = string.Empty;
+        _pendingLogin = null;
+        CompleteLogin(result);
+    }
+
+    private void CompleteLogin(LoginResult result)
+    {
+        ContextStore.Set(result.Db, result.VendedorId, result.VendedorNombre, result.TokenEmpresa, result.BaseCajaId, result.CajaUsuarioId);
+        Navigation.NavigateTo($"/caja?db={Uri.EscapeDataString(result.Db)}");
+    }
+
+    private static string GetInitials(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "?";
+        }
+
+        var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1)
+        {
+            return parts[0][0].ToString().ToUpperInvariant();
+        }
+
+        return string.Concat(parts.Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    private static string BuildLogoFallback(string? sedeNombre, string db)
+    {
+        var source = !string.IsNullOrWhiteSpace(sedeNombre) ? sedeNombre : db;
+        return GetInitials(source);
+    }
+}
