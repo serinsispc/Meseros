@@ -319,7 +319,12 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-12 col-md-6">
                                 <label class="small fw-bold text-muted mb-1 d-block">Efectivo físico contado (opcional)</label>
-                                <input type="text" class="form-control cc-input" id="txtEfectivoFisico" placeholder="$ 0" oninput="ccActualizarDiferencia()" onkeyup="ccActualizarDiferencia()" onchange="ccActualizarDiferencia()" />
+                                <div class="input-group">
+                                    <input type="text" class="form-control cc-input" id="txtEfectivoFisico" placeholder="$ 0" oninput="ccActualizarDiferencia()" onkeyup="ccActualizarDiferencia()" onchange="ccActualizarDiferencia()" />
+                                    <button type="button" class="btn btn-outline-primary" id="btnCalcularDiferencia" onclick="ccActualizarDiferencia(); return false;" title="Calcular diferencia">
+                                        <i class="bi bi-calculator"></i>
+                                    </button>
+                                </div>
                                 <div class="text-muted small fw-semibold mt-1">
                                     (Esto es para validar contra “Efectivo + Base”)
                                 </div>

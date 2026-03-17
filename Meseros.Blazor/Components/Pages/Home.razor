@@ -1,0 +1,60 @@
+@page "/"
+
+<PageTitle>Meseros Blazor</PageTitle>
+
+<div class="hero">
+    <div>
+        <div class="hero-kicker">Nueva capa de presentacion</div>
+        <h1>Base inicial para migrar Web Forms a Blazor</h1>
+        <p class="hero-copy">
+            Este proyecto convive con la solucion actual y organiza la migracion por modulos:
+            menu, caja, cobro, cierre, ventas y gastos.
+        </p>
+    </div>
+
+    <div class="hero-panel">
+        <div class="hero-panel-label">Estado actual</div>
+        <div class="hero-panel-value">Proyecto Blazor agregado</div>
+        <div class="hero-panel-text">
+            Siguiente paso recomendado: extraer logica compartida desde .NET Framework 4.8 a servicios consumibles por .NET 8.
+        </div>
+    </div>
+</div>
+
+<div class="module-grid">
+    <section class="module-card">
+        <h2>Menu</h2>
+        <p>Catalogo, navegacion principal y acceso rapido a mesas o comandas.</p>
+        <a class="module-link" href="/menu">Abrir modulo</a>
+    </section>
+
+    <section class="module-card">
+        <h2>Caja</h2>
+        <p>Apertura de turno, resumen operativo y metricas de efectivo.</p>
+        <a class="module-link" href="/caja">Abrir modulo</a>
+    </section>
+
+    <section class="module-card">
+        <h2>Cobrar</h2>
+        <p>Flujo de pagos, propina, medios de pago y confirmacion.</p>
+        <a class="module-link" href="/cobrar">Abrir modulo</a>
+    </section>
+
+    <section class="module-card">
+        <h2>Cerrar caja</h2>
+        <p>Consolidacion de turno, diferencias y arqueo final.</p>
+        <a class="module-link" href="/cerrar-caja">Abrir modulo</a>
+    </section>
+
+    <section class="module-card">
+        <h2>Ventas</h2>
+        <p>Consulta historica, filtros por fecha y resumen de transacciones.</p>
+        <a class="module-link" href="/ventas">Abrir modulo</a>
+    </section>
+
+    <section class="module-card">
+        <h2>Gastos</h2>
+        <p>Registro operativo de egresos y control del turno.</p>
+        <a class="module-link" href="/gastos">Abrir modulo</a>
+    </section>
+</div>

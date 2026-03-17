@@ -1,0 +1,58 @@
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid brand-shell">
+        <a class="navbar-brand" href="">
+            <span class="brand-title">Meseros</span>
+            <span class="brand-subtitle">Blazor migration</span>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Menu de navegacion" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-caption px-3">Base del nuevo front</div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span aria-hidden="true">Inicio</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="menu">
+                <span aria-hidden="true">Menu</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="caja">
+                <span aria-hidden="true">Caja</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cobrar">
+                <span aria-hidden="true">Cobrar</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cerrar-caja">
+                <span aria-hidden="true">Cerrar caja</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="ventas">
+                <span aria-hidden="true">Historial ventas</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="gastos">
+                <span aria-hidden="true">Gastos</span>
+            </NavLink>
+        </div>
+    </nav>
+</div>

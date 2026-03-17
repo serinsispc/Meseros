@@ -1,0 +1,27 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <div>
+                <div class="eyebrow">Migracion progresiva</div>
+                <strong>Meseros Blazor</strong>
+            </div>
+            <div class="top-row-status">Web Forms y Blazor conviviendo</div>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrio un error no controlado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">x</span>
+</div>
