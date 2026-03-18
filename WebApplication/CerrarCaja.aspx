@@ -509,7 +509,111 @@
     <script src="Scripts/js/cerrar-caja.js?v=20260314-2"></script>
 
 
+<script>
+(function () {
+    function ccGetTextInline(id, fallback) {
+        var el = document.getElementById(id);
+        if (!el) return fallback || '';
+        var text = (el.textContent || el.innerText || '').trim();
+        return text || (fallback || '');
+    }
+
+    function ccEscapeHtmlInline(value) {
+        return (value || '')
+            .toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function ccTicketLineInline(label, value) {
+        return '<div class="row"><span>' + ccEscapeHtmlInline(label) + '</span><strong>' + ccEscapeHtmlInline(value) + '</strong></div>';
+    }
+
+    function ccPagosInternosInline() {
+        var table = document.querySelector('.cc-report-table tbody');
+        if (!table) return '<div class="empty">Sin pagos internos registrados.</div>';
+        var rows = Array.prototype.slice.call(table.querySelectorAll('tr'));
+        if (!rows.length) return '<div class="empty">Sin pagos internos registrados.</div>';
+        return rows.map(function (row) {
+            var cells = row.querySelectorAll('td');
+            if (cells.length < 2) return '';
+            return '<div class="row"><span>' + ccEscapeHtmlInline(cells[0].textContent.trim()) + '</span><strong>' + ccEscapeHtmlInline(cells[1].textContent.trim()) + '</strong></div>';
+        }).join('');
+    }
+
+    window.ccImprimirTicketInline = function () {
+        var efectivoFisicoEl = document.getElementById('txtEfectivoFisico');
+        var efectivoFisico = efectivoFisicoEl && efectivoFisicoEl.value ? efectivoFisicoEl.value : '$ 0';
+        var observacionEl = document.getElementById('txtObsCierre');
+        var observacion = observacionEl && observacionEl.value ? observacionEl.value.trim() : '';
+        var html = '' +
+            '<!doctype html><html><head><meta charset="utf-8"><title>Ticket cierre caja</title><style>' +
+            '@page{size:80mm auto;margin:0;}html,body{margin:0;padding:0;background:#fff;font-family:Consolas,"Courier New",monospace;color:#000;}body{width:80mm;padding:4mm 3.5mm;box-sizing:border-box;font-size:11px;line-height:1.35;}' +
+            '.center{text-align:center;}.title{font-size:15px;font-weight:700;margin-bottom:2px;}.sub{font-size:11px;margin-bottom:8px;}.sep{border-top:1px dashed #000;margin:7px 0;}.section{margin-top:6px;}.section h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;}.row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin:2px 0;}.row span:first-child{max-width:46mm;}.row strong{font-weight:700;text-align:right;white-space:nowrap;}.tot{font-size:12px;font-weight:700;}.note{white-space:pre-wrap;word-break:break-word;}.empty{font-style:italic;}' +
+            '</style></head><body>' +
+            '<div class="center"><div class="title">CIERRE DE CAJA</div><div class="sub">' + ccEscapeHtmlInline(document.title || 'Mi empresa') + '</div></div>' +
+            '<div class="sep"></div><div class="section"><h4>Datos del turno</h4>' +
+            ccTicketLineInline('Turno', ccGetTextInline('lblIdTurno', '0')) +
+            ccTicketLineInline('Cajero', ccGetTextInline('lblNombreUsuario', '-')) +
+            ccTicketLineInline('Apertura', ccGetTextInline('lblFechaApertura', '-')) +
+            ccTicketLineInline('Cierre', ccGetTextInline('lblFechaCierre', '-')) +
+            ccTicketLineInline('Estado', ccGetTextInline('lblEstadoBase', '-')) +
+            '</div><div class="sep"></div><div class="section"><h4>Resumen</h4>' +
+            ccTicketLineInline('Base inicial', ccGetTextInline('lblValorBase', '$ 0')) +
+            ccTicketLineInline('Total ingresos', ccGetTextInline('lblTotalIngresos', '$ 0')) +
+            ccTicketLineInline('Total egresos', ccGetTextInline('lblTotalEgresos', '$ 0')) +
+            ccTicketLineInline('Producido', ccGetTextInline('lblProducido', '$ 0')) +
+            '</div><div class="sep"></div><div class="section"><h4>Arqueo</h4>' +
+            ccTicketLineInline('Total efectivo', ccGetTextInline('lblTotalEfectivo', '$ 0')) +
+            ccTicketLineInline('Efectivo + base', ccGetTextInline('lblEfectivoMasBase', '$ 0')) +
+            ccTicketLineInline('Ventas tarjeta', ccGetTextInline('lblVentasTarjeta', '$ 0')) +
+            ccTicketLineInline('Efectivo fisico', efectivoFisico) +
+            ccTicketLineInline('Diferencia', ccGetTextInline('lblDiferencia', '$ 0')) +
+            '</div><div class="sep"></div><div class="section"><h4>Ingresos</h4>' +
+            ccTicketLineInline('Ventas efectivo', ccGetTextInline('lblVentasEfectivo', '$ 0')) +
+            ccTicketLineInline('Ventas tarjeta', ccGetTextInline('lblVentasTargeta2', '$ 0')) +
+            ccTicketLineInline('Ventas credito', ccGetTextInline('lblVentasCredito', '$ 0')) +
+            '<div class="row tot"><span>Total ingresos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalIngresos2', '$ 0')) + '</strong></div>' +
+            '</div><div class="sep"></div><div class="section"><h4>Egresos</h4>' +
+            ccTicketLineInline('Gastos efectivo', ccGetTextInline('lblGastosEfectivo', '$ 0')) +
+            ccTicketLineInline('Pago CxC efectivo', ccGetTextInline('lblPagoCC_Efectivo', '$ 0')) +
+            ccTicketLineInline('Pago CxC tarjeta', ccGetTextInline('lblPagoCC_Targeta', '$ 0')) +
+            ccTicketLineInline('Pago CxP efectivo', ccGetTextInline('lblPagoCP_Efectivo', '$ 0')) +
+            '<div class="row tot"><span>Total egresos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalEgresos2', '$ 0')) + '</strong></div>' +
+            '</div><div class="sep"></div><div class="section"><h4>Pagos internos</h4>' + ccPagosInternosInline() + '<div class="row tot"><span>Total pagos internos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalPagosInternos', '$ 0')) + '</strong></div>' +
+            '</div><div class="sep"></div><div class="section"><h4>Observacion</h4><div class="note">' + ccEscapeHtmlInline(observacion || 'Sin observacion.') + '</div></div>' +
+            '<div class="sep"></div><div class="center">Impreso: ' + ccEscapeHtmlInline(new Date().toLocaleString('es-CO')) + '</div></body></html>';
+        var win = window.open('', '_blank', 'width=380,height=760');
+        if (!win) return;
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(function () { win.print(); }, 250);
+    };
+
+    var bindPrint = function () {
+        var btnImprimir = document.getElementById('btnImprimir');
+        if (btnImprimir && !btnImprimir.dataset.ticketBound) {
+            btnImprimir.addEventListener('click', window.ccImprimirTicketInline);
+            btnImprimir.dataset.ticketBound = '1';
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindPrint);
+    } else {
+        bindPrint();
+    }
+})();
+</script>
+
 </asp:Content>
+
+
 
 
 
