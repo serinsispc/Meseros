@@ -6,7 +6,14 @@
     <asp:HiddenField ID="hidAccion" runat="server" ClientIDMode="Static" />
     <asp:HiddenField ID="hidArgumento" runat="server" ClientIDMode="Static" />
 
-    <asp:Button ID="btnBridge" runat="server"
+        <div id="appLoading" class="app-loading">
+        <div class="app-loading-card">
+            <div class="app-spinner" aria-hidden="true"></div>
+            <div class="app-loading-title">Procesando cierre...</div>
+            <div class="app-loading-sub">Estamos guardando y preparando el informe final</div>
+        </div>
+    </div>
+<asp:Button ID="btnBridge" runat="server"
     ClientIDMode="Static"
     Style="display:none;"
     OnClick="btn_Click" />
@@ -144,7 +151,50 @@
         .cc-report-table td{ background:#fff; padding:8px 12px; border-left:1px solid #d5dbe5; border-right:1px solid #d5dbe5; border-bottom:1px solid #d5dbe5; }
         .cc-report-table tbody tr:first-child td{ border-top:1px solid #d5dbe5; }
         .cc-report-table td.money{ font-weight:900; white-space:nowrap; }
-        .cc-report-total{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:10px; font-weight:900; color:var(--cc-text); }
+                .cc-report-total{ display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:10px; font-weight:900; color:var(--cc-text); }
+        .app-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 999999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 22, 45, .38);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .app-loading-card {
+            width: min(360px, calc(100% - 32px));
+            background: rgba(255,255,255,.92);
+            border: 1px solid rgba(255,255,255,.55);
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(0,0,0,.20);
+            padding: 18px 18px 16px;
+            text-align: center;
+        }
+        .app-spinner {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 5px solid rgba(37,99,235,.18);
+            border-top-color: #2563eb;
+            border-right-color: #0b3a7e;
+            animation: appSpin .9s linear infinite;
+            margin: 8px auto 10px;
+        }
+        .app-loading-title {
+            font-weight: 800;
+            color: #0f172a;
+            font-size: 1.05rem;
+        }
+        .app-loading-sub {
+            color: rgba(15,23,42,.70);
+            font-size: .92rem;
+            margin-top: 4px;
+        }
+        @keyframes appSpin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 
     <div class="container-fluid cc-wrap">
@@ -183,7 +233,7 @@
                             <div class="ico"><i class="bi bi-safe2"></i></div>
                         </div>
                         <div class="value">
-                            <span id="lblValorBase" runat="server">$ 0</span>
+                            <span id="lblValorBase" runat="server" ClientIDMode="Static">$ 0</span>
                         </div>
                         <div class="text-muted small fw-semibold">valorBase</div>
                     </div>
@@ -196,7 +246,7 @@
                             <div class="ico"><i class="bi bi-arrow-down-circle"></i></div>
                         </div>
                         <div class="value">
-                            <span id="lblTotalIngresos" runat="server">$ 0</span>
+                            <span id="lblTotalIngresos" runat="server" ClientIDMode="Static">$ 0</span>
                         </div>
                         <div class="text-muted small fw-semibold">totalIngresos</div>
                     </div>
@@ -209,7 +259,7 @@
                             <div class="ico"><i class="bi bi-arrow-up-circle"></i></div>
                         </div>
                         <div class="value">
-                            <span id="lblTotalEgresos" runat="server">$ 0</span>
+                            <span id="lblTotalEgresos" runat="server" ClientIDMode="Static">$ 0</span>
                         </div>
                         <div class="text-muted small fw-semibold">totalEgresos</div>
                     </div>
@@ -222,7 +272,7 @@
                             <div class="ico"><i class="bi bi-graph-up-arrow"></i></div>
                         </div>
                         <div class="value">
-                            <span id="lblProducido" runat="server">$ 0</span>
+                            <span id="lblProducido" runat="server" ClientIDMode="Static">$ 0</span>
                         </div>
                         <div class="text-muted small fw-semibold">producido</div>
                     </div>
@@ -240,31 +290,31 @@
                         <h2 class="cc-card-t"><i class="bi bi-person-badge"></i>Datos del Turno</h2>
                         <span class="cc-pill">
                             <i class="bi bi-hash"></i>
-                            Turno: <span id="lblIdTurno" runat="server">0</span>
+                            Turno: <span id="lblIdTurno" runat="server" ClientIDMode="Static">0</span>
                         </span>
                     </div>
                     <div class="cc-card-b">
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-person"></i>Cajero</div>
-                            <div class="v"><span id="lblNombreUsuario" runat="server">—</span></div>
+                            <div class="v"><span id="lblNombreUsuario" runat="server" ClientIDMode="Static">—</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-clock"></i>Apertura</div>
-                            <div class="v"><span id="lblFechaApertura" runat="server">—</span></div>
+                            <div class="v"><span id="lblFechaApertura" runat="server" ClientIDMode="Static">—</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-clock-history"></i>Cierre</div>
-                            <div class="v"><span id="lblFechaCierre" runat="server">—</span></div>
+                            <div class="v"><span id="lblFechaCierre" runat="server" ClientIDMode="Static">—</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-shield-check"></i>Estado Base</div>
                             <div class="v">
-                                <span class="cc-badge ok" id="lblEstadoBaseBadge" runat="server">
-                                    <i class="bi bi-check2-circle"></i><span id="lblEstadoBase" runat="server">—</span>
+                                <span class="cc-badge ok" id="lblEstadoBaseBadge" runat="server" ClientIDMode="Static">
+                                    <i class="bi bi-check2-circle"></i><span id="lblEstadoBase" runat="server" ClientIDMode="Static">—</span>
                                 </span>
                             </div>
                         </div>
@@ -291,7 +341,7 @@
                             <div class="col-12 col-md-4">
                                 <div class="cc-kv mb-0">
                                     <div class="k"><i class="bi bi-cash-coin"></i>Total Efectivo</div>
-                                    <div class="v"><span id="lblTotalEfectivo" runat="server">$ 0</span></div>
+                                    <div class="v"><span id="lblTotalEfectivo" runat="server" ClientIDMode="Static">$ 0</span></div>
                                 </div>
                                 <div class="text-muted small fw-semibold mt-1">totalEfectivo</div>
                             </div>
@@ -307,7 +357,7 @@
                             <div class="col-12 col-md-4">
                                 <div class="cc-kv mb-0">
                                     <div class="k"><i class="bi bi-credit-card"></i>Ventas Tarjeta</div>
-                                    <div class="v"><span id="lblVentasTarjeta" runat="server">$ 0</span></div>
+                                    <div class="v"><span id="lblVentasTarjeta" runat="server" ClientIDMode="Static">$ 0</span></div>
                                 </div>
                                 <div class="text-muted small fw-semibold mt-1">ventasTargeta</div>
                             </div>
@@ -367,22 +417,22 @@
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-cash-coin"></i>Ventas Efectivo</div>
-                            <div class="v"><span id="lblVentasEfectivo" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblVentasEfectivo" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-credit-card"></i>Ventas Tarjeta</div>
-                            <div class="v"><span id="lblVentasTargeta2" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblVentasTargeta2" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-calendar2-check"></i>Ventas Crédito</div>
-                            <div class="v"><span id="lblVentasCredito" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblVentasCredito" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv mb-0">
                             <div class="k"><i class="bi bi-cash-stack"></i>Total Ingresos</div>
-                            <div class="v"><span id="lblTotalIngresos2" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblTotalIngresos2" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                     </div>
@@ -400,27 +450,27 @@
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-bag-dash"></i>Gastos (Efectivo)</div>
-                            <div class="v"><span id="lblGastosEfectivo" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblGastosEfectivo" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-arrow-repeat"></i>Pago CxC (Efectivo)</div>
-                            <div class="v"><span id="lblPagoCC_Efectivo" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblPagoCC_Efectivo" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-credit-card-2-front"></i>Pago CxC (Tarjeta)</div>
-                            <div class="v"><span id="lblPagoCC_Targeta" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblPagoCC_Targeta" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv">
                             <div class="k"><i class="bi bi-box-arrow-up"></i>Pago CxP (Efectivo)</div>
-                            <div class="v"><span id="lblPagoCP_Efectivo" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblPagoCP_Efectivo" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                         <div class="cc-kv mb-0">
                             <div class="k"><i class="bi bi-cash"></i>Total Egresos</div>
-                            <div class="v"><span id="lblTotalEgresos2" runat="server">$ 0</span></div>
+                            <div class="v"><span id="lblTotalEgresos2" runat="server" ClientIDMode="Static">$ 0</span></div>
                         </div>
 
                     </div>
@@ -439,7 +489,7 @@
                         <span class="cc-pill"><i class="bi bi-diagram-3"></i>SP InformePagoInterno_Turno</span>
                     </div>
                     <div class="cc-card-b">
-                        <div id="pnlPagosInternos" runat="server" class="cc-report-wrap">
+                        <div id="pnlPagosInternos" runat="server" ClientIDMode="Static" class="cc-report-wrap">
                             <table class="cc-report-table">
                                 <thead>
                                     <tr>
@@ -460,7 +510,7 @@
                             </table>
                             <div class="cc-report-total">
                                 <span>Total:</span>
-                                <span id="lblTotalPagosInternos" runat="server">$ 0</span>
+                                <span id="lblTotalPagosInternos" runat="server" ClientIDMode="Static">$ 0</span>
                             </div>
                         </div>
                     </div>
@@ -551,8 +601,8 @@
         var observacion = observacionEl && observacionEl.value ? observacionEl.value.trim() : '';
         var html = '' +
             '<!doctype html><html><head><meta charset="utf-8"><title>Ticket cierre caja</title><style>' +
-            '@page{size:80mm auto;margin:0;}html,body{margin:0;padding:0;background:#fff;font-family:Consolas,"Courier New",monospace;color:#000;}body{width:80mm;padding:4mm 3.5mm;box-sizing:border-box;font-size:11px;line-height:1.35;}' +
-            '.center{text-align:center;}.title{font-size:15px;font-weight:700;margin-bottom:2px;}.sub{font-size:11px;margin-bottom:8px;}.sep{border-top:1px dashed #000;margin:7px 0;}.section{margin-top:6px;}.section h4{margin:0 0 4px;font-size:11px;text-transform:uppercase;}.row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin:2px 0;}.row span:first-child{max-width:46mm;}.row strong{font-weight:700;text-align:right;white-space:nowrap;}.tot{font-size:12px;font-weight:700;}.note{white-space:pre-wrap;word-break:break-word;}.empty{font-style:italic;}' +
+            '@page{size:auto;margin:0;}html,body{margin:0;padding:0;background:#fff;font-family:Consolas,"Courier New",monospace;color:#000;}body{width:auto;max-width:none;padding:3mm;box-sizing:border-box;font-size:10px;line-height:1.3;}' +
+            '.center{text-align:center;}.title{font-size:14px;font-weight:700;margin-bottom:2px;}.sub{font-size:10px;margin-bottom:7px;}.sep{border-top:1px dashed #000;margin:6px 0;}.section{margin-top:5px;}.section h4{margin:0 0 4px;font-size:10px;text-transform:uppercase;}.row{display:flex;justify-content:space-between;gap:6px;align-items:flex-start;margin:2px 0;}.row span:first-child{max-width:65%;word-break:break-word;}.row strong{font-weight:700;text-align:right;white-space:nowrap;}.tot{font-size:11px;font-weight:700;}.note{white-space:pre-wrap;word-break:break-word;}.empty{font-style:italic;}' +
             '</style></head><body>' +
             '<div class="center"><div class="title">CIERRE DE CAJA</div><div class="sub">' + ccEscapeHtmlInline(document.title || 'Mi empresa') + '</div></div>' +
             '<div class="sep"></div><div class="section"><h4>Datos del turno</h4>' +
@@ -586,7 +636,7 @@
             '</div><div class="sep"></div><div class="section"><h4>Pagos internos</h4>' + ccPagosInternosInline() + '<div class="row tot"><span>Total pagos internos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalPagosInternos', '$ 0')) + '</strong></div>' +
             '</div><div class="sep"></div><div class="section"><h4>Observacion</h4><div class="note">' + ccEscapeHtmlInline(observacion || 'Sin observacion.') + '</div></div>' +
             '<div class="sep"></div><div class="center">Impreso: ' + ccEscapeHtmlInline(new Date().toLocaleString('es-CO')) + '</div></body></html>';
-        var win = window.open('', '_blank', 'width=380,height=760');
+        var win = window.open('', 'cierreCajaTicket', 'width=380,height=760');
         if (!win) return;
         win.document.open();
         win.document.write(html);
@@ -612,6 +662,10 @@
 </script>
 
 </asp:Content>
+
+
+
+
 
 
 

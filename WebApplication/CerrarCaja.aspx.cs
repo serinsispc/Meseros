@@ -163,6 +163,8 @@ namespace WebApplication
                 return;
             }
 
+            var observacion = ObtenerArgumento(eventArgument, "OBS");
+
             baseCaja.estadoBase = "CERRADA";
             baseCaja.fechaCierre = DateTime.Now;
             baseCaja.idUsuarioCierre = models.vendedor?.id;
@@ -174,11 +176,70 @@ namespace WebApplication
                 return;
             }
 
+            lblEstadoBase.InnerText = baseCaja.estadoBase ?? "-";
+            lblFechaCierre.InnerText = baseCaja.fechaCierre.HasValue ? baseCaja.fechaCierre.Value.ToString("yyyy-MM-dd hh:mm tt") : "Pendiente";
+            lblEstadoBaseBadge.Attributes["class"] = "cc-badge warn";
+
             models.BaseCaja = baseCaja;
             SessionContextHelper.ApplyOperationalContext(Session, models);
-            AlertModerno.SuccessGoTo(this, "OK", "Caja cerrada con exito.", "~/Salir.aspx", false, 1200);
+
+            var script = @"if (window.SerinsisLoading && typeof window.SerinsisLoading.show === 'function') { window.SerinsisLoading.show(); }
+            var txtObs = document.getElementById('txtObsCierre');
+            if (txtObs) { txtObs.value = '" + EscapeJs(observacion) + @"'; }
+            Swal.fire({
+                icon: 'success',
+                title: 'OK',
+                text: 'Caja cerrada con exito.',
+                timer: 900,
+                timerProgressBar: true,
+                showConfirmButton: false
+            }).then(function(){
+                if (typeof window.ccImprimirTicketInline === 'function') {
+                    window.ccImprimirTicketInline();
+                }
+                setTimeout(function(){ window.location.href = '" + ResolveUrl("~/Salir.aspx") + @"'; }, 1200);
+            });";
+
+            System.Web.UI.ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
         }
 
+
+        private string ObtenerArgumento(string raw, string key)
+        {
+            if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrWhiteSpace(key))
+            {
+                return string.Empty;
+            }
+
+            var partes = raw.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var parte in partes)
+            {
+                var idx = parte.IndexOf('=');
+                if (idx <= 0)
+                {
+                    continue;
+                }
+
+                var nombre = parte.Substring(0, idx);
+                if (!string.Equals(nombre, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                return Uri.UnescapeDataString(parte.Substring(idx + 1));
+            }
+
+            return string.Empty;
+        }
+
+        private string EscapeJs(string value)
+        {
+            return (value ?? string.Empty)
+                .Replace("\\", "\\\\")
+                .Replace("'", "\\'")
+                .Replace("\r", string.Empty)
+                .Replace("\n", "\\n");
+        }
         private async Task<List<InformePagoInternoTurnoItem>> ConsultarPagosInternosTurno()
         {
             try
@@ -249,6 +310,8 @@ namespace WebApplication
 
     }
 }
+
+
 
 
 
