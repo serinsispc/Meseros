@@ -3,9 +3,10 @@
 @using Microsoft.AspNetCore.WebUtilities
 @inject NavigationManager Navigation
 @inject LoginDataService LoginDataService
-@inject OperationalContextStore ContextStore
+@inject SessionStateService SessionStateService
 
 @page "/"
+@layout Meseros.Blazor.Components.Layout.LoginLayout
 
 <PageTitle>Login</PageTitle>
 
@@ -124,7 +125,7 @@
     {
         _loading = true;
         _errorMessage = string.Empty;
-        ContextStore.Clear();
+        await SessionStateService.ClearAsync();
 
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         var query = QueryHelpers.ParseQuery(uri.Query);
@@ -204,7 +205,7 @@
             return;
         }
 
-        CompleteLogin(result);
+        await CompleteLoginAsync(result);
     }
 
     private void CloseBaseModal()
@@ -255,12 +256,12 @@
         _showBaseModal = false;
         _baseValue = string.Empty;
         _pendingLogin = null;
-        CompleteLogin(result);
+        await CompleteLoginAsync(result);
     }
 
-    private void CompleteLogin(LoginResult result)
+    private async Task CompleteLoginAsync(LoginResult result)
     {
-        ContextStore.Set(result.Db, result.VendedorId, result.VendedorNombre, result.TokenEmpresa, result.BaseCajaId, result.CajaUsuarioId);
+        await SessionStateService.SaveAsync(result.Db, result.VendedorId, result.VendedorNombre, result.TokenEmpresa, result.BaseCajaId, result.CajaUsuarioId);
         Navigation.NavigateTo($"/caja?db={Uri.EscapeDataString(result.Db)}");
     }
 

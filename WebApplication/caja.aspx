@@ -57,6 +57,20 @@
             cursor: not-allowed;
         }
 
+        .cuenta-detalle-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, .08);
+            border: 1px solid rgba(37, 99, 235, .14);
+            color: #1d4ed8;
+            font-size: .78rem;
+            font-weight: 800;
+        }
+
         .app-loading {
             position: fixed;
             inset: 0;
@@ -318,6 +332,10 @@
                                 <%= TextoBotonVentas() %>
                             </button>
 
+                            <a href="PGastos.aspx" class="btn-top btn-domicilio text-decoration-none">
+                                <i class="bi bi-wallet2"></i>
+                                Gastos
+                            </a>
                             <button type="button" class="btn-top btn-cerrar-caja" onclick="return ConfirmarCerrarCaja(this)">
                                 <i class="bi bi-lock-fill"></i>
                                 Cerrar caja
@@ -765,7 +783,7 @@
                                     <asp:Repeater runat="server" ID="rpDetalleCaja">
                                         <ItemTemplate>
                                             <div class="col-6 col-xl-12 item-col">
-                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>" data-detalle-nombre="<%# Eval("nombreProducto") %>" data-detalle-nota="<%# Eval("adiciones") %>" data-detalle-cantidad="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" data-detalle-precio="<%# Convert.ToDecimal(Eval("precioVenta")).ToString(System.Globalization.CultureInfo.InvariantCulture) %>">
+                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>" data-detalle-nombre="<%# Eval("nombreProducto") %>" data-detalle-nota="<%# Eval("adiciones") %>" data-detalle-categoria-id="<%# Eval("idCategoria") %>" data-detalle-cantidad="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" data-detalle-precio="<%# Convert.ToDecimal(Eval("precioVenta")).ToString(System.Globalization.CultureInfo.InvariantCulture) %>">
                                                     <div class="prod-top-detalle">
                                                         <div class="prod-nombre"><%# Eval("nombreProducto") %></div>
                                                         <div class="prod-precio"><%# FormatearMoneda(Eval("precioVenta")) %></div>
@@ -802,6 +820,11 @@
                                                         <button type="button" class="act-btn" aria-label="Editar" title="Editar producto" onclick="return editarNombreDetalle(this);">
                                                             <i class="bi bi-pencil-square"></i>
                                                         </button>
+                                                    </div>
+
+                                                    <div class="cuenta-detalle-chip <%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("nombreCuenta"))) ? "d-none" : string.Empty %>">
+                                                        <i class="bi bi-person-badge"></i>
+                                                        <span><%# Eval("nombreCuenta") %></span>
                                                     </div>
 
                                                     <div class="prod-bottom">
@@ -1137,6 +1160,7 @@
 
     <script>
         window.ListaClientesDomicilio = <%= ClienteDomiciliosJson() %>;
+        window.CajaAdicionesCatalogo = <%= AdicionesCatalogoJson() %>;
     </script>
 
     <% if (models.AbrirModalDomicilio) { %>

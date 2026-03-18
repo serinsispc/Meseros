@@ -1,0 +1,50 @@
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Navigation
+@inject Meseros.Blazor.Services.SessionStateService SessionStateService
+
+@if (_checking)
+{
+    <div class="session-check-shell">
+        <div class="loading-box">
+            <div class="login-loading-spinner"></div>
+            <strong>Validando sesion...</strong>
+        </div>
+    </div>
+}
+else if (_authorized)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _checking = true;
+    private bool _authorized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _authorized = await SessionStateService.RestoreAsync();
+        _checking = false;
+
+        if (!_authorized)
+        {
+            var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+            var query = QueryHelpers.ParseQuery(uri.Query);
+            var db = query.TryGetValue("db", out var dbValue) ? dbValue.ToString() : string.Empty;
+            var target = string.IsNullOrWhiteSpace(db)
+                ? "/"
+                : $"/?db={Uri.EscapeDataString(db)}";
+
+            Navigation.NavigateTo(target, forceLoad: false);
+            return;
+        }
+
+        StateHasChanged();
+    }
+}

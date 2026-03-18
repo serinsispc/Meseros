@@ -171,10 +171,8 @@
                         <div class="col-12 col-md-4">
                             <label class="form-label small text-muted mb-1">Bolsillo</label>
                             <!-- Aquí puedes llenar con tus bolsillos -->
-                            <asp:DropDownList ID="ddlBolsillo" runat="server" CssClass="form-select">
+                            <asp:DropDownList ID="ddlBolsillo" runat="server" CssClass="form-select" AppendDataBoundItems="true">
                                 <asp:ListItem Text="Selecciona..." Value="" />
-                                <asp:ListItem Text="CAJA MENOR" Value="1" />
-                                <asp:ListItem Text="BANCO" Value="2" />
                             </asp:DropDownList>
                         </div>
 

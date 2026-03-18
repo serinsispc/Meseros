@@ -64,6 +64,7 @@ namespace WebApplication
             if (turnoCaja != null)
             {
                 PintarTurnoDesdeVista(turnoCaja);
+                BindPagosInternosReporte();
                 return;
             }
 
@@ -73,7 +74,7 @@ namespace WebApplication
             var ventasValidas = ventas.Where(x => !EsVentaAnulada(x)).ToList();
             var totalIngresos = ventasValidas.Sum(x => x.total_A_Pagar);
             var totalEfectivo = ventasValidas.Sum(x => x.abonoEfectivo);
-            var ventasTarjeta = ventasValidas.Sum(x => x.abonoTarjeta);
+            var ventasTarjeta = ObtenerTotalPagosNoEfectivo(ventasValidas.Sum(x => x.abonoTarjeta));
             var ventasCredito = ventasValidas.Sum(x => x.totalPendienteVenta);
             var totalEgresos = 0m;
             var producido = totalIngresos - totalEgresos;
@@ -100,15 +101,15 @@ namespace WebApplication
             lblPagoCC_Targeta.InnerText = FormatearMoneda(0);
             lblPagoCP_Efectivo.InnerText = FormatearMoneda(0);
             lblTotalEgresos2.InnerText = FormatearMoneda(totalEgresos);
+            BindPagosInternosReporte();
         }
 
         private void PintarTurnoDesdeVista(V_TurnosCaja turno)
         {
             var totalEfectivo = ObtenerTotalPagoInterno("EFECTIVO", turno.totalEfectivo);
-            var ventasTarjeta = ObtenerTotalPagoInterno("TARJETA", turno.ventasTargeta);
-            var otrosPagosInternos = ObtenerTotalPagosInternosVarios();
+            var ventasTarjeta = ObtenerTotalPagosNoEfectivo(turno.ventasTargeta);
             var efectivoMasBase = turno.efectivoMasBase > 0 ? turno.efectivoMasBase : (baseCaja.valorBase + totalEfectivo);
-            var totalIngresos = turno.totalIngresos > 0 ? turno.totalIngresos : (totalEfectivo + ventasTarjeta + otrosPagosInternos + turno.ventasCredito);
+            var totalIngresos = turno.totalIngresos > 0 ? turno.totalIngresos : (totalEfectivo + ventasTarjeta + turno.ventasCredito);
             var producido = turno.producido > 0 ? turno.producido : (totalIngresos - turno.totalEgresos);
 
             lblValorBase.InnerText = FormatearMoneda(turno.valorBase);
@@ -206,17 +207,15 @@ namespace WebApplication
             return item != null ? item.total : fallback;
         }
 
-        private decimal ObtenerTotalPagosInternosVarios()
+        private decimal ObtenerTotalPagosNoEfectivo(decimal fallback)
         {
             if (pagosInternosTurno == null || pagosInternosTurno.Count == 0)
             {
-                return 0m;
+                return fallback;
             }
 
             return pagosInternosTurno
-                .Where(x =>
-                    !string.Equals(x.nombreMPI, "EFECTIVO", StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(x.nombreMPI, "TARJETA", StringComparison.OrdinalIgnoreCase))
+                .Where(x => !string.Equals(x.nombreMPI, "EFECTIVO", StringComparison.OrdinalIgnoreCase))
                 .Sum(x => x.total);
         }
 
@@ -246,6 +245,8 @@ namespace WebApplication
         {
             return valor.ToString("C0");
         }
+
+
     }
 }
 

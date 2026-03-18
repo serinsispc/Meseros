@@ -174,6 +174,11 @@ namespace WebApplication
             var lista = models?.clienteDomicilios ?? new List<ClienteDomicilio>();
             return JsonConvert.SerializeObject(lista).Replace("</", "<\\/");
         }
+        protected string AdicionesCatalogoJson()
+        {
+            var lista = models?.adiciones ?? new List<V_CatagoriaAdicion>();
+            return JsonConvert.SerializeObject(lista).Replace("</", "<\\/");
+        }
         protected async void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)

@@ -1,4 +1,4 @@
-﻿// con esta funcion llamamos el boton oculto que hace puente con el codigo C#
+// con esta funcion llamamos el boton oculto que hace puente con el codigo C#
 function EjecutarAccion(accion, argumento) {
     document.getElementById('hidAccion').value = accion || '';
     document.getElementById('hidArgumento').value = argumento || '';
@@ -44,21 +44,25 @@ function ccActualizarDiferencia() {
 
     var esperado = ccParseMoney(totalEl.textContent || totalEl.innerText || '0');
     var contado = ccParseMoney(input.value || '0');
-    var diferencia = contado - esperado;
-    var abs = Math.abs(diferencia);
+    var diferencia = esperado - contado;
     var icon = badgeEl.querySelector('i');
+    var diferenciaTexto = ccFormatMoney(Math.abs(diferencia));
 
-    diffEl.textContent = ccFormatMoney(abs);
+    if (diferencia < 0) {
+        diferenciaTexto = '- ' + diferenciaTexto;
+    }
+
+    diffEl.textContent = diferenciaTexto;
     badgeEl.classList.remove('ok', 'warn', 'bad');
 
     if (icon) {
         icon.className = 'bi';
     }
 
-    if (abs < 1) {
+    if (Math.abs(diferencia) < 1) {
         badgeEl.classList.add('ok');
         if (icon) icon.classList.add('bi-check2-circle');
-    } else if (diferencia < 0) {
+    } else if (diferencia > 0) {
         badgeEl.classList.add('bad');
         if (icon) icon.classList.add('bi-arrow-down-circle');
     } else {

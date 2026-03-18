@@ -483,11 +483,65 @@ function obtenerCardDetalle(el) {
     return el ? el.closest('.producto-item-detalle') : null;
 }
 
+function escapeHtml(value) {
+    return (value || '').toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function normalizarListaNotas(texto) {
+    return (texto || '')
+        .split(';')
+        .map(function (item) { return item.trim(); })
+        .filter(function (item) { return item.length > 0; });
+}
+
+function obtenerAdicionesPredeterminadas(idCategoria) {
+    const categoriaId = parseInt(idCategoria || '0', 10) || 0;
+    const catalogo = Array.isArray(window.CajaAdicionesCatalogo) ? window.CajaAdicionesCatalogo : [];
+
+    return catalogo
+        .filter(function (item) {
+            return (parseInt(item.idCategoria || '0', 10) || 0) === categoriaId;
+        })
+        .map(function (item) {
+            return (item.nombreAdicion || '').toString().trim();
+        })
+        .filter(function (item, index, arr) {
+            return item.length > 0 && arr.indexOf(item) === index;
+        });
+}
+
+function construirHtmlAdicionesPredeterminadas(adiciones, notaActual) {
+    if (!adiciones.length) {
+        return '<div class="text-muted small mb-2">Este producto no tiene adiciones predeterminadas configuradas.</div>';
+    }
+
+    const seleccionadas = new Set(normalizarListaNotas(notaActual).map(function (item) {
+        return item.toLowerCase();
+    }));
+
+    return [
+        '<div class="mb-2 text-start fw-semibold">Adiciones predeterminadas</div>',
+        '<div id="swalAdicionesPredeterminadas" class="d-flex flex-wrap gap-2 mb-3">',
+        adiciones.map(function (adicion) {
+            const activa = seleccionadas.has(adicion.toLowerCase());
+            return '<button type="button" class="btn btn-sm ' + (activa ? 'btn-primary' : 'btn-outline-primary') + ' js-adicion-preset" data-adicion="' + escapeHtml(adicion) + '">' + escapeHtml(adicion) + '</button>';
+        }).join(''),
+        '</div>'
+    ].join('');
+}
+
 function editarNotaDetalle(btn) {
     const card = obtenerCardDetalle(btn);
     if (!card) return false;
     const id = card.dataset.detalleId || '';
     const notaActual = card.dataset.detalleNota && card.dataset.detalleNota !== '--' ? card.dataset.detalleNota : '';
+    const idCategoria = card.dataset.detalleCategoriaId || '';
+    const adicionesPredeterminadas = obtenerAdicionesPredeterminadas(idCategoria);
 
     if (!window.Swal) {
         const nota = prompt('Escriba la nota del detalle', notaActual);
@@ -498,14 +552,79 @@ function editarNotaDetalle(btn) {
 
     Swal.fire({
         title: 'Notas del detalle',
-        input: 'text',
-        inputValue: notaActual,
-        inputLabel: 'Nota o adición',
-        inputPlaceholder: 'Escriba la nota',
+        html: [
+            construirHtmlAdicionesPredeterminadas(adicionesPredeterminadas, notaActual),
+            '<label for="swalNotaDetalle" class="form-label d-block text-start">Nota o adicion</label>',
+            '<textarea id="swalNotaDetalle" class="swal2-textarea m-0" style="display:block;width:100%;max-width:100%;min-width:100%;min-height:140px;box-sizing:border-box;" placeholder="Escriba la nota">' + escapeHtml(notaActual) + '</textarea>',
+            '<div class="d-flex justify-content-end mt-2"><button type="button" id="swalNotaDetalleLimpiar" class="btn btn-outline-danger btn-sm">Borrar</button></div>'
+        ].join(''),
         showCancelButton: true,
         confirmButtonText: 'Guardar',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#2563eb'
+        confirmButtonColor: '#2563eb',
+        focusConfirm: false,
+        didOpen: function () {
+            const textarea = document.getElementById('swalNotaDetalle');
+            const presetButtons = Array.from(document.querySelectorAll('.js-adicion-preset'));
+            const clearButton = document.getElementById('swalNotaDetalleLimpiar');
+
+            function getNotasActuales() {
+                return normalizarListaNotas(textarea ? textarea.value : '');
+            }
+
+            function setNotasActuales(items) {
+                if (!textarea) return;
+                textarea.value = items.join('; ');
+            }
+
+            if (clearButton) {
+                clearButton.addEventListener('click', function () {
+                    if (textarea) {
+                        textarea.value = '';
+                        textarea.focus();
+                    }
+
+                    presetButtons.forEach(function (presetBtn) {
+                        presetBtn.classList.remove('btn-primary');
+                        presetBtn.classList.add('btn-outline-primary');
+                    });
+                });
+            }
+
+            presetButtons.forEach(function (presetBtn) {
+                presetBtn.addEventListener('click', function () {
+                    const adicion = (presetBtn.dataset.adicion || '').trim();
+                    if (!adicion) return;
+
+                    const actuales = getNotasActuales();
+                    const indice = actuales.findIndex(function (item) {
+                        return item.toLowerCase() === adicion.toLowerCase();
+                    });
+
+                    if (indice >= 0) {
+                        actuales.splice(indice, 1);
+                        presetBtn.classList.remove('btn-primary');
+                        presetBtn.classList.add('btn-outline-primary');
+                    } else {
+                        actuales.push(adicion);
+                        presetBtn.classList.remove('btn-outline-primary');
+                        presetBtn.classList.add('btn-primary');
+                    }
+
+                    setNotasActuales(actuales);
+                    if (textarea) textarea.focus();
+                });
+            });
+
+            if (textarea) {
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }
+        },
+        preConfirm: function () {
+            const textarea = document.getElementById('swalNotaDetalle');
+            return textarea ? textarea.value || '' : '';
+        }
     }).then(function (result) {
         if (result.isConfirmed) {
             EjecutarAccion('GuardarNotaDetalle', BuildArgs({ ID: id, NOTA: result.value || '' }), btn);
@@ -513,7 +632,6 @@ function editarNotaDetalle(btn) {
     });
     return false;
 }
-
 function dividirDetalle(btn) {
     const card = obtenerCardDetalle(btn);
     if (!card) return false;

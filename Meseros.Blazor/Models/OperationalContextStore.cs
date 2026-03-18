@@ -9,6 +9,11 @@ public sealed class OperationalContextStore
     public int BaseCajaId { get; private set; }
     public int CajaUsuarioId { get; private set; }
 
+    public bool IsAuthenticated =>
+        !string.IsNullOrWhiteSpace(Db) &&
+        VendedorId > 0 &&
+        !string.IsNullOrWhiteSpace(VendedorNombre);
+
     public void Set(string db, int vendedorId, string vendedorNombre, string tokenEmpresa, int baseCajaId, int cajaUsuarioId)
     {
         Db = db ?? string.Empty;

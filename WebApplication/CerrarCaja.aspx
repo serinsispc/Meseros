@@ -299,7 +299,7 @@
                             <div class="col-12 col-md-4">
                                 <div class="cc-kv mb-0">
                                     <div class="k"><i class="bi bi-plus-circle"></i>Efectivo + Base</div>
-                                    <div class="v"><span id="lblEfectivoMasBase" runat="server">$ 0</span></div>
+                                    <div class="v"><span id="lblEfectivoMasBase" runat="server" ClientIDMode="Static">$ 0</span></div>
                                 </div>
                                 <div class="text-muted small fw-semibold mt-1">efectivoMasBase</div>
                             </div>
@@ -321,9 +321,6 @@
                                 <label class="small fw-bold text-muted mb-1 d-block">Efectivo físico contado (opcional)</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control cc-input" id="txtEfectivoFisico" placeholder="$ 0" oninput="ccActualizarDiferencia()" onkeyup="ccActualizarDiferencia()" onchange="ccActualizarDiferencia()" />
-                                    <button type="button" class="btn btn-outline-primary" id="btnCalcularDiferencia" onclick="ccActualizarDiferencia(); return false;" title="Calcular diferencia">
-                                        <i class="bi bi-calculator"></i>
-                                    </button>
                                 </div>
                                 <div class="text-muted small fw-semibold mt-1">
                                     (Esto es para validar contra “Efectivo + Base”)

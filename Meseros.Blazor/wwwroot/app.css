@@ -456,3 +456,14 @@ h1:focus {
         min-height: auto;
     }
 }
+
+.login-layout-shell {
+    min-height: 100vh;
+}
+
+.session-check-shell {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+}

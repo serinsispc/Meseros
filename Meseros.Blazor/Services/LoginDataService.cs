@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.SqlClient;
+using System.Text;
 using System.Text.Json;
 using Meseros.Blazor.Models;
 
@@ -68,7 +69,7 @@ public sealed class LoginDataService
             reader => new ImagenRecord
             {
                 id = reader.GetGuid(reader.GetOrdinal("id")),
-                imagenBytes = reader["imagenBytes"] == DBNull.Value ? null : (byte[])reader["imagenBytes"]
+                imagenBytes = ReadImageBytes(reader, "imagenBytes")
             },
             new SqlParameter("@id", sede.guidSede));
 
@@ -223,6 +224,40 @@ public sealed class LoginDataService
             BaseCajaId = baseCajaId,
             TokenEmpresa = request.TokenEmpresa
         };
+    }
+
+    private static byte[]? ReadImageBytes(SqlDataReader reader, string columnName)
+    {
+        var value = reader[columnName];
+        if (value == DBNull.Value || value is null)
+        {
+            return null;
+        }
+
+        if (value is byte[] bytes)
+        {
+            return bytes;
+        }
+
+        if (value is string text)
+        {
+            text = text.Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            try
+            {
+                return Convert.FromBase64String(text);
+            }
+            catch (FormatException)
+            {
+                return Encoding.UTF8.GetBytes(text);
+            }
+        }
+
+        return null;
     }
 
     private async Task<CrudResponse?> ExecuteCrudAsync<T>(string db, T payload, int funcion)
