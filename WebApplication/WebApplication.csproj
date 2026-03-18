@@ -60,6 +60,7 @@
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
@@ -266,8 +267,10 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\EmailCierreCajaHelper.cs" />
     <Compile Include="Helpers\EventArgumentParser.cs" />
     <Compile Include="Helpers\SessionContextHelper.cs" />
+    <Compile Include="Helpers\WhatsAppMetaHelper.cs" />
     <Compile Include="Helpers\ModalHelper.cs" />
     <Compile Include="HVentas.aspx.cs">
       <DependentUpon>HVentas.aspx</DependentUpon>
@@ -380,3 +383,6 @@
   </Target>
   -->
 </Project>
+
+
+

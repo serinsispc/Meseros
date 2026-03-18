@@ -182,6 +182,37 @@ namespace WebApplication
 
             models.BaseCaja = baseCaja;
             SessionContextHelper.ApplyOperationalContext(Session, models);
+            pagosInternosTurno = await ConsultarPagosInternosTurno();
+
+            var cierreData = ConstruirDatosWhatsApp(observacion);
+            var cierreMessage = "Caja cerrada con exito.";
+            try
+            {
+                var whatsApp = new WhatsAppMetaHelper();
+                var envioWhatsApp = await whatsApp.EnviarCierreCajaAsync(db, models, cierreData);
+                if (!string.IsNullOrWhiteSpace(envioWhatsApp?.Message))
+                {
+                    cierreMessage += " " + envioWhatsApp.Message;
+                }
+            }
+            catch (Exception ex)
+            {
+                cierreMessage += " WhatsApp pendiente: " + ex.Message;
+            }
+
+            try
+            {
+                var email = new EmailCierreCajaHelper();
+                var envioCorreo = await email.EnviarCierreCajaAsync(db, ConstruirDatosCorreo(cierreData));
+                if (!string.IsNullOrWhiteSpace(envioCorreo?.Message))
+                {
+                    cierreMessage += " " + envioCorreo.Message;
+                }
+            }
+            catch (Exception ex)
+            {
+                cierreMessage += " Correo pendiente: " + ex.Message;
+            }
 
             var script = @"if (window.SerinsisLoading && typeof window.SerinsisLoading.show === 'function') { window.SerinsisLoading.show(); }
             var txtObs = document.getElementById('txtObsCierre');
@@ -189,15 +220,15 @@ namespace WebApplication
             Swal.fire({
                 icon: 'success',
                 title: 'OK',
-                text: 'Caja cerrada con exito.',
-                timer: 900,
+                text: '" + EscapeJs(cierreMessage) + @"',
+                timer: 2600,
                 timerProgressBar: true,
                 showConfirmButton: false
             }).then(function(){
                 if (typeof window.ccImprimirTicketInline === 'function') {
                     window.ccImprimirTicketInline();
                 }
-                setTimeout(function(){ window.location.href = '" + ResolveUrl("~/Salir.aspx") + @"'; }, 1200);
+                setTimeout(function(){ window.location.href = '" + ResolveUrl("~/Salir.aspx") + @"'; }, 2800);
             });";
 
             System.Web.UI.ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
@@ -239,6 +270,83 @@ namespace WebApplication
                 .Replace("'", "\\'")
                 .Replace("\r", string.Empty)
                 .Replace("\n", "\\n");
+        }
+
+        private CierreCajaWhatsAppData ConstruirDatosWhatsApp(string observacion)
+        {
+            return new CierreCajaWhatsAppData
+            {
+                NombreCliente = models?.Sede?.nombreSede ?? "Cliente",
+                NombreCajero = lblNombreUsuario?.InnerText ?? "-",
+                FechaApertura = lblFechaApertura?.InnerText ?? "-",
+                FechaCierre = lblFechaCierre?.InnerText ?? "-",
+                ValorBase = ParseMoney(lblValorBase?.InnerText),
+                VentasEfectivo = ParseMoney(lblVentasEfectivo?.InnerText),
+                VentasTarjeta = ParseMoney(lblVentasTargeta2?.InnerText),
+                VentasCredito = ParseMoney(lblVentasCredito?.InnerText),
+                TotalEfectivo = ParseMoney(lblTotalEfectivo?.InnerText),
+                EfectivoMasBase = ParseMoney(lblEfectivoMasBase?.InnerText),
+                PagoCcEfectivo = ParseMoney(lblPagoCC_Efectivo?.InnerText),
+                PagoCcTarjeta = ParseMoney(lblPagoCC_Targeta?.InnerText),
+                PagoCpEfectivo = ParseMoney(lblPagoCP_Efectivo?.InnerText),
+                GastosEfectivo = ParseMoney(lblGastosEfectivo?.InnerText),
+                TotalIngresos = ParseMoney(lblTotalIngresos2?.InnerText),
+                TotalEgresos = ParseMoney(lblTotalEgresos2?.InnerText),
+                Producido = ParseMoney(lblProducido?.InnerText),
+                EstadoBase = lblEstadoBase?.InnerText ?? "-",
+                Observacion = observacion
+            };
+        }
+        private CierreCajaEmailData ConstruirDatosCorreo(CierreCajaWhatsAppData cierreData)
+        {
+            return new CierreCajaEmailData
+            {
+                NombreCliente = cierreData.NombreCliente,
+                IdTurno = baseCaja?.id ?? 0,
+                NombreCajero = cierreData.NombreCajero,
+                FechaApertura = cierreData.FechaApertura,
+                FechaCierre = cierreData.FechaCierre,
+                Observacion = cierreData.Observacion,
+                EstadoBase = cierreData.EstadoBase,
+                FechaGeneracion = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt"),
+                ValorBase = cierreData.ValorBase,
+                VentasEfectivo = cierreData.VentasEfectivo,
+                VentasTarjeta = cierreData.VentasTarjeta,
+                VentasCredito = cierreData.VentasCredito,
+                TotalEfectivo = cierreData.TotalEfectivo,
+                EfectivoMasBase = cierreData.EfectivoMasBase,
+                PagoCcEfectivo = cierreData.PagoCcEfectivo,
+                PagoCcTarjeta = cierreData.PagoCcTarjeta,
+                PagoCpEfectivo = cierreData.PagoCpEfectivo,
+                GastosEfectivo = cierreData.GastosEfectivo,
+                TotalIngresos = cierreData.TotalIngresos,
+                TotalEgresos = cierreData.TotalEgresos,
+                Producido = cierreData.Producido,
+                TotalPagosInternos = pagosInternosTurno?.Sum(x => x.total) ?? 0m,
+                PagosInternos = pagosInternosTurno?.Select(x => new InformePagoInternoTurnoItem { nombreMPI = x.nombreMPI, total = x.total }).ToList() ?? new List<InformePagoInternoTurnoItem>()
+            };
+        }
+
+        private decimal ParseMoney(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return 0m;
+            }
+
+            var cleaned = value
+                .Replace("$", string.Empty)
+                .Replace(".", string.Empty)
+                .Replace(",", ".")
+                .Trim();
+
+            return decimal.TryParse(
+                cleaned,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var parsed)
+                ? parsed
+                : 0m;
         }
         private async Task<List<InformePagoInternoTurnoItem>> ConsultarPagosInternosTurno()
         {
@@ -310,6 +418,10 @@ namespace WebApplication
 
     }
 }
+
+
+
+
 
 
 
