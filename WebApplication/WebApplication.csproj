@@ -267,9 +267,11 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\EmailAperturaCajaHelper.cs" />
     <Compile Include="Helpers\EmailCierreCajaHelper.cs" />
     <Compile Include="Helpers\EventArgumentParser.cs" />
     <Compile Include="Helpers\SessionContextHelper.cs" />
+    <Compile Include="Helpers\WhatsAppMetaAperturaHelper.cs" />
     <Compile Include="Helpers\WhatsAppMetaHelper.cs" />
     <Compile Include="Helpers\ModalHelper.cs" />
     <Compile Include="HVentas.aspx.cs">
@@ -383,6 +385,8 @@
   </Target>
   -->
 </Project>
+
+
 
 
 

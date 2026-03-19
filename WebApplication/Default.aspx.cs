@@ -241,7 +241,66 @@ namespace WebApplication
 
             models.BaseCaja = baseNueva;
             SessionContextHelper.ApplyOperationalContext(Session, models);
-            AlertModerno.SuccessGoTo(this, "Ok", "Caja aperturada correctamente.", "~/caja.aspx", false, 1200);
+
+            var aperturaData = ConstruirDatosApertura(baseNueva, usuarioCaja);
+            var mensaje = "Caja aperturada correctamente.";
+
+            try
+            {
+                var whatsApp = new WhatsAppMetaAperturaHelper();
+                var envioWhatsApp = await whatsApp.EnviarAperturaCajaAsync(db, models, aperturaData);
+                if (!string.IsNullOrWhiteSpace(envioWhatsApp?.Message))
+                {
+                    mensaje += " " + envioWhatsApp.Message;
+                }
+            }
+            catch (Exception ex)
+            {
+                mensaje += " WhatsApp pendiente: " + ex.Message;
+            }
+
+            try
+            {
+                var email = new EmailAperturaCajaHelper();
+                var envioCorreo = await email.EnviarAperturaCajaAsync(db, ConstruirCorreoApertura(aperturaData, baseNueva));
+                if (!string.IsNullOrWhiteSpace(envioCorreo?.Message))
+                {
+                    mensaje += " " + envioCorreo.Message;
+                }
+            }
+            catch (Exception ex)
+            {
+                mensaje += " Correo pendiente: " + ex.Message;
+            }
+
+            AlertModerno.SuccessGoTo(this, "Ok", mensaje, "~/caja.aspx", false, 1800);
+        }
+
+        private AperturaCajaWhatsAppData ConstruirDatosApertura(BaseCaja baseNueva, R_VendedorUsuario usuarioCaja)
+        {
+            var fecha = baseNueva.fechaApertura;
+            return new AperturaCajaWhatsAppData
+            {
+                NombreCajero = models?.vendedor?.nombreVendedor ?? "-",
+                NombreCliente = models?.Sede?.nombreSede ?? "Cliente",
+                FechaApertura = fecha.ToString("dd-MM-yyyy"),
+                HoraApertura = fecha.ToString("hh:mm tt", new CultureInfo("es-CO")).Replace("a. m.", "A.M").Replace("p. m.", "P.M"),
+                ValorBase = baseNueva.valorBase
+            };
+        }
+
+        private AperturaCajaEmailData ConstruirCorreoApertura(AperturaCajaWhatsAppData data, BaseCaja baseNueva)
+        {
+            return new AperturaCajaEmailData
+            {
+                IdTurno = baseNueva?.id ?? 0,
+                NombreCajero = data.NombreCajero,
+                NombreCliente = data.NombreCliente,
+                FechaApertura = data.FechaApertura,
+                HoraApertura = data.HoraApertura,
+                ValorBase = data.ValorBase,
+                FechaGeneracion = DateTime.Now.ToString("yyyy-MM-dd hh:mm tt")
+            };
         }
 
         private void AbrirModalBase()
@@ -250,3 +309,6 @@ namespace WebApplication
         }
     }
 }
+
+
+
