@@ -33,6 +33,15 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.HiddenField hfIdVentaActual;
 
         /// <summary>
+        /// Control lblTotalGrande.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl lblTotalGrande;
+
+        /// <summary>
         /// Control txtSubTotal.
         /// </summary>
         /// <remarks>
@@ -51,6 +60,15 @@ namespace WebApplication
         protected global::System.Web.UI.HtmlControls.HtmlInputText txtIVA;
 
         /// <summary>
+        /// Control txtPropina.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputText txtPropina;
+
+        /// <summary>
         /// Control txtDescuento.
         /// </summary>
         /// <remarks>
@@ -67,24 +85,6 @@ namespace WebApplication
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.HtmlControls.HtmlInputText txtRazonDescuento;
-
-        /// <summary>
-        /// Control txtPropina.
-        /// </summary>
-        /// <remarks>
-        /// Campo generado automáticamente.
-        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlInputText txtPropina;
-
-        /// <summary>
-        /// Control lblTotalGrande.
-        /// </summary>
-        /// <remarks>
-        /// Campo generado automáticamente.
-        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
-        /// </remarks>
-        protected global::System.Web.UI.HtmlControls.HtmlGenericControl lblTotalGrande;
 
         /// <summary>
         /// Control ddlMedioPago.

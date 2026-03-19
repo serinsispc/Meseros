@@ -7,7 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Web;
 using System.Web.UI;
+using System.Web.Services;
 using RFacturacionElectronicaDIAN.Entities.Request;
 using RFacturacionElectronicaDIAN.Entities.Response;
 using RFacturacionElectronicaDIAN.Factories;
@@ -524,6 +526,81 @@ namespace WebApplication
             await SeleccionarClienteFactura(db, idClienteGuardado.ToString());
         }
 
+        [WebMethod(EnableSession = true)]
+        public static string BuscarNitClienteAjax(string nit)
+        {
+            try
+            {
+                nit = (nit ?? string.Empty).Trim();
+                if (string.IsNullOrWhiteSpace(nit))
+                {
+                    return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("Debes escribir un documento para buscar.", ClienteBusquedaAjaxData.Empty(nit)));
+                }
+
+                var session = HttpContext.Current == null ? null : HttpContext.Current.Session;
+                var models = session == null ? null : SessionContextHelper.LoadModels(session);
+                var db = Convert.ToString((session == null ? null : session[SessionContextHelper.DbKey]) ?? models?.db ?? string.Empty);
+                if (string.IsNullOrWhiteSpace(db))
+                {
+                    return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("La sesión expiró o no tiene contexto de base de datos.", ClienteBusquedaAjaxData.Empty(nit)));
+                }
+                var clientes = ClientesControler.ListaClientes(db).GetAwaiter().GetResult() ?? new List<Clientes>();
+                var cliente = clientes.FirstOrDefault(x => (x.identificationNumber ?? string.Empty) == nit);
+                var encontradoEnBase = cliente != null;
+
+                if (cliente == null)
+                {
+                    int nitNumero;
+                    if (!int.TryParse(nit, out nitNumero))
+                    {
+                        return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("El documento debe ser numérico para consultar en la DIAN.", ClienteBusquedaAjaxData.Empty(nit)));
+                    }
+
+                    var acquirerResponse = ConsultarNitDianStatic(nitNumero);
+                    if (acquirerResponse == null || string.IsNullOrWhiteSpace(acquirerResponse.name))
+                    {
+                        return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.", ClienteBusquedaAjaxData.Empty(nit)));
+                    }
+
+                    cliente = new Clientes
+                    {
+                        id = 0,
+                        typeDocumentIdentification_id = 6,
+                        identificationNumber = nit,
+                        typeOrganization_id = 2,
+                        municipality_id = 605,
+                        typeRegime_id = 2,
+                        typeLiability_id = 29,
+                        typeTaxDetail_id = 5,
+                        nameCliente = acquirerResponse.name,
+                        tradeName = "-",
+                        phone = "0",
+                        adress = "-",
+                        email = acquirerResponse.email,
+                        merchantRegistration = "0",
+                        idTipoTercero = 1
+                    };
+                }
+
+                return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Ok(ClienteBusquedaAjaxData.FromCliente(cliente, encontradoEnBase)));
+            }
+            catch (Exception ex)
+            {
+                return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("No fue posible consultar el NIT. " + ex.Message, ClienteBusquedaAjaxData.Empty(nit)));
+            }
+        }
+
+        private static Acquirer_Response ConsultarNitDianStatic(int nit)
+        {
+            var facturacionElectronica = new FacturacionElectronicaDIANFactory();
+            var acquirerRequest = new Acquirer_Request();
+            acquirerRequest.environment = new Acquirer_Request.Environment();
+            acquirerRequest.environment.type_environment_id = 1;
+            acquirerRequest.type_document_identification_id = 6;
+            acquirerRequest.identification_number = nit;
+            string tokenFe = controlador_tokenEmpresa.ConsultarTokenSerinsisPC().GetAwaiter().GetResult();
+            return facturacionElectronica.ConsultarAcquirer(acquirerRequest, tokenFe).GetAwaiter().GetResult();
+        }
         private async System.Threading.Tasks.Task BuscarNitCliente(string db, string nit)
         {
             try
@@ -628,6 +705,92 @@ namespace WebApplication
             return await facturacionElectronica.ConsultarAcquirer(acquirerRequest, tokenFe);
         }
 
+        public class ClienteBusquedaAjaxResponse
+        {
+            public bool estado { get; set; }
+            public string mensaje { get; set; }
+            public ClienteBusquedaAjaxData data { get; set; }
+
+            public static ClienteBusquedaAjaxResponse Ok(ClienteBusquedaAjaxData data)
+            {
+                return new ClienteBusquedaAjaxResponse { estado = true, mensaje = string.Empty, data = data };
+            }
+
+            public static ClienteBusquedaAjaxResponse Fail(string mensaje, ClienteBusquedaAjaxData data)
+            {
+                return new ClienteBusquedaAjaxResponse { estado = false, mensaje = mensaje ?? string.Empty, data = data };
+            }
+        }
+
+        public class ClienteBusquedaAjaxData
+        {
+            public int clienteId { get; set; }
+            public int typeDocId { get; set; }
+            public string nit { get; set; }
+            public int orgId { get; set; }
+            public int municipioId { get; set; }
+            public int regimenId { get; set; }
+            public int responsabilidadId { get; set; }
+            public int impuestoId { get; set; }
+            public string nombre { get; set; }
+            public string comercio { get; set; }
+            public string telefono { get; set; }
+            public string direccion { get; set; }
+            public string correo { get; set; }
+            public string matricula { get; set; }
+            public bool esCliente { get; set; }
+            public bool esProveedor { get; set; }
+            public string actionLabel { get; set; }
+
+            public static ClienteBusquedaAjaxData Empty(string nit)
+            {
+                return new ClienteBusquedaAjaxData
+                {
+                    clienteId = 0,
+                    typeDocId = 0,
+                    nit = nit ?? string.Empty,
+                    orgId = 0,
+                    municipioId = 0,
+                    regimenId = 0,
+                    responsabilidadId = 0,
+                    impuestoId = 0,
+                    nombre = string.Empty,
+                    comercio = string.Empty,
+                    telefono = string.Empty,
+                    direccion = string.Empty,
+                    correo = string.Empty,
+                    matricula = string.Empty,
+                    esCliente = true,
+                    esProveedor = false,
+                    actionLabel = "Guardar"
+                };
+            }
+
+            public static ClienteBusquedaAjaxData FromCliente(Clientes cliente, bool encontradoEnBase)
+            {
+                cliente = cliente ?? new Clientes();
+                return new ClienteBusquedaAjaxData
+                {
+                    clienteId = cliente.id,
+                    typeDocId = cliente.typeDocumentIdentification_id,
+                    nit = cliente.identificationNumber ?? string.Empty,
+                    orgId = cliente.typeOrganization_id,
+                    municipioId = cliente.municipality_id,
+                    regimenId = cliente.typeRegime_id,
+                    responsabilidadId = cliente.typeLiability_id,
+                    impuestoId = cliente.typeTaxDetail_id,
+                    nombre = cliente.nameCliente ?? string.Empty,
+                    comercio = cliente.tradeName ?? string.Empty,
+                    telefono = cliente.phone ?? string.Empty,
+                    direccion = cliente.adress ?? string.Empty,
+                    correo = cliente.email ?? string.Empty,
+                    matricula = cliente.merchantRegistration ?? string.Empty,
+                    esCliente = cliente.idTipoTercero == 1 || cliente.idTipoTercero == 3 || cliente.idTipoTercero == 0,
+                    esProveedor = cliente.idTipoTercero == 2 || cliente.idTipoTercero == 3,
+                    actionLabel = encontradoEnBase ? "Editar" : "Guardar"
+                };
+            }
+        }
         private class ClienteGuardarPayloadHV
         {
             public int idVenta { get; set; }
@@ -939,6 +1102,8 @@ namespace WebApplication
         }
     }
 }
+
+
 
 
 

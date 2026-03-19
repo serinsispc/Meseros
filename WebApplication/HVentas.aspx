@@ -3,6 +3,15 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
+    <div id="appLoading" class="app-loading" style="display:none;">
+        <div class="app-loading-card">
+            <div class="app-spinner" aria-hidden="true"></div>
+            <div class="app-loading-title">Consultando cliente...</div>
+            <div class="app-loading-sub">Estamos buscando la información del documento</div>
+        </div>
+    </div>
+
+
     <style>
         #topActionBar {
             justify-content: flex-start !important;
@@ -208,6 +217,50 @@
         .cliente-modal .modal-title { font-weight: 900; display: flex; align-items: center; gap: 10px; }
         .cliente-modal .btn-close { filter: invert(1); }
         .cliente-modal .modal-body { background: #f8fafc; padding: 16px; }
+        .cliente-modal .modal-body { position: relative; }
+        .hv-modal-loading {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(248, 250, 252, .82);
+            z-index: 30;
+            border-radius: 0 0 20px 20px;
+            backdrop-filter: blur(1px);
+        }
+        .hv-modal-loading-card {
+            min-width: 260px;
+            max-width: 360px;
+            padding: 22px 24px;
+            background: #fff;
+            border: 1px solid #dbe3ef;
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, .14);
+            text-align: center;
+        }
+        .hv-modal-loading-spinner {
+            width: 54px;
+            height: 54px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            border: 5px solid rgba(37, 99, 235, .16);
+            border-top-color: #2563eb;
+            animation: hvSpin 0.9s linear infinite;
+        }
+        @keyframes hvSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .hv-modal-loading-title {
+            font-weight: 900;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .hv-modal-loading-sub {
+            color: #475569;
+            font-size: .92rem;
+        }
         .cliente-modal .form-label { font-size: .92rem; font-weight: 800; color: #1f2937; margin-bottom: 6px; }
         .cliente-modal .toolbar,
         .cliente-modal .surface,
@@ -568,6 +621,13 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="hvClienteLoading" class="hv-modal-loading" aria-hidden="true">
+                        <div class="hv-modal-loading-card">
+                            <div class="hv-modal-loading-spinner"></div>
+                            <div class="hv-modal-loading-title">Consultando cliente...</div>
+                            <div class="hv-modal-loading-sub">Estamos buscando la informaci?n del documento en la DIAN.</div>
+                        </div>
+                    </div>
                     <asp:HiddenField ID="hfVentaClienteId" runat="server" />
                     <asp:HiddenField ID="hfClienteEditarSeleccionadoId" runat="server" />
 
@@ -778,6 +838,48 @@
             aplicarFiltros();
         })();
 
+        window.SerinsisLoading = {
+            show: function (title, subtitle) {
+                var box = document.getElementById("appLoading");
+                if (!box) return;
+                var ttl = box.querySelector('.app-loading-title');
+                var sub = box.querySelector('.app-loading-sub');
+                if (ttl && title) ttl.textContent = title;
+                if (sub && subtitle) sub.textContent = subtitle;
+                box.style.display = 'flex';
+            },
+            hide: function () {
+                var box = document.getElementById("appLoading");
+                if (box) box.style.display = 'none';
+            }
+        };
+
+        window.HvClienteLoading = {
+            show: function (title, subtitle) {
+                var box = document.getElementById("hvClienteLoading");
+                if (!box) return;
+                var ttl = box.querySelector('.hv-modal-loading-title');
+                var sub = box.querySelector('.hv-modal-loading-sub');
+                if (ttl && title) ttl.textContent = title;
+                if (sub && subtitle) sub.textContent = subtitle;
+                box.style.display = 'flex';
+            },
+            hide: function () {
+                var box = document.getElementById("hvClienteLoading");
+                if (box) box.style.display = 'none';
+            }
+        };
+
+        window.addEventListener('load', function () {
+            if (window.SerinsisLoading) window.SerinsisLoading.hide();
+            if (window.HvClienteLoading) window.HvClienteLoading.hide();
+        });
+
+        window.addEventListener('pageshow', function () {
+            if (window.SerinsisLoading) window.SerinsisLoading.hide();
+            if (window.HvClienteLoading) window.HvClienteLoading.hide();
+        });
+
         function hvEditarResolucion(idVenta, idResolucion) {
             var hidden = document.getElementById("<%= hfVentaResolucionId.ClientID %>");
             var ddl = document.getElementById("<%= ddlResolucionEditar.ClientID %>");
@@ -786,24 +888,15 @@
             var modalEl = document.getElementById("mdlResolucionVenta");
             if (!modalEl || !window.bootstrap || !window.bootstrap.Modal) { return; }
             var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
         }
 
         function hvMostrarModalCliente() {
             var modalEl = document.getElementById("mdlClienteVenta");
             if (!modalEl) { return; }
-            var intentos = 0;
-            function abrir() {
-                if (window.bootstrap && window.bootstrap.Modal) {
-                    var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-                    try { sessionStorage.removeItem("hvClienteVentaStayOpen"); } catch (e) { }
-                    return;
-                }
-                intentos += 1;
-                if (intentos < 30) {
-                    window.setTimeout(abrir, 120);
-                }
-            }
-            abrir();
+            if (!(window.bootstrap && window.bootstrap.Modal)) { return; }
+            var modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
         }
 
         function hvEditarCliente(idVenta, idCliente) {
@@ -1018,8 +1111,54 @@
                         Swal.fire({ icon: 'error', title: 'Falta información', text: 'Para buscar el NIT debes seleccionar el tipo de documento.', confirmButtonColor: '#2563eb' });
                         return;
                     }
-                    try { sessionStorage.setItem(modalStateKey, '1'); } catch (e) { }
-                    if (typeof window.__doPostBack === 'function') window.__doPostBack('BuscarNitClienteHV', nit);
+
+                    if (window.HvClienteLoading) {
+                        window.HvClienteLoading.show('Consultando cliente...', 'Estamos buscando la información del documento en la DIAN.');
+                    }
+                    btnBuscar.disabled = true;
+
+                    var buscarUrl = '<%= ResolveUrl("~/HVentas.aspx/BuscarNitClienteAjax") %>';
+                    fetch(buscarUrl, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ nit: nit })
+                    })
+                                throw new Error('No fue posible consultar el documento.');
+                            }
+                            return response.json();
+                        })
+                        .then(function (payload) {
+                            var resp = payload && Object.prototype.hasOwnProperty.call(payload, 'd') ? payload.d : payload;
+                            if (typeof resp === 'string') {
+                                try {
+                                    resp = JSON.parse(resp);
+                                } catch (e) { }
+                            }
+                            if (!resp) {
+                                throw new Error('No se recibió respuesta del servidor.');
+                            }
+                            if (resp.data && window.setHvClienteData) {
+                                window.setHvClienteData(resp.data);
+                            }
+                            if (!resp.estado) {
+                                throw new Error(resp.mensaje || 'No fue posible consultar el documento.');
+                            }
+                            if (window.hvClienteModal && typeof window.hvClienteModal.preseleccionar === 'function') {
+                                window.hvClienteModal.preseleccionar();
+                            }
+                        })
+                        .catch(function (error) {
+                            var mensaje = error && error.message ? error.message : 'No fue posible consultar el documento.';
+                            Swal.fire({ icon: 'warning', title: 'Atención', text: mensaje, confirmButtonColor: '#2563eb' });
+                        })
+                        .finally(function () {
+                            if (window.HvClienteLoading) window.HvClienteLoading.hide();
+                            btnBuscar.disabled = false;
+                        });
                 });
             }
 
@@ -1159,6 +1298,11 @@
     </script>
 
 </asp:Content>
+
+
+
+
+
 
 
 
