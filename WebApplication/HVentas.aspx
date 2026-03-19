@@ -1127,6 +1127,8 @@
                         },
                         body: JSON.stringify({ nit: nit })
                     })
+                        .then(function (response) {
+                            if (!response.ok) {
                                 throw new Error('No fue posible consultar el documento.');
                             }
                             return response.json();
