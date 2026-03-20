@@ -314,17 +314,21 @@
                                 <i class="bi bi-plus-circle-fill"></i>
                                 Nuevo Servicio
                             </button>
+
+                            <button type="button" class="btn-top btn-domicilio" data-idmesa="<%= models.IdMesaActiva %>" data-idservicio="<%= models.IdCuentaActiva %>" onclick="return btnDomicilioCaja(this);">
+                                <i class="bi bi-house-door-fill"></i>
+                                Domicilio
+                            </button>
+
+                            <%if (models.vendedor.cajaMovil == 1)
+                                { %>
+
                             <button type="button"
                                 class="btn-top btn-logout<%= PuedeEliminarServicioActivo() ? string.Empty : " btn-eliminar-servicio-disabled" %>"
                                 onclick="<%= PuedeEliminarServicioActivo() ? "return ConfirmarEliminarServicio(this)" : "return false;" %>"
                                 <%= PuedeEliminarServicioActivo() ? string.Empty : "disabled=\"disabled\" title=\"No se puede eliminar porque el servicio tiene productos cargados.\"" %>>
                                 <i class="bi bi-trash3-fill"></i>
                                 Eliminar servicio
-                            </button>
-
-                            <button type="button" class="btn-top btn-domicilio" data-idmesa="<%= models.IdMesaActiva %>" data-idservicio="<%= models.IdCuentaActiva %>" onclick="return btnDomicilioCaja(this);">
-                                <i class="bi bi-house-door-fill"></i>
-                                Domicilio
                             </button>
 
                             <button type="button" class="btn-top btn-ventas" onclick="EjecutarAccion('<%= AccionBotonVentas() %>','',this)">
@@ -340,6 +344,8 @@
                                 <i class="bi bi-lock-fill"></i>
                                 Cerrar caja
                             </button>
+
+                            <%} %>
 
                             <button type="button" class="btn-top btn-logout" onclick="return ConfirmarCerrarSesion(this)">
                                 <i class="bi bi-box-arrow-right"></i>
@@ -742,10 +748,12 @@
                                         <i class="bi bi-chat-square-text-fill me-1"></i>Solicitar<br />
                                         Cuenta
                                     </button>
-
+                                    <% if (models.vendedor.cajaMovil == 1)
+                                        {%>
                                     <button type="button" class="accion-btn accion-cobrar" onclick="EjecutarAccion('Cobrar','',this)">
                                         <i class="bi bi-cash-coin me-1"></i>Cobrar
                                     </button>
+                                    <%} %>
                                 </div>
                             </div>
                         </div>

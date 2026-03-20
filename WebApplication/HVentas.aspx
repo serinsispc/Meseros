@@ -657,4 +657,14 @@
         });
     </script>
     <% } %>
+
+
+    <div id="loader-imprimir" class="loader-overlay" style="display: none;">
+        <div class="loader-box">
+            <div class="loader-circular"></div>
+            <p>Procesando impresión...</p>
+        </div>
+    </div>
+
+
 </asp:Content>

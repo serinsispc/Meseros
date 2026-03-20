@@ -138,6 +138,7 @@
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="HVentas.aspx" />
+    <Content Include="LoaderGlobal.ascx" />
     <Content Include="Menu.aspx" />
     <Content Include="PGastos.aspx" />
     <Content Include="Recursos\Imagenes\Logo\Logo.png" />
@@ -185,6 +186,7 @@
     <Content Include="Scripts\js\cobrar.js" />
     <Content Include="Scripts\js\hventas.actions.js" />
     <Content Include="Scripts\js\hventas.js" />
+    <Content Include="Scripts\js\loader-global.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
     <Content Include="Scripts\WebForms\DetailsView.js" />
     <Content Include="Scripts\WebForms\Focus.js" />
@@ -283,6 +285,13 @@
     </Compile>
     <Compile Include="HVentas.aspx.designer.cs">
       <DependentUpon>HVentas.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LoaderGlobal.ascx.cs">
+      <DependentUpon>LoaderGlobal.ascx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="LoaderGlobal.ascx.designer.cs">
+      <DependentUpon>LoaderGlobal.ascx</DependentUpon>
     </Compile>
     <Compile Include="Menu.aspx.cs">
       <DependentUpon>Menu.aspx</DependentUpon>

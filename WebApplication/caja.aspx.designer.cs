@@ -31,12 +31,13 @@ namespace WebApplication
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.WebControls.HiddenField hidArgumento;
+
         /// <summary>
         /// Control hdIdClienteDomicilio.
         /// </summary>
         /// <remarks>
-        /// Campo generado automaticamente.
-        /// Para modificarlo, mueva la declaracion del campo del archivo del disenador al archivo de codigo subyacente.
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.WebControls.HiddenField hdIdClienteDomicilio;
 
@@ -119,7 +120,7 @@ namespace WebApplication
         /// Campo generado automáticamente.
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
-                protected global::System.Web.UI.WebControls.Repeater rpProductos;
+        protected global::System.Web.UI.WebControls.Repeater rpProductos;
 
         /// <summary>
         /// Control rpCuentasCliente.
@@ -138,6 +139,7 @@ namespace WebApplication
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater rpDetalleCaja;
+
         /// <summary>
         /// Control modalAccionesMesa.
         /// </summary>
@@ -175,5 +177,3 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.Repeater rpCuentasModal;
     }
 }
-
-

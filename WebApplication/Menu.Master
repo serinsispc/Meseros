@@ -1,10 +1,9 @@
 ﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Menu.master.cs" Inherits="WebApplication.Menu1" %>
+<%@ Register Src="~/LoaderGlobal.ascx" TagPrefix="uc" TagName="LoaderGlobal" %>
 
 <!DOCTYPE html>
-
 <html>
 <head runat="server">
-
     <script>
         (function () {
             try {
@@ -15,10 +14,11 @@
         })();
     </script>
 
-
-    <script>
-          .restore - scroll body { visibility: hidden!important; }
-    </script>
+    <style>
+        .restore-scroll body {
+            visibility: hidden !important;
+        }
+    </style>
 
     <script>
         (function () {
@@ -31,28 +31,31 @@
                 } catch (e) { }
             }
 
-            // 1) Interceptar __doPostBack (LinkButton y similares)
             try {
                 const origPostBack = window.__doPostBack;
                 window.__doPostBack = function (eventTarget, eventArgument) {
                     guardarPos();
-                    if (typeof origPostBack === 'function') return origPostBack.apply(this, arguments);
-                    // fallback: emular postback
+
+                    if (typeof origPostBack === 'function') {
+                        return origPostBack.apply(this, arguments);
+                    }
+
                     const theForm = document.forms && document.forms[0];
                     if (!theForm) return;
+
                     if (theForm.__EVENTTARGET) theForm.__EVENTTARGET.value = eventTarget;
                     if (theForm.__EVENTARGUMENT) theForm.__EVENTARGUMENT.value = eventArgument;
                     theForm.submit();
                 };
             } catch (e) { }
 
-            // 2) Capturar submit (algÃºn submit directo)
             try {
                 const forms = document.getElementsByTagName('form');
-                if (forms && forms[0]) forms[0].addEventListener('submit', guardarPos, true);
+                if (forms && forms[0]) {
+                    forms[0].addEventListener('submit', guardarPos, true);
+                }
             } catch (e) { }
 
-            // 3) Click por si algÃºn elemento no llega por submit/__doPostBack
             document.addEventListener('click', function (e) {
                 try {
                     const el = e.target.closest('a, button, input[type="submit"], [role="button"]');
@@ -60,25 +63,33 @@
                 } catch (e) { }
             }, true);
 
-            // 4) beforeunload (fallback)
-            try { window.addEventListener('beforeunload', guardarPos, { passive: true }); } catch (e) { }
+            try {
+                window.addEventListener('beforeunload', guardarPos, { passive: true });
+            } catch (e) { }
 
-            // 5) UpdatePanel (postbacks parciales): guardar en begin, restaurar en end
             try {
                 if (window.Sys && window.Sys.WebForms && Sys.WebForms.PageRequestManager) {
                     const prm = Sys.WebForms.PageRequestManager.getInstance();
-                    prm.add_beginRequest(function () { guardarPos(); });
+
+                    prm.add_beginRequest(function () {
+                        guardarPos();
+                    });
+
                     prm.add_endRequest(function () {
                         try {
                             const val = sessionStorage.getItem(KEY);
                             if (val !== null) {
                                 const y = parseInt(val, 10) || 0;
-                                // PequeÃ±o timeout para que el DOM finalice los cambios del UpdatePanel
+
                                 setTimeout(function () {
                                     window.scrollTo(0, y);
                                     sessionStorage.removeItem(KEY);
-                                    // quitar posible foco molesto
-                                    try { if (document.activeElement) document.activeElement.blur(); } catch (e) { }
+
+                                    try {
+                                        if (document.activeElement) {
+                                            document.activeElement.blur();
+                                        }
+                                    } catch (e) { }
                                 }, 40);
                             }
                         } catch (e) { }
@@ -86,29 +97,30 @@
                 }
             } catch (e) { }
 
-            // 6) RestauraciÃ³n en carga completa (full postback)
             document.addEventListener('DOMContentLoaded', function () {
                 try {
                     const val = sessionStorage.getItem(KEY);
+
                     if (val !== null) {
                         const y = parseInt(val, 10) || 0;
-                        // Evitar smooth
                         const html = document.documentElement;
                         const prevScrollBehavior = html.style.scrollBehavior;
-                        html.style.scrollBehavior = 'auto';
 
-                        // Fijar la posiciÃ³n antes del primer paint
+                        html.style.scrollBehavior = 'auto';
                         window.scrollTo(0, y);
 
-                        // en el siguiente frame, mostrar la pÃ¡gina y limpiar
                         requestAnimationFrame(function () {
                             document.documentElement.classList.remove('restore-scroll');
                             html.style.scrollBehavior = prevScrollBehavior || '';
                             sessionStorage.removeItem(KEY);
-                            try { if (document.activeElement) document.activeElement.blur(); } catch (e) { }
+
+                            try {
+                                if (document.activeElement) {
+                                    document.activeElement.blur();
+                                }
+                            } catch (e) { }
                         });
                     } else {
-                        // no habÃ­a nada que restaurar: asegurar que si la clase quedÃ³ por error se quite
                         document.documentElement.classList.remove('restore-scroll');
                     }
                 } catch (e) { }
@@ -124,101 +136,34 @@
         <%: Page.Title %> - <%: Convert.ToString(Session["NombreEmpresa"] ?? "Mi empresa") %>
     </title>
 
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet" crossorigin="anonymous" />
 
-    <!-- Bootstrap Icons opcional -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
 
-    <link rel="icon" type="image/png" href="<%:ResolveUrl($"~/Recursos/Imagenes/Logo/favicon-{Session["db"]}.png") %>" />
+    <link rel="icon" type="image/png"
+        href="<%: ResolveUrl($"~/Recursos/Imagenes/Logo/favicon-{Session["db"]}.png") %>" />
 
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"
+        rel="stylesheet" />
 
-    <!-- Tu JS de alertas -->
-    <script src="Scripts/js/AlertModerno.js"></script>
+    <script src="<%= ResolveUrl("~/Scripts/js/AlertModerno.js") %>"></script>
 
-    <!-- Estilos especÃ­ficos de esta vista -->
-    <link href="Content/css/menu.css?v=20260212_4" rel="stylesheet" />
-
-
+    <link href="<%= ResolveUrl("~/Content/css/menu.css?v=20260212_4") %>" rel="stylesheet" />
 </head>
 <body>
-    <form runat="server">
+    <form id="form1" runat="server">
+        <asp:ScriptManager ID="ScriptManager1" runat="server" EnablePageMethods="true" />
 
-
-<%--        <div id="topActionBar" class="d-flex justify-content-between align-items-center m-3">
-            <% if (SoloBotonCaja) { %>
-            <div>
-                <a href="caja.aspx" data-nav="caja"
-                    class="btn shadow rounded-pill px-4 me-2"
-                    style="background: linear-gradient(135deg,#2ecc71,#27ae60); color: #fff;">
-                    <i class="bi bi-cash-coin me-2"></i>
-                    Caja
-                </a>
-            </div>
-            <div></div>
-            <% } else { %>
-            <div>
-                <a href="Menu.aspx" data-nav="actualizar" class="btn btn-primary shadow rounded-pill px-4">
-                    <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
-                </a>
-
-                <a href="Menu.aspx"
-                    class="btn shadow rounded-pill px-4 me-2"
-                    style="background: linear-gradient(135deg,#2ecc71,#27ae60); color: #fff;">
-                    <i class="bi bi-cash-coin me-2"></i>
-                    Caja
-                </a>
-
-                <a href="HVentas.aspx" data-nav="ventas"
-                    class="btn shadow rounded-pill px-4"
-                    style="background: linear-gradient(135deg,#4e73df,#224abe); color: #fff;">
-                    <i class="bi bi-graph-up-arrow me-2"></i>
-                    Ventas
-                </a>
-
-                <a href="PGastos.aspx" data-nav="gastos"
-                   class="btn shadow rounded-pill px-4"
-                   style="background: linear-gradient(135deg,#e74a3b,#be2617); color:#fff;">
-                    <i class="bi bi-cash-coin me-2"></i>
-                    Gastos
-                </a>
-            </div>
-
-            <div>
-                <a href="CerrarCaja.aspx" data-nav="cerrar-caja"
-                    class="btn btn-danger shadow-sm rounded-pill px-3">
-                    <i class="bi bi-journal-check me-2"></i>
-                    Cerrar Caja
-                </a>
-
-                <a href="Salir.aspx" data-nav="cerrar-sesion"
-                    class="btn btn-outline-danger shadow-sm rounded-pill px-4">
-                    <i class="bi bi-door-closed-fill me-2"></i>
-                    Cerrar sesiÃ³n
-                </a>
-            </div>
-            <% } %>
-        </div>--%>
-
-        <asp:ScriptManager runat="server" EnablePageMethods="true" />
         <div class="page-wrapper">
             <asp:ContentPlaceHolder ID="MainContent" runat="server" />
         </div>
 
-
-        <!-- Botones flotantes -->
-<%--        <div class="scroll-buttons">
-            <button type="button" class="scroll-btn" onclick="scrollToTop()" aria-label="Ir arriba">&#9650;</button>
-            <button type="button" class="scroll-btn" onclick="scrollToBottom()" aria-label="Ir abajo">&#9660;</button>
-        </div>--%>
-
+        <uc:LoaderGlobal ID="LoaderGlobal1" runat="server" />
     </form>
 
-    <!-- Overlay de carga -->
     <div id="overlayProcesando" style="display: none;">
         <div class="overlay-content">
             <div class="spinner-border text-light" role="status"></div>
@@ -226,17 +171,9 @@
         </div>
     </div>
 
-    <!-- ================== CAMBIO IMPORTANTE AQUÃ ==================
-       Usa el BUNDLE de Bootstrap (incluye Popper y expone window.bootstrap)
-       y evita cargar Popper/Bootstrap por separado -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         crossorigin="anonymous"></script>
-    <!-- ============================================================ -->
 
-
-
-
+    <script src="<%= ResolveUrl("~/Scripts/js/loader-global.js") %>"></script>
 </body>
 </html>
-
-

@@ -350,21 +350,51 @@
 
             var btnImprimir = e.target.closest('.btn-imprimir-venta');
             if (btnImprimir) {
+                if (btnImprimir.dataset.loading === '1') return;
+
+                btnImprimir.dataset.loading = '1';
+                btnImprimir.disabled = true;
+
                 var idImprimir = btnImprimir.dataset.id;
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Preparando impresión...');
+                }
+
                 hvImprimirVenta(idImprimir);
                 return;
             }
 
             var btnEnviarDIAN = e.target.closest('.btn-enviar-dian');
             if (btnEnviarDIAN) {
+                if (btnEnviarDIAN.dataset.loading === '1') return;
+
+                btnEnviarDIAN.dataset.loading = '1';
+                btnEnviarDIAN.disabled = true;
+
                 var idVentaDIAN = btnEnviarDIAN.dataset.id;
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Enviando factura a DIAN...');
+                }
+
                 hvEnviarDIAN(idVentaDIAN);
                 return;
             }
 
             var btnDescargarPDF = e.target.closest('.btn-descargar-pdf');
             if (btnDescargarPDF) {
+                if (btnDescargarPDF.dataset.loading === '1') return;
+
+                btnDescargarPDF.dataset.loading = '1';
+                btnDescargarPDF.disabled = true;
+
                 var cufe = btnDescargarPDF.dataset.cufe;
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Descargando PDF...');
+                }
+
                 hvDescargarPDF(cufe);
                 return;
             }
