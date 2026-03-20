@@ -1,629 +1,322 @@
-﻿using DAL;
-using DAL.Controler;
+﻿using DAL.Controler;
 using DAL.Funciones;
 using DAL.Model;
 using Newtonsoft.Json;
+using RFacturacionElectronicaDIAN.Entities.Request;
+using RFacturacionElectronicaDIAN.Factories;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Web;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 using System.Web.UI;
-using System.Web.Services;
-using RFacturacionElectronicaDIAN.Entities.Request;
-using RFacturacionElectronicaDIAN.Entities.Response;
-using RFacturacionElectronicaDIAN.Factories;
-using Acquirer_Response = RFacturacionElectronicaDIAN.Entities.Response.Acquirer_Response;
-using WebApplication.Class;
-using WebApplication.Helpers;
+using System.Web.UI.WebControls;
 using WebApplication.ViewModels;
+using Acquirer_Response = RFacturacionElectronicaDIAN.Entities.Response.Acquirer_Response;
 
 namespace WebApplication
 {
-    public partial class HVentas : System.Web.UI.Page
+    public partial class HVentas : Page
     {
-        protected List<V_TablaVentas> Ventas = new List<V_TablaVentas>();
-        protected decimal TotalVentas;
-        protected int CantidadFacturas;
-        protected decimal TotalPendiente;
-        protected int CantidadAnuladas;
-        protected MenuViewModels Models = new MenuViewModels();
-        protected string VentasDetalleJson = "{}";
-        protected List<V_Resoluciones> Resoluciones = new List<V_Resoluciones>();
-        protected List<Clientes> ClientesDisponibles = new List<Clientes>();
-        private List<type_document_identifications> _tiposDocumento = new List<type_document_identifications>();
+        public class Valores
+        {
+            public decimal total { get; set; }
+            public decimal propina { get; set; }
+            public int facturas { get; set; }
+            public int anuladas { get; set; }
+
+        }
+        protected Valores valores { get; set; } = new Valores();
+        protected V_TablaVentas venta { get; set; } = new V_TablaVentas();
+        protected List<V_DetalleCaja> detalleCaja { get; set; } = new List<V_DetalleCaja>();
+        protected List<V_Resoluciones> listaResoluciones { get; set; } = new List<V_Resoluciones>();
+        protected List<Clientes> listaClientes { get; set; } = new List<Clientes>();
+
+        protected bool _mdlVenta = false;
+        protected bool _mdlResolucionVenta = false;
+        protected bool _mdlClienteVenta = false;
+
+        private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
+
+
+        #region Ciclo de vida
 
         protected async void Page_Load(object sender, EventArgs e)
         {
-            Models = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels();
-            var db = Convert.ToString(Session[SessionContextHelper.DbKey] ?? Models.db);
-            var idBase = SessionContextHelper.ResolveBaseCajaId(Session, Models);
-
-            if (string.IsNullOrWhiteSpace(db) || idBase <= 0)
-            {
-                Response.Redirect("~/Default.aspx", false);
-                Context.ApplicationInstance.CompleteRequest();
-                return;
-            }
-
-            if (!IsPostBack)
-            {
-                await CargarResoluciones(db);
-                await CargarCombosCliente(db);
-            }
-
-            await CargarClientes(db, !IsPostBack);
-
-            if (IsPostBack)
-            {
-                var eventTarget = Request["__EVENTTARGET"];
-                var eventArgument = Request["__EVENTARGUMENT"];
-
-                if (string.Equals(eventTarget, "ImprimirFacturaHV", StringComparison.OrdinalIgnoreCase))
-                {
-                    await EncolarImpresionFactura(db, eventArgument);
-                }
-                else if (string.Equals(eventTarget, "ReenviarFacturaDianHV", StringComparison.OrdinalIgnoreCase))
-                {
-                    await ReenviarFacturaDian(db, eventArgument);
-                }
-                else if (string.Equals(eventTarget, "BuscarNitClienteHV", StringComparison.OrdinalIgnoreCase))
-                {
-                    await BuscarNitCliente(db, eventArgument);
-                }
-                else if (string.Equals(eventTarget, "GuardarClienteFacturaHV", StringComparison.OrdinalIgnoreCase))
-                {
-                    await GuardarClienteCatalogo(db, eventArgument);
-                }
-                else if (string.Equals(eventTarget, "SeleccionarClienteFacturaHV", StringComparison.OrdinalIgnoreCase))
-                {
-                    await SeleccionarClienteFactura(db, eventArgument);
-                }
-            }
-
-            await CargarVentas(db, idBase);
-        }
-
-        private async System.Threading.Tasks.Task CargarResoluciones(string db)
-        {
-            var dal = new SqlAutoDAL();
-            Resoluciones = await dal.ConsultarLista<V_Resoluciones>(db, x => x.estado == 1) ?? new List<V_Resoluciones>();
-            Resoluciones = Resoluciones.OrderBy(x => x.nombreRosolucion).ThenBy(x => x.prefijo).ToList();
-
-            if (ddlResolucionEditar != null)
-            {
-                ddlResolucionEditar.Items.Clear();
-                ddlResolucionEditar.Items.Add(new System.Web.UI.WebControls.ListItem("Selecciona...", ""));
-                foreach (var resolucion in Resoluciones)
-                {
-                    var texto = string.Join(" | ", new[]
-                    {
-                        string.IsNullOrWhiteSpace(resolucion.nombreRosolucion) ? "Resolucion" : resolucion.nombreRosolucion,
-                        string.IsNullOrWhiteSpace(resolucion.prefijo) ? null : ("Prefijo " + resolucion.prefijo),
-                        string.IsNullOrWhiteSpace(resolucion.numeroResolucion) ? null : ("No. " + resolucion.numeroResolucion)
-                    }.Where(x => !string.IsNullOrWhiteSpace(x)));
-
-                    ddlResolucionEditar.Items.Add(new System.Web.UI.WebControls.ListItem(texto, resolucion.idResolucion.ToString()));
-                }
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarClientes(string db, bool cargarCombo)
-        {
-            ClientesDisponibles = await ClientesControler.ListaClientes(db) ?? new List<Clientes>();
-            ClientesDisponibles = ClientesDisponibles
-                .OrderBy(x => string.IsNullOrWhiteSpace(x.nameCliente) ? "ZZZ" : x.nameCliente)
-                .ThenBy(x => x.identificationNumber)
-                .ToList();
-
-            if (cargarCombo && ddlClienteEditar != null)
-            {
-                ddlClienteEditar.Items.Clear();
-                ddlClienteEditar.Items.Add(new System.Web.UI.WebControls.ListItem("Selecciona...", ""));
-                foreach (var cliente in ClientesDisponibles)
-                {
-                    var nombre = string.IsNullOrWhiteSpace(cliente.nameCliente) ? "Cliente" : cliente.nameCliente.Trim();
-                    var nit = string.IsNullOrWhiteSpace(cliente.identificationNumber) ? "Sin NIT" : cliente.identificationNumber.Trim();
-                    ddlClienteEditar.Items.Add(new System.Web.UI.WebControls.ListItem(string.Format("{0} | {1}", nombre, nit), cliente.id.ToString()));
-                }
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarCombosCliente(string db)
-        {
-            await CargarTiposDocumento(db);
-            await CargarTiposOrganizacion(db);
-            await CargarMunicipios(db);
-            await CargarTiposRegimen(db);
-            await CargarTiposResponsabilidad(db);
-            await CargarDetallesImpuesto(db);
-        }
-
-        private async System.Threading.Tasks.Task CargarTiposDocumento(string db)
-        {
-            _tiposDocumento = await type_document_identificationsControler.ListaTiposDocumento(db) ?? new List<type_document_identifications>();
-            if (ddlTipoDocumentoHv != null)
-            {
-                ddlTipoDocumentoHv.Items.Clear();
-                ddlTipoDocumentoHv.Items.Add(new System.Web.UI.WebControls.ListItem("Seleccionar tipo", ""));
-                ddlTipoDocumentoHv.DataSource = _tiposDocumento;
-                ddlTipoDocumentoHv.DataTextField = "name";
-                ddlTipoDocumentoHv.DataValueField = "id";
-                ddlTipoDocumentoHv.DataBind();
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarTiposOrganizacion(string db)
-        {
-            var tipos = await type_organizationsControler.ListaTiposOrganizacion(db) ?? new List<type_organizations>();
-            if (ddlTipoOrganizacionHv != null)
-            {
-                ddlTipoOrganizacionHv.Items.Clear();
-                ddlTipoOrganizacionHv.Items.Add(new System.Web.UI.WebControls.ListItem("Seleccionar tipo", ""));
-                ddlTipoOrganizacionHv.DataSource = tipos;
-                ddlTipoOrganizacionHv.DataTextField = "name";
-                ddlTipoOrganizacionHv.DataValueField = "id";
-                ddlTipoOrganizacionHv.DataBind();
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarMunicipios(string db)
-        {
-            var municipios = await V_MunicipiosControler.ListaMunicipios(db) ?? new List<V_Municipios>();
-            if (ddlMunicipioHv != null)
-            {
-                ddlMunicipioHv.Items.Clear();
-                ddlMunicipioHv.Items.Add(new System.Web.UI.WebControls.ListItem("Seleccionar municipio", ""));
-                ddlMunicipioHv.DataSource = municipios;
-                ddlMunicipioHv.DataTextField = "name";
-                ddlMunicipioHv.DataValueField = "idMunicipio";
-                ddlMunicipioHv.DataBind();
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarTiposRegimen(string db)
-        {
-            var tipos = await type_regimesControler.ListaTiposRegimen(db) ?? new List<type_regimes>();
-            if (ddlTipoRegimenHv != null)
-            {
-                ddlTipoRegimenHv.Items.Clear();
-                ddlTipoRegimenHv.Items.Add(new System.Web.UI.WebControls.ListItem("Seleccionar régimen", ""));
-                ddlTipoRegimenHv.DataSource = tipos;
-                ddlTipoRegimenHv.DataTextField = "name";
-                ddlTipoRegimenHv.DataValueField = "id";
-                ddlTipoRegimenHv.DataBind();
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarTiposResponsabilidad(string db)
-        {
-            var tipos = await type_liabilitiesControler.ListaTiposResponsabilidad(db) ?? new List<type_liabilities>();
-            if (ddlTipoResponsabilidadHv != null)
-            {
-                ddlTipoResponsabilidadHv.Items.Clear();
-                ddlTipoResponsabilidadHv.Items.Add(new System.Web.UI.WebControls.ListItem("Seleccionar responsabilidad", ""));
-                ddlTipoResponsabilidadHv.DataSource = tipos;
-                ddlTipoResponsabilidadHv.DataTextField = "name";
-                ddlTipoResponsabilidadHv.DataValueField = "id";
-                ddlTipoResponsabilidadHv.DataBind();
-            }
-        }
-
-        private async System.Threading.Tasks.Task CargarDetallesImpuesto(string db)
-        {
-            var detalles = await tax_detailsControler.ListaDetallesImpuesto(db) ?? new List<tax_details>();
-            if (ddlDetalleImpuestoHv != null)
-            {
-                ddlDetalleImpuestoHv.Items.Clear();
-                ddlDetalleImpuestoHv.Items.Add(new System.Web.UI.WebControls.ListItem("Seleccionar impuesto", ""));
-                ddlDetalleImpuestoHv.DataSource = detalles;
-                ddlDetalleImpuestoHv.DataTextField = "name";
-                ddlDetalleImpuestoHv.DataValueField = "id";
-                ddlDetalleImpuestoHv.DataBind();
-            }
-        }
-
-        protected string NombreTipoDocumentoCliente(int idTipoDocumento)
-        {
-            var item = (_tiposDocumento ?? new List<type_document_identifications>()).FirstOrDefault(x => x != null && x.id == idTipoDocumento);
-            return item?.name ?? idTipoDocumento.ToString();
-        }
-        private async System.Threading.Tasks.Task CargarVentas(string db, int idBase)
-        {
-            var dal = new SqlAutoDAL();
-            Ventas = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == idBase && x.eliminada == false) ?? new List<V_TablaVentas>();
-            Ventas = Ventas.OrderByDescending(x => x.fechaVenta).ToList();
-
-            TotalVentas = Ventas.Where(x => !EsVentaAnulada(x)).Sum(x => x.total_A_Pagar);
-            CantidadFacturas = Ventas.Count(x => x.numeroVenta > 0);
-            TotalPendiente = Ventas.Where(x => !EsVentaAnulada(x)).Sum(x => x.totalPendienteVenta);
-            CantidadAnuladas = Ventas.Count(EsVentaAnulada);
-
-            var detalleMap = new Dictionary<int, object>();
-            foreach (var venta in Ventas)
-            {
-                var detalles = await V_DetalleCajaControler.Lista_IdVenta(db, venta.id, 0) ?? new List<V_DetalleCaja>();
-                detalleMap[venta.id] = new
-                {
-                    id = venta.id,
-                    factura = FacturaLabel(venta),
-                    cliente = string.IsNullOrWhiteSpace(venta.nombreCliente) ? "Cliente contado" : venta.nombreCliente,
-                    nit = string.IsNullOrWhiteSpace(venta.nit) ? "0" : venta.nit,
-                    fecha = FechaLarga(venta.fechaVenta),
-                    hora = HoraLarga(venta.fechaVenta),
-                    alias = string.IsNullOrWhiteSpace(venta.aliasVenta) ? "Sin alias" : venta.aliasVenta,
-                    medioPago = string.IsNullOrWhiteSpace(venta.medioDePago) ? "Sin definir" : venta.medioDePago,
-                    estado = EstadoTexto(venta),
-                    total = venta.total_A_Pagar,
-                    pagado = venta.totalPagadoVenta,
-                    pendiente = venta.totalPendienteVenta,
-                    observacion = string.IsNullOrWhiteSpace(venta.observacionVenta) ? "Sin observacion" : venta.observacionVenta,
-                    detalles = detalles.Select(d => new
-                    {
-                        producto = string.IsNullOrWhiteSpace(d.nombreProducto) ? "Producto" : d.nombreProducto,
-                        presentacion = string.IsNullOrWhiteSpace(d.presentacion) ? string.Empty : d.presentacion,
-                        cantidad = d.unidad,
-                        precio = d.precioVenta,
-                        total = d.totalDetalle,
-                        nota = string.IsNullOrWhiteSpace(d.adiciones) ? (string.IsNullOrWhiteSpace(d.observacion) ? "Sin nota" : d.observacion) : d.adiciones,
-                        cuenta = string.IsNullOrWhiteSpace(d.nombreCuenta) ? "General" : d.nombreCuenta
-                    }).ToList()
-                };
-            }
-
-            VentasDetalleJson = JsonConvert.SerializeObject(detalleMap).Replace("</", "<\\/");
-        }
-
-        private async System.Threading.Tasks.Task EncolarImpresionFactura(string db, string eventArgument)
-        {
-            if (!int.TryParse((eventArgument ?? string.Empty).Trim(), out int idVenta) || idVenta <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "No se recibió una venta válida para imprimir.", true, 1800);
-                return;
-            }
-
-            var printer = new ImprimirFactura { id = 0, idventa = idVenta };
-            var ordenPrinter = await ImprimirFacturaControler.CRUD(db, printer, 0);
-
-            if (ordenPrinter == null || !ordenPrinter.estado)
-            {
-                AlertModerno.Error(this, "Error", "La factura no se pudo enviar a impresión.", true, 2200);
-                return;
-            }
-
-            AlertModerno.Success(this, "OK", "Factura enviada a impresión correctamente.", true, 1200);
-        }
-
-        private async System.Threading.Tasks.Task ReenviarFacturaDian(string db, string eventArgument)
-        {
-            if (!int.TryParse((eventArgument ?? string.Empty).Trim(), out int idVenta) || idVenta <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "No se recibió una venta válida para reenviar a la DIAN.", true, 1800);
-                return;
-            }
-
-            var venta = await V_TablaVentasControler.Consultar_Id(db, idVenta);
-            if (venta == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontró la venta seleccionada.", true, 1800);
-                return;
-            }
-
-            if (!PuedeReenviarDian(venta))
-            {
-                AlertModerno.Warning(this, "Atención", "Solo puedes reenviar a la DIAN facturas electrónicas que no han sido aceptadas.", true, 2200);
-                return;
-            }
-
-            if (venta.idCliente <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "La venta no tiene cliente asignado. Actualiza el cliente antes de reenviar.", true, 2200);
-                return;
-            }
-
-            if (venta.idResolucion <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "La venta no tiene resolución asignada. Actualiza la resolución antes de reenviar.", true, 2200);
-                return;
-            }
-
-            var tokenFe = Session[SessionContextHelper.TokenFeKey]?.ToString() ?? Models?.TokenEmpresa ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(tokenFe))
-            {
-                AlertModerno.Warning(this, "Atención", "No se encontró el token de facturación electrónica para reenviar la factura.", true, 2200);
-                return;
-            }
-
-            var detalles = await V_DetalleCajaControler.Lista_IdVenta(db, idVenta, 0) ?? new List<V_DetalleCaja>();
-            if (!detalles.Any())
-            {
-                AlertModerno.Warning(this, "Atención", "La venta no tiene detalles para reenviar a la DIAN.", true, 2200);
-                return;
-            }
-
-            var respFe = await ClassFE.FacturaElectronica(db, venta, detalles, tokenFe);
-            if (!respFe)
-            {
-                AlertModerno.Error(this, "Error", "La factura electrónica no fue reenviada a la DIAN.", true, 2200);
-                return;
-            }
-
-            var urlRefresco = Request?.RawUrl;
-            if (string.IsNullOrWhiteSpace(urlRefresco))
-            {
-                urlRefresco = ResolveUrl("~/HVentas.aspx");
-            }
-
-            AlertModerno.SuccessGoTo(this, "OK", "Factura reenviada a la DIAN correctamente.", urlRefresco, true, 1200);
-        }
-
-        private async System.Threading.Tasks.Task SeleccionarClienteFactura(string db, string eventArgument)
-        {
-            if (!int.TryParse((hfVentaClienteId?.Value ?? string.Empty).Trim(), out var idVenta) || idVenta <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "No se recibió una venta válida para relacionar el cliente.", true, 1800);
-                return;
-            }
-
-            if (!int.TryParse((eventArgument ?? hfClienteEditarSeleccionadoId?.Value ?? string.Empty).Trim(), out var idCliente) || idCliente <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "Debes seleccionar un cliente antes de continuar.", true, 2000);
-                AbrirModalCliente(idVenta, 0);
-                return;
-            }
-
-            var vistaVenta = await V_TablaVentasControler.Consultar_Id(db, idVenta);
-            if (vistaVenta == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontró la venta seleccionada.", true, 1800);
-                return;
-            }
-
-            if (!PuedeEditarCliente(vistaVenta))
-            {
-                AlertModerno.Warning(this, "Atención", "Solo puedes editar el cliente en ventas que no han sido aceptadas por la DIAN.", true, 2200);
-                return;
-            }
-
-            var cliente = await ClientesControler.Consultar_id(db, idCliente);
-            if (cliente == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontró el cliente seleccionado.", true, 1800);
-                AbrirModalCliente(idVenta, 0);
-                return;
-            }
-
-            var relacion = await R_VentaCliente_Controler.ConsultarRelacion(db, idVenta);
-            var funcion = 1;
-            if (relacion == null)
-            {
-                relacion = new R_VentaCliente
-                {
-                    id = 0,
-                    idVenta = idVenta,
-                    idCliente = idCliente,
-                    idSede = vistaVenta.IdSede
-                };
-                funcion = 0;
-            }
-            else
-            {
-                relacion.idCliente = idCliente;
-                if (relacion.idSede <= 0)
-                {
-                    relacion.idSede = vistaVenta.IdSede;
-                }
-            }
-
-            var ok = await R_VentaCliente_Controler.CRUD(db, relacion, funcion);
-            if (!ok)
-            {
-                AlertModerno.Error(this, "Error", "No fue posible actualizar el cliente de la factura.", true, 2200);
-                AbrirModalCliente(idVenta, idCliente);
-                return;
-            }
-
-            var urlRefresco = Request?.RawUrl;
-            if (string.IsNullOrWhiteSpace(urlRefresco))
-            {
-                urlRefresco = ResolveUrl("~/HVentas.aspx");
-            }
-
-            AlertModerno.SuccessGoTo(this, "OK", "Cliente actualizado correctamente.", urlRefresco, true, 1200);
-        }
-
-        private async System.Threading.Tasks.Task GuardarClienteCatalogo(string db, string eventArgument)
-        {
-            if (string.IsNullOrWhiteSpace(eventArgument))
-            {
-                AlertModerno.Warning(this, "Atención", "No llegó información del cliente.", true, 2000);
-                return;
-            }
-
-            string json;
             try
             {
-                var bytes = Convert.FromBase64String(eventArgument);
-                json = System.Text.Encoding.UTF8.GetString(bytes);
-            }
-            catch
-            {
-                json = eventArgument;
-            }
-
-            var payload = JsonConvert.DeserializeObject<ClienteGuardarPayloadHV>(json);
-            if (payload == null)
-            {
-                AlertModerno.Error(this, "Error", "Payload inválido para guardar el cliente.", true);
-                return;
-            }
-
-            var nit = (payload.nit ?? string.Empty).Trim();
-            var nombre = (payload.nombre ?? string.Empty).Trim();
-
-            if (string.IsNullOrWhiteSpace(nit) || string.IsNullOrWhiteSpace(nombre))
-            {
-                AlertModerno.Warning(this, "Atención", "Debes completar identificación y nombre del cliente.", true, 2200);
-                ReabrirModalClienteConDatos(payload.idVenta, payload);
-                return;
-            }
-
-            int funcion = 0;
-            var existente = (payload.clienteId > 0)
-                ? ClientesDisponibles.FirstOrDefault(x => x.id == payload.clienteId)
-                : ClientesDisponibles.FirstOrDefault(x => (x.identificationNumber ?? string.Empty) == nit);
-
-            var cliente = existente ?? new Clientes();
-            if (existente != null)
-            {
-                funcion = 1;
-            }
-
-            cliente.typeDocumentIdentification_id = payload.typeDocId;
-            cliente.identificationNumber = nit;
-            cliente.typeOrganization_id = payload.orgId;
-            cliente.municipality_id = payload.municipioId;
-            cliente.typeRegime_id = payload.regimenId;
-            cliente.typeLiability_id = payload.responsabilidadId;
-            cliente.typeTaxDetail_id = payload.impuestoId;
-            cliente.nameCliente = nombre;
-            cliente.tradeName = string.IsNullOrWhiteSpace(payload.comercio) ? "-" : payload.comercio.Trim();
-            cliente.phone = string.IsNullOrWhiteSpace(payload.telefono) ? "0" : payload.telefono.Trim();
-            cliente.adress = string.IsNullOrWhiteSpace(payload.direccion) ? "-" : payload.direccion.Trim();
-            cliente.email = string.IsNullOrWhiteSpace(payload.correo) ? string.Empty : payload.correo.Trim();
-            cliente.merchantRegistration = string.IsNullOrWhiteSpace(payload.matricula) ? "0" : payload.matricula.Trim();
-            cliente.idTipoTercero = payload.esCliente && payload.esProveedor ? 3 : (payload.esProveedor ? 2 : 1);
-
-            var respuesta = await ClientesControler.CRUD(db, cliente, funcion);
-            if (respuesta == null || !respuesta.estado)
-            {
-                AlertModerno.Error(this, "Error", respuesta?.mensaje ?? "No fue posible guardar el cliente.", true);
-                ReabrirModalClienteConDatos(payload.idVenta, payload);
-                return;
-            }
-
-            int idClienteGuardado = existente?.id ?? 0;
-            if (idClienteGuardado <= 0 && respuesta.data != null)
-            {
-                int.TryParse(respuesta.data.ToString(), out idClienteGuardado);
-            }
-
-            await CargarClientes(db, true);
-
-            if (idClienteGuardado <= 0)
-            {
-                var recargado = ClientesDisponibles.FirstOrDefault(x => (x.identificationNumber ?? string.Empty) == nit);
-                idClienteGuardado = recargado?.id ?? 0;
-            }
-
-            if (idClienteGuardado <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "El cliente se guardó, pero no fue posible seleccionarlo automáticamente.", true, 2200);
-                ReabrirModalClienteConDatos(payload.idVenta, payload);
-                return;
-            }
-
-            await SeleccionarClienteFactura(db, idClienteGuardado.ToString());
-        }
-
-        [WebMethod(EnableSession = true)]
-        public static string BuscarNitClienteAjax(string nit)
-        {
-            try
-            {
-                nit = (nit ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(nit))
+                if (!IsPostBack)
                 {
-                    return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("Debes escribir un documento para buscar.", ClienteBusquedaAjaxData.Empty(nit)));
+                    await InicializarPagina();
                 }
 
-                var session = HttpContext.Current == null ? null : HttpContext.Current.Session;
-                var models = session == null ? null : SessionContextHelper.LoadModels(session);
-                var db = Convert.ToString((session == null ? null : session[SessionContextHelper.DbKey]) ?? models?.db ?? string.Empty);
-                if (string.IsNullOrWhiteSpace(db))
-                {
-                    return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("La sesión expiró o no tiene contexto de base de datos.", ClienteBusquedaAjaxData.Empty(nit)));
-                }
-                var clientes = ClientesControler.ListaClientes(db).GetAwaiter().GetResult() ?? new List<Clientes>();
-                var cliente = clientes.FirstOrDefault(x => (x.identificationNumber ?? string.Empty) == nit);
-                var encontradoEnBase = cliente != null;
+                await ProcesarPostBack();
+                await RefrescarVista();
 
-                if (cliente == null)
-                {
-                    int nitNumero;
-                    if (!int.TryParse(nit, out nitNumero))
-                    {
-                        return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("El documento debe ser numérico para consultar en la DIAN.", ClienteBusquedaAjaxData.Empty(nit)));
-                    }
-
-                    var acquirerResponse = ConsultarNitDianStatic(nitNumero);
-                    if (acquirerResponse == null || string.IsNullOrWhiteSpace(acquirerResponse.name))
-                    {
-                        return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.", ClienteBusquedaAjaxData.Empty(nit)));
-                    }
-
-                    cliente = new Clientes
-                    {
-                        id = 0,
-                        typeDocumentIdentification_id = 6,
-                        identificationNumber = nit,
-                        typeOrganization_id = 2,
-                        municipality_id = 605,
-                        typeRegime_id = 2,
-                        typeLiability_id = 29,
-                        typeTaxDetail_id = 5,
-                        nameCliente = acquirerResponse.name,
-                        tradeName = "-",
-                        phone = "0",
-                        adress = "-",
-                        email = acquirerResponse.email,
-                        merchantRegistration = "0",
-                        idTipoTercero = 1
-                    };
-                }
-
-                return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Ok(ClienteBusquedaAjaxData.FromCliente(cliente, encontradoEnBase)));
             }
             catch (Exception ex)
             {
-                return JsonConvert.SerializeObject(ClienteBusquedaAjaxResponse.Fail("No fue posible consultar el NIT. " + ex.Message, ClienteBusquedaAjaxData.Empty(nit)));
+                System.Diagnostics.Debug.WriteLine("Error Page_Load HVentas: " + ex.Message);
             }
         }
 
-        private static Acquirer_Response ConsultarNitDianStatic(int nit)
+        #endregion
+
+        #region Inicialización
+
+        private async Task InicializarPagina()
         {
-            var facturacionElectronica = new FacturacionElectronicaDIANFactory();
-            var acquirerRequest = new Acquirer_Request();
-            acquirerRequest.environment = new Acquirer_Request.Environment();
-            acquirerRequest.environment.type_environment_id = 1;
-            acquirerRequest.type_document_identification_id = 6;
-            acquirerRequest.identification_number = nit;
-            string tokenFe = controlador_tokenEmpresa.ConsultarTokenSerinsisPC().GetAwaiter().GetResult();
-            return facturacionElectronica.ConsultarAcquirer(acquirerRequest, tokenFe).GetAwaiter().GetResult();
+            await CargarCombosIniciales();
+            await CargarDatosInicialesCliente();
+            //cargamos todos los ddl
+            await CargarDDL();
         }
-        private async System.Threading.Tasks.Task BuscarNitCliente(string db, string nit)
+
+        private async Task CargarCombosIniciales()
+        {
+            await Task.CompletedTask;
+        }
+
+        private async Task CargarDatosInicialesCliente()
+        {
+            await Task.CompletedTask;
+        }
+
+        #endregion
+
+        #region Router PostBack
+        public dynamic ExtraerValores(string eventArgument)
+        {
+            return JsonConvert.DeserializeObject<dynamic>(eventArgument);
+        }
+        private async Task ProcesarPostBack()
+        {
+            var eventTarget = Request["__EVENTTARGET"];
+            var eventArgument = Request["__EVENTARGUMENT"];
+
+            if (string.IsNullOrWhiteSpace(eventTarget))
+                return;
+
+            switch (eventTarget)
+            {
+                case "btnAbrirVenta":
+                    await btnAbrirVenta(eventArgument);
+                    break;
+
+                case "btnEditarResolucion":
+                    await btnEditarResolucion(eventArgument);
+                    break;
+
+                case "btnEditarCliente":
+                    await btnEditarCliente(eventArgument);
+                    break;
+
+                case "btnBuscarNIT":
+                    await btnBuscarNIT(eventArgument);
+                    break;
+
+                case "btnGuardarCliente":
+                    await btnGuardarCliente(eventArgument);
+                    break;
+
+
+                case "btnImprimirVenta":
+                    await btnImprimirVenta(eventArgument);
+                    break;
+
+                case "btnGuardarResolucion":
+                    await btnGuardarResolucion(eventArgument);
+                    break;
+
+                case "btnSeleccionarCliente":
+                    await btnSeleccionarCliente(eventArgument);
+                    break;
+
+                case "btnEnviarDIAN":
+                    await btnEnviarDIAN(eventArgument);
+                    break;
+
+                case "btnDescargarPDF":
+                    await btnDescargarPDF(eventArgument);
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Refresco de vista
+
+        private async Task RefrescarVista()
+        {
+            await CargarVentas();
+        }
+
+        private async Task CargarVentas()
+        {
+            var model = JsonConvert.DeserializeObject<MenuViewModels>(Session["ModelsJson"].ToString());
+            var listaventas = await V_TablaVentasControler.Lista(Session["db"].ToString(), model.BaseCaja.id);
+
+            valores = new Valores
+            {
+                total = listaventas?.Sum(x => x.total_A_Pagar) ?? 0,
+                propina = listaventas?.Sum(x => x.propina) ?? 0,
+                facturas = listaventas?.Count(x => x.estadoVenta != "ANULADA") ?? 0,
+                anuladas = listaventas?.Count(x => x.estadoVenta == "ANULADA") ?? 0
+            };
+
+            rpVentas.DataSource = listaventas;
+            rpVentas.DataBind();
+        }
+
+        protected string ObtenerEstadoBadge(string cufe, string tipoFactura)
+        {
+            if (cufe != "--" && tipoFactura == "FACTURA ELECTRÓNICA DE VENTA")
+                return "<span class='hv-badge success'><i class='bi bi-qr-code-scan'></i>Emitida</span>";
+
+            return "<span class='hv-badge danger'><i class='bi bi-x-circle'></i>Rechazada</span>";
+        }
+
+        #endregion
+
+
+        #region Eventos
+
+        private async Task btnAbrirVenta(string idventa)
+        {
+            int id = Convert.ToInt32(idventa);
+
+            var v_tabla = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), id);
+            venta = new V_TablaVentas();
+            venta = v_tabla ?? new V_TablaVentas();
+
+            var detalle = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), id, 0);
+            detalleCaja = detalle ?? new List<V_DetalleCaja>();
+
+            rpDetalleCaja.DataSource = detalleCaja;
+            rpDetalleCaja.DataBind();
+
+            _mdlVenta = true;
+        }
+        private async Task btnEditarResolucion(string idventa)
+        {
+            int id = Convert.ToInt32(idventa);
+
+            var v_tabla = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), id);
+            venta = new V_TablaVentas();
+            venta = v_tabla ?? new V_TablaVentas();
+            //en esta parte guardamos la venta en json session
+            string jsonventa = JsonConvert.SerializeObject(venta);
+            Session["venta"] = jsonventa;
+
+            if (venta.cufe != "--")
+            {
+                await MostrarMensaje(TipoMensaje.Warning,"Factura electrónica","La factura es electrónica y ya fue aceptada por la DIAN.");
+                return;
+            }
+
+            //cargamos las resoluciones
+            var resoluciones = await V_Resoluciones_Controler.Lista(Session["db"].ToString());
+            if (resoluciones.Count > 0)
+            {
+                listaResoluciones = new List<V_Resoluciones>();
+                listaResoluciones = resoluciones;
+                rpResoluciones.DataSource = resoluciones;
+                rpResoluciones.DataBind();
+            }
+
+            _mdlResolucionVenta = true;
+        }
+        public class GuardarResolucionDto
+        {
+            public int resolucionId { get; set; }
+            public int ventaId { get; set; }
+        }
+        private async Task btnGuardarResolucion(string data)
+        {
+            if (string.IsNullOrWhiteSpace(data))
+                throw new Exception("Payload vacío");
+
+            var obj = JsonConvert.DeserializeObject<GuardarResolucionDto>(data);
+
+            if (obj == null)
+                throw new Exception("No se pudo deserializar");
+
+            if (obj.resolucionId <= 0 || obj.ventaId <= 0)
+                throw new Exception("Datos inválidos");
+
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db))
+                throw new Exception("La sesión de base de datos no está disponible");
+
+            var idResolucion = obj.resolucionId;
+            var idVenta = obj.ventaId;
+
+            var venta = await TablaVentasControler.ConsultarIdVenta(db, idVenta);
+            if (venta == null)
+                throw new Exception("No se encontró la venta");
+
+            venta.idResolucion = idResolucion;
+
+            var resp = await TablaVentasControler.CRUD(db, venta, 1);
+            if (resp == null || !resp.estado)
+                throw new Exception("No fue posible editar la resolución");
+
+            await MostrarMensaje(TipoMensaje.Success, "Ok", "Resolución editada correctamente.");
+        }
+
+        private async Task btnImprimirVenta(string idventa)
+        {
+
+            var imprimir = new ImprimirFactura() { id = 0, idventa = Convert.ToInt32(idventa) };
+            var resp = await ImprimirFacturaControler.CRUD(Session["db"].ToString(), imprimir, 0);
+            if (!resp.estado)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No fue posible enviar la factura.");
+                await Task.CompletedTask;
+                return;
+            }
+
+            await MostrarMensaje(TipoMensaje.Success, "Ok", "Factura enviada.");
+            await Task.CompletedTask;
+        }
+
+        private async Task btnBuscarNIT(string nit)
         {
             try
             {
-                nit = (nit ?? string.Empty).Trim();
+                nit = (nit ?? "").Trim();
+
                 if (string.IsNullOrWhiteSpace(nit))
                 {
+                    await MostrarMensaje(TipoMensaje.Warning, "Atención", "Debes ingresar un NIT.");
                     return;
                 }
 
-                var cliente = ClientesDisponibles.FirstOrDefault(x => (x.identificationNumber ?? string.Empty) == nit);
-                var encontradoEnBase = cliente != null;
+                var clientesJson = Session["clientes"]?.ToString();
+                var clientes = string.IsNullOrWhiteSpace(clientesJson)
+                    ? new List<Clientes>()
+                    : JsonConvert.DeserializeObject<List<Clientes>>(clientesJson) ?? new List<Clientes>();
+
+                var cliente = clientes.FirstOrDefault(x => x.identificationNumber == nit);
 
                 if (cliente == null)
                 {
-                    var acquirerResponse = await Consultar_NIT_DIAN(Convert.ToInt32(nit));
-                    if (acquirerResponse == null || string.IsNullOrWhiteSpace(acquirerResponse.name))
+                    if (!int.TryParse(nit, out var nitNumero))
+                    {
+                        await MostrarMensaje(TipoMensaje.Warning, "Atención", "El NIT no tiene un formato válido.");
+                        return;
+                    }
+
+                    cliente = new Clientes();
+                    var acquirer_Response = await Consultar_NIT_DIAN(nitNumero);
+
+                    if (acquirer_Response == null || string.IsNullOrWhiteSpace(acquirer_Response.name))
                     {
                         var limpiarPayload = new
                         {
-                            clienteId = 0,
                             typeDocId = "",
-                            nit = nit,
+                            nit = "",
                             orgId = "",
                             municipioId = "",
                             regimenId = "",
@@ -639,33 +332,30 @@ namespace WebApplication
                         };
 
                         var limpiarJson = JsonConvert.SerializeObject(limpiarPayload);
-                        var scriptError = "Swal.fire({icon:'error',title:'Error',text:'El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.',confirmButtonColor:'#2563eb'}).then(function(){if(window.setHvClienteData){window.setHvClienteData(" + limpiarJson + ");} if(window.hvClienteModal){window.hvClienteModal.preseleccionar();} var modalEl=document.getElementById('mdlClienteVenta'); if(window.hvMostrarModalCliente){window.hvMostrarModalCliente();} else if(modalEl && window.bootstrap && window.bootstrap.Modal){window.bootstrap.Modal.getOrCreateInstance(modalEl).show();}});";
-                        ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), scriptError, true);
+                        var limpiarScript = $"Swal.fire({{icon:'error',title:'¡Error!',text:'El documento no se encuentra registrado ni en la base de datos ni en la DIAN. Debes crearlo manualmente.',confirmButtonColor:'#2563eb'}}).then(function(){{if(window.setClienteData){{window.setClienteData({limpiarJson});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}}});";
+
+                        await EjecutarScript(limpiarScript);
+                        _mdlClienteVenta = true;
                         return;
                     }
 
-                    cliente = new Clientes
-                    {
-                        id = 0,
-                        typeDocumentIdentification_id = 6,
-                        identificationNumber = nit,
-                        typeOrganization_id = 2,
-                        municipality_id = 605,
-                        typeRegime_id = 2,
-                        typeLiability_id = 29,
-                        typeTaxDetail_id = 5,
-                        nameCliente = acquirerResponse.name,
-                        tradeName = "-",
-                        phone = "0",
-                        adress = "-",
-                        email = acquirerResponse.email,
-                        merchantRegistration = "0"
-                    };
+                    cliente.typeDocumentIdentification_id = 6;
+                    cliente.identificationNumber = nit;
+                    cliente.typeOrganization_id = 2;
+                    cliente.municipality_id = 605;
+                    cliente.typeRegime_id = 2;
+                    cliente.typeLiability_id = 29;
+                    cliente.typeTaxDetail_id = 5;
+                    cliente.nameCliente = acquirer_Response.name;
+                    cliente.tradeName = "-";
+                    cliente.phone = "0";
+                    cliente.adress = "-";
+                    cliente.email = acquirer_Response.email;
+                    cliente.merchantRegistration = "0";
                 }
 
                 var payload = new
                 {
-                    clienteId = cliente.id,
                     typeDocId = cliente.typeDocumentIdentification_id,
                     nit = cliente.identificationNumber,
                     orgId = cliente.typeOrganization_id,
@@ -678,444 +368,322 @@ namespace WebApplication
                     telefono = cliente.phone,
                     direccion = cliente.adress,
                     correo = cliente.email,
-                    matricula = cliente.merchantRegistration,
-                    actionLabel = encontradoEnBase ? "Editar" : "Guardar"
+                    matricula = cliente.merchantRegistration
                 };
 
                 var json = JsonConvert.SerializeObject(payload);
-                var script = "if(window.setHvClienteData){window.setHvClienteData(" + json + ");} if(window.hvClienteModal){window.hvClienteModal.preseleccionar();} var modalEl=document.getElementById('mdlClienteVenta'); if(window.hvMostrarModalCliente){window.hvMostrarModalCliente();} else if(modalEl && window.bootstrap && window.bootstrap.Modal){window.bootstrap.Modal.getOrCreateInstance(modalEl).show();}";
-                ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
+                var script = $"Swal.close(); if(window.setClienteData){{window.setClienteData({json});}} var modalEl=document.getElementById('mdlCliente'); if(modalEl){{bootstrap.Modal.getOrCreateInstance(modalEl).show();}}";
+
+                await EjecutarScript(script);
             }
-            catch
+            catch (Exception ex)
             {
-                var scriptError = "Swal.fire({icon:'error',title:'Error',text:'No fue posible consultar el NIT.',confirmButtonColor:'#2563eb'}).then(function(){var modalEl=document.getElementById('mdlClienteVenta'); if(window.hvMostrarModalCliente){window.hvMostrarModalCliente();} else if(modalEl && window.bootstrap && window.bootstrap.Modal){window.bootstrap.Modal.getOrCreateInstance(modalEl).show();}});";
-                ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), scriptError, true);
+                System.Diagnostics.Debug.WriteLine("Error btnBuscarNIT: " + ex.Message);
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No fue posible consultar el NIT.");
             }
+
+            _mdlClienteVenta = true;
         }
 
-        private async System.Threading.Tasks.Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
+        private async Task btnGuardarCliente(string raw)
         {
-            FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
-            Acquirer_Request acquirerRequest = new Acquirer_Request();
-            acquirerRequest.environment = new Acquirer_Request.Environment();
-            acquirerRequest.environment.type_environment_id = 1;
-            acquirerRequest.type_document_identification_id = 6;
-            acquirerRequest.identification_number = nit;
-            string tokenFe = await controlador_tokenEmpresa.ConsultarTokenSerinsisPC();
-            return await facturacionElectronica.ConsultarAcquirer(acquirerRequest, tokenFe);
-        }
-
-        public class ClienteBusquedaAjaxResponse
-        {
-            public bool estado { get; set; }
-            public string mensaje { get; set; }
-            public ClienteBusquedaAjaxData data { get; set; }
-
-            public static ClienteBusquedaAjaxResponse Ok(ClienteBusquedaAjaxData data)
+            try
             {
-                return new ClienteBusquedaAjaxResponse { estado = true, mensaje = string.Empty, data = data };
-            }
+                int accion = 0;
+                int idcliente = 0;
+                if (string.IsNullOrWhiteSpace(raw))
+                    return;
 
-            public static ClienteBusquedaAjaxResponse Fail(string mensaje, ClienteBusquedaAjaxData data)
-            {
-                return new ClienteBusquedaAjaxResponse { estado = false, mensaje = mensaje ?? string.Empty, data = data };
-            }
-        }
+                // Aquí luego parseas JSON real
+                var data = JsonConvert.DeserializeObject<dynamic>(raw);
 
-        public class ClienteBusquedaAjaxData
-        {
-            public int clienteId { get; set; }
-            public int typeDocId { get; set; }
-            public string nit { get; set; }
-            public int orgId { get; set; }
-            public int municipioId { get; set; }
-            public int regimenId { get; set; }
-            public int responsabilidadId { get; set; }
-            public int impuestoId { get; set; }
-            public string nombre { get; set; }
-            public string comercio { get; set; }
-            public string telefono { get; set; }
-            public string direccion { get; set; }
-            public string correo { get; set; }
-            public string matricula { get; set; }
-            public bool esCliente { get; set; }
-            public bool esProveedor { get; set; }
-            public string actionLabel { get; set; }
-
-            public static ClienteBusquedaAjaxData Empty(string nit)
-            {
-                return new ClienteBusquedaAjaxData
+                var cliente = await ClientesControler.Consultar_nit(Session["db"].ToString(),(string)data.identificacion);
+                if (cliente == null) 
                 {
-                    clienteId = 0,
-                    typeDocId = 0,
-                    nit = nit ?? string.Empty,
-                    orgId = 0,
-                    municipioId = 0,
-                    regimenId = 0,
-                    responsabilidadId = 0,
-                    impuestoId = 0,
-                    nombre = string.Empty,
-                    comercio = string.Empty,
-                    telefono = string.Empty,
-                    direccion = string.Empty,
-                    correo = string.Empty,
-                    matricula = string.Empty,
-                    esCliente = true,
-                    esProveedor = false,
-                    actionLabel = "Guardar"
-                };
-            }
-
-            public static ClienteBusquedaAjaxData FromCliente(Clientes cliente, bool encontradoEnBase)
-            {
-                cliente = cliente ?? new Clientes();
-                return new ClienteBusquedaAjaxData
+                    cliente = new Clientes();
+                }
+                else
                 {
-                    clienteId = cliente.id,
-                    typeDocId = cliente.typeDocumentIdentification_id,
-                    nit = cliente.identificationNumber ?? string.Empty,
-                    orgId = cliente.typeOrganization_id,
-                    municipioId = cliente.municipality_id,
-                    regimenId = cliente.typeRegime_id,
-                    responsabilidadId = cliente.typeLiability_id,
-                    impuestoId = cliente.typeTaxDetail_id,
-                    nombre = cliente.nameCliente ?? string.Empty,
-                    comercio = cliente.tradeName ?? string.Empty,
-                    telefono = cliente.phone ?? string.Empty,
-                    direccion = cliente.adress ?? string.Empty,
-                    correo = cliente.email ?? string.Empty,
-                    matricula = cliente.merchantRegistration ?? string.Empty,
-                    esCliente = cliente.idTipoTercero == 1 || cliente.idTipoTercero == 3 || cliente.idTipoTercero == 0,
-                    esProveedor = cliente.idTipoTercero == 2 || cliente.idTipoTercero == 3,
-                    actionLabel = encontradoEnBase ? "Editar" : "Guardar"
-                };
-            }
-        }
-        private class ClienteGuardarPayloadHV
-        {
-            public int idVenta { get; set; }
-            public int clienteId { get; set; }
-            public int typeDocId { get; set; }
-            public string nit { get; set; }
-            public int orgId { get; set; }
-            public int municipioId { get; set; }
-            public int regimenId { get; set; }
-            public int responsabilidadId { get; set; }
-            public int impuestoId { get; set; }
-            public string nombre { get; set; }
-            public string comercio { get; set; }
-            public string telefono { get; set; }
-            public string direccion { get; set; }
-            public string correo { get; set; }
-            public string matricula { get; set; }
-            public bool esCliente { get; set; }
-            public bool esProveedor { get; set; }
-        }
-        protected string Moneda(decimal valor)
-        {
-            return valor.ToString("C0");
-        }
+                    idcliente = cliente.id;
+                    accion = 1;
+                }
 
-        protected string FechaLarga(DateTime fecha)
-        {
-            return fecha.ToString("yyyy-MM-dd");
-        }
+                cliente.id = idcliente;
+                cliente.typeDocumentIdentification_id = data.tipoDocumento;
+                cliente.typeOrganization_id = data.tipoOrganizacion;
+                cliente.municipality_id = data.municipio;
+                cliente.typeRegime_id = data.regimen;
+                cliente.typeLiability_id = data.responsabilidad;
+                cliente.typeTaxDetail_id = data.impuesto;
+                cliente.nameCliente = data.nombre;
+                cliente.tradeName = data.comercio;
+                cliente.phone = data.telefono;
+                cliente.adress = data.direccion;
+                cliente.email = data.correo;
+                cliente.merchantRegistration = data.matricula;
+                cliente.identificationNumber = data.identificacion;
 
-        protected string HoraLarga(DateTime fecha)
-        {
-            return fecha.ToString("hh:mm tt");
-        }
+                if ((bool)data.esProveedor) cliente.idTipoTercero = data.esProveedor;
+                if ((bool)data.esCliente) cliente.idTipoTercero = data.esCliente;
 
-        protected string FacturaLabel(V_TablaVentas venta)
-        {
-            if (!string.IsNullOrWhiteSpace(venta.prefijo) && venta.numeroVenta > 0)
-            {
-                return venta.prefijo + "-" + venta.numeroVenta.ToString("000000");
-            }
-            if (venta.numeroVenta > 0)
-            {
-                return venta.numeroVenta.ToString();
-            }
-            return "Sin numerar";
-        }
-
-        protected string EstadoClase(V_TablaVentas venta)
-        {
-            if (EsVentaAnulada(venta)) return "danger";
-            if (venta.totalPendienteVenta > 0) return "warning";
-            return "success";
-        }
-
-        protected string EstadoTexto(V_TablaVentas venta)
-        {
-            if (!string.IsNullOrWhiteSpace(venta?.estadoVenta))
-            {
-                return venta.estadoVenta;
-            }
-
-            if (venta != null && venta.totalPendienteVenta > 0) return "PENDIENTE";
-            return "PAGADA";
-        }
-
-        protected string MedioClase(string medio)
-        {
-            return string.IsNullOrWhiteSpace(medio) ? "gray" : "info";
-        }
-
-        protected string FeClase(V_TablaVentas venta)
-        {
-            return string.IsNullOrWhiteSpace(venta?.cufe) && string.IsNullOrWhiteSpace(venta?.estadoFE) ? "gray" : "success";
-        }
-
-        protected string FeTexto(V_TablaVentas venta)
-        {
-            if (string.IsNullOrWhiteSpace(venta?.cufe) && string.IsNullOrWhiteSpace(venta?.estadoFE))
-            {
-                return "No aplica";
-            }
-
-            return string.IsNullOrWhiteSpace(venta?.estadoFE) ? "Emitida" : venta.estadoFE;
-        }
-
-        protected string FeIcono(V_TablaVentas venta)
-        {
-            return string.IsNullOrWhiteSpace(venta?.cufe) && string.IsNullOrWhiteSpace(venta?.estadoFE)
-                ? "bi-dash-circle"
-                : "bi-qr-code-scan";
-        }
-
-        protected bool PuedeEditarResolucion(V_TablaVentas venta)
-        {
-            if (venta == null)
-            {
-                return false;
-            }
-
-            var estadoFe = (venta.estadoFE ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(estadoFe))
-            {
-                return true;
-            }
-
-            return !string.Equals(estadoFe, "ACEPTADA", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(estadoFe, "ACEPTADO", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(estadoFe, "APROBADA", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(estadoFe, "VALIDADA", StringComparison.OrdinalIgnoreCase);
-        }
-
-        protected bool PuedeEditarCliente(V_TablaVentas venta)
-        {
-            return PuedeEditarResolucion(venta);
-        }
-
-        protected bool PuedeReenviarDian(V_TablaVentas venta)
-        {
-            return EsFacturaElectronica(venta) && PuedeEditarResolucion(venta);
-        }
-
-        protected bool EsFacturaElectronica(V_TablaVentas venta)
-        {
-            var tipoFactura = (venta?.tipoFactura ?? string.Empty).Trim();
-            return tipoFactura.IndexOf("ELECTR", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        protected string VentaBusqueda(V_TablaVentas venta)
-        {
-            return string.Join(" ", new[]
-            {
-                FacturaLabel(venta),
-                venta.aliasVenta,
-                venta.nombreCliente,
-                venta.nit,
-                venta.numeroReferenciaPago,
-                venta.medioDePago,
-                venta.estadoVenta
-            }.Where(x => !string.IsNullOrWhiteSpace(x))).ToLowerInvariant();
-        }
-
-        protected bool EsVentaAnulada(V_TablaVentas venta)
-        {
-            return string.Equals(venta?.estadoVenta, "ANULADA", StringComparison.OrdinalIgnoreCase);
-        }
-
-        protected async void btnGuardarResolucion_Click(object sender, EventArgs e)
-        {
-            Models = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels();
-            var db = Convert.ToString(Session[SessionContextHelper.DbKey] ?? Models.db);
-            var idBase = SessionContextHelper.ResolveBaseCajaId(Session, Models);
-
-            if (string.IsNullOrWhiteSpace(db) || idBase <= 0)
-            {
-                AlertModerno.ErrorRedirect(this, "Error", "La sesion expiro o no contiene el contexto activo.", "Default.aspx");
-                return;
-            }
-
-            if (!int.TryParse((hfVentaResolucionId?.Value ?? string.Empty).Trim(), out var idVenta) || idVenta <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "No se recibió una venta válida para editar la resolución.", true, 1800);
-                return;
-            }
-
-            if (!int.TryParse((ddlResolucionEditar?.SelectedValue ?? string.Empty).Trim(), out var idResolucion) || idResolucion <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "Seleccione una resolución válida.", true, 1800);
-                AbrirModalResolucion(idVenta, 0);
-                return;
-            }
-
-            var venta = await TablaVentasControler.ConsultarIdVenta(db, idVenta);
-            if (venta == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontró la venta seleccionada.", true, 1800);
-                return;
-            }
-
-            var vistaVenta = await new SqlAutoDAL().ConsultarUno<V_TablaVentas>(db, x => x.id == idVenta);
-            if (!PuedeEditarResolucion(vistaVenta))
-            {
-                AlertModerno.Warning(this, "Atención", "Solo puedes editar la resolución en ventas que no han sido aceptadas por la DIAN.", true, 2200);
-                await CargarVentas(db, idBase);
-                return;
-            }
-
-            venta.idResolucion = idResolucion;
-            var resp = await TablaVentasControler.CRUD(db, venta, 1);
-            if (resp == null || !resp.estado)
-            {
-                AlertModerno.Error(this, "Error", resp?.mensaje ?? "No fue posible actualizar la resolución.", true, 2200);
-                AbrirModalResolucion(idVenta, idResolucion);
-                return;
-            }
-
-            var urlRefresco = Request?.RawUrl;
-            if (string.IsNullOrWhiteSpace(urlRefresco))
-            {
-                urlRefresco = ResolveUrl("~/HVentas.aspx");
-            }
-
-            AlertModerno.SuccessGoTo(this, "OK", "Resolución actualizada correctamente.", urlRefresco, true, 1200);
-        }
-
-        protected async void btnGuardarCliente_Click(object sender, EventArgs e)
-        {
-            Models = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels();
-            var db = Convert.ToString(Session[SessionContextHelper.DbKey] ?? Models.db);
-            var idBase = SessionContextHelper.ResolveBaseCajaId(Session, Models);
-
-            if (string.IsNullOrWhiteSpace(db) || idBase <= 0)
-            {
-                AlertModerno.ErrorRedirect(this, "Error", "La sesion expiro o no contiene el contexto activo.", "Default.aspx");
-                return;
-            }
-
-            if (!int.TryParse((hfVentaClienteId?.Value ?? string.Empty).Trim(), out var idVenta) || idVenta <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "No se recibió una venta válida para editar el cliente.", true, 1800);
-                return;
-            }
-
-            var clienteSeleccionadoRaw = (hfClienteEditarSeleccionadoId?.Value ?? ddlClienteEditar?.SelectedValue ?? string.Empty).Trim();
-            if (!int.TryParse(clienteSeleccionadoRaw, out var idCliente) || idCliente <= 0)
-            {
-                AlertModerno.Warning(this, "Atención", "Seleccione un cliente válido.", true, 1800);
-                AbrirModalCliente(idVenta, 0);
-                return;
-            }
-
-            var vistaVenta = await V_TablaVentasControler.Consultar_Id(db, idVenta);
-            if (vistaVenta == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontró la venta seleccionada.", true, 1800);
-                return;
-            }
-
-            if (!PuedeEditarCliente(vistaVenta))
-            {
-                AlertModerno.Warning(this, "Atención", "Solo puedes editar el cliente en ventas que no han sido aceptadas por la DIAN.", true, 2200);
-                return;
-            }
-
-            var cliente = await ClientesControler.Consultar_id(db, idCliente);
-            if (cliente == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontró el cliente seleccionado.", true, 1800);
-                AbrirModalCliente(idVenta, 0);
-                return;
-            }
-
-            var relacion = await R_VentaCliente_Controler.ConsultarRelacion(db, idVenta);
-            var funcion = 1;
-            if (relacion == null)
-            {
-                relacion = new R_VentaCliente
+                var resp = await ClientesControler.CRUD(Session["db"].ToString(),cliente,accion);
+                if (!resp.estado)
                 {
-                    id = 0,
-                    idVenta = idVenta,
-                    idCliente = idCliente,
-                    idSede = vistaVenta.IdSede
-                };
-                funcion = 0;
+                    await MostrarMensaje(TipoMensaje.Error,"Error","No fue pocible gestionar el cliente.");
+                    return;
+                }
+
+                await MostrarMensaje(TipoMensaje.Success, "OK", "Cliente guardado correctamente.");
+
+                await CargarClientes();
+
+                _mdlClienteVenta = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error btnGuardarCliente: " + ex.Message);
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async Task btnEditarCliente(string arg)
+        {
+            var v_tabla = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), Convert.ToInt32(arg));
+            venta = new V_TablaVentas();
+            venta = v_tabla ?? new V_TablaVentas();
+            if (venta.cufe != "--")
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Factura electrónica", "La factura es electrónica y ya fue aceptada por la DIAN.");
+                return;
+            }
+
+            Session["idventa"]=arg;
+            await CargarClientes();
+
+            // Solo abre modal por ahora
+            _mdlClienteVenta = true;
+            await Task.CompletedTask;
+        }
+        private async Task CargarClientes()
+        {
+            //cargamos el listado de los clientes
+            var clientes = await ClientesControler.ListaClientes(Session["db"].ToString());
+            if (clientes == null) return;
+
+            listaClientes = new List<Clientes>();
+            listaClientes = clientes;
+            //guardamos la lista en json session
+            Session["clientes"] = JsonConvert.SerializeObject(listaClientes);
+            rpClientes.DataSource = clientes;
+            rpClientes.DataBind();
+        }
+
+        public class ClienteSeleccionado
+        {
+             public int clienteId {  get; set; }
+        }
+
+        private async Task btnSeleccionarCliente(string objeto)
+        {
+            var data = JsonConvert.DeserializeObject<ClienteSeleccionado>(objeto);
+            var idCliente = data.clienteId;
+
+            var idventa = Convert.ToInt32(Session["idventa"].ToString());
+
+            int accion = 0;
+            int idR = 0;
+
+            var rvc = await R_VentaCliente_Controler.ConsultarRelacion(Session["db"].ToString(),idventa);
+            if (rvc == null)
+            {
+                rvc = new R_VentaCliente();
             }
             else
             {
-                relacion.idCliente = idCliente;
-                if (relacion.idSede <= 0)
-                {
-                    relacion.idSede = vistaVenta.IdSede;
-                }
+                idR = rvc.id;
+                accion = 1;
             }
 
-            var ok = await R_VentaCliente_Controler.CRUD(db, relacion, funcion);
-            if (!ok)
+            rvc.id= idR;
+            rvc.idVenta = idventa;
+            rvc.idCliente= idCliente;
+
+            var resp = await R_VentaCliente_Controler.CRUD(Session["db"].ToString(),rvc,accion);
+            if (!resp)
             {
-                AlertModerno.Error(this, "Error", "No fue posible actualizar el cliente de la factura.", true, 2200);
-                AbrirModalCliente(idVenta, idCliente);
+                await MostrarMensaje(TipoMensaje.Error,"Error","No se pudo editar el cliente.");
                 return;
             }
 
-            var urlRefresco = Request?.RawUrl;
-            if (string.IsNullOrWhiteSpace(urlRefresco))
+            await MostrarMensaje(TipoMensaje.Success,"Ok",$"Cliente editado con éxito.");
+        }
+
+        private async Task CargarDDL()
+        {
+            ddlTipoDocumentoHv.DataSource = await type_document_identificationsControler.ListaTiposDocumento(Session["db"].ToString());
+            ddlTipoDocumentoHv.DataTextField = "name";
+            ddlTipoDocumentoHv.DataValueField = "id";
+            ddlTipoDocumentoHv.DataBind();
+            ddlTipoDocumentoHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+
+            ddlTipoOrganizacionHv.DataSource = await type_organizationsControler.ListaTiposOrganizacion(Session["db"].ToString());
+            ddlTipoOrganizacionHv.DataTextField = "name";
+            ddlTipoOrganizacionHv.DataValueField = "id";
+            ddlTipoOrganizacionHv.DataBind();
+            ddlTipoOrganizacionHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+
+            ddlMunicipioHv.DataSource = await V_MunicipiosControler.ListaMunicipios(Session["db"].ToString());
+            ddlMunicipioHv.DataTextField = "name";
+            ddlMunicipioHv.DataValueField = "id";
+            ddlMunicipioHv.DataBind();
+            ddlMunicipioHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+
+            ddlTipoRegimenHv.DataSource = await type_regimesControler.ListaTiposRegimen(Session["db"].ToString());
+            ddlTipoRegimenHv.DataTextField = "name";
+            ddlTipoRegimenHv.DataValueField = "id";
+            ddlTipoRegimenHv.DataBind();
+            ddlTipoRegimenHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+
+            ddlTipoResponsabilidadHv.DataSource = await type_liabilitiesControler.ListaTiposResponsabilidad(Session["db"].ToString());
+            ddlTipoResponsabilidadHv.DataTextField = "name";
+            ddlTipoResponsabilidadHv.DataValueField = "id";
+            ddlTipoResponsabilidadHv.DataBind();
+            ddlTipoResponsabilidadHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+
+            ddlDetalleImpuestoHv.DataSource = await tax_detailsControler.ListaDetallesImpuesto(Session["db"].ToString());
+            ddlDetalleImpuestoHv.DataTextField = "name";
+            ddlDetalleImpuestoHv.DataValueField = "id";
+            ddlDetalleImpuestoHv.DataBind();
+            ddlDetalleImpuestoHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+        }
+
+        private async Task btnEnviarDIAN(string id)
+        {
+            var idVenta=Convert.ToInt32(id);
+            var tablaventa = await V_TablaVentasControler.Consultar_Id(Session["db"].ToString(), idVenta);
+            if (tablaventa == null)
             {
-                urlRefresco = ResolveUrl("~/HVentas.aspx");
+                await MostrarMensaje(TipoMensaje.Warning,"DIAN","No fue posible enviar la factura.");
+                return;
             }
 
-            AlertModerno.SuccessGoTo(this, "OK", "Cliente actualizado correctamente.", urlRefresco, true, 1200);
+            if (tablaventa.cufe != "--")
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "DIAN", "La factura ya fue acectada por la DIAN.");
+                return;
+            }
+
+            var detalleventa = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), idVenta, 0);
+            if (detalleventa == null)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "DIAN", "No fue posible enviar la factura.");
+                return;
+            }
+
+            var model = JsonConvert.DeserializeObject<MenuViewModels>(Session["ModelsJson"].ToString());
+
+            var respDIAN =await ClassFE.FacturaElectronica(Session["db"].ToString(),tablaventa, detalleventa, Convert.ToString(model.TokenEmpresa),false);
+            if (!respDIAN) 
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "DIAN", "No fue posible enviar la factura.");
+                return;
+            }
+
+            await MostrarMensaje(TipoMensaje.Success, "DIAN", "Factura enviada con éxito.");
+        }
+        private async Task btnDescargarPDF(string cufe)
+        {
+            if (string.IsNullOrWhiteSpace(cufe) || cufe == "--")
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No hay PDF disponible.");
+                return;
+            }
+
+            string link = $"https://catalogo-vpfe.dian.gov.co/User/SearchDocument?DocumentKey={cufe}";
+            string script = $"window.open('{link}', '_blank');";
+            ScriptManager.RegisterStartupScript(this, this.GetType(), "AbrirPDF", script, true);
         }
 
-        private void ReabrirModalClienteConDatos(int idVenta, object payload)
+        #endregion
+
+        #region Helpers PRO
+
+        public enum TipoMensaje
         {
-            var json = JsonConvert.SerializeObject(payload ?? new { });
-            var script = "setTimeout(function(){ if (typeof hvEditarCliente === 'function') { hvEditarCliente(" + idVenta + ", 0); } if (window.setHvClienteData) { window.setHvClienteData(" + json + "); } }, 120);";
-            ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
+            Success,
+            Error,
+            Warning,
+            Info
+        }
+        private async Task MostrarMensaje(TipoMensaje tipo, string titulo, string texto)
+        {
+            var icon = ObtenerIcono(tipo);
+
+            var script = $@"
+        if(window.Swal){{
+            Swal.fire({{
+                icon: '{icon}',
+                title: '{titulo}',
+                text: '{texto}',
+                confirmButtonColor: '#2563eb'
+            }});
+        }}
+    ";
+
+            await EjecutarScript(script);
+        }
+        private string ObtenerIcono(TipoMensaje tipo)
+        {
+            switch (tipo)
+            {
+                case TipoMensaje.Success:
+                    return "success";
+
+                case TipoMensaje.Error:
+                    return "error";
+
+                case TipoMensaje.Warning:
+                    return "warning";
+
+                case TipoMensaje.Info:
+                default:
+                    return "info";
+            }
         }
 
-        private void AbrirModalResolucion(int idVenta, int idResolucion)
+        private async Task EjecutarScript(string script)
         {
-            var script = string.Format("setTimeout(function(){{ if (typeof hvEditarResolucion === 'function') {{ hvEditarResolucion({0}, {1}); }} }}, 120);", idVenta, idResolucion);
-            ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
+            if (string.IsNullOrWhiteSpace(script)) return;
+
+            ScriptManager.RegisterStartupScript(
+                this,
+                GetType(),
+                Guid.NewGuid().ToString("N"),
+                script,
+                true
+            );
         }
 
-        private void AbrirModalCliente(int idVenta, int idCliente)
+        private async Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)
         {
-            var script = string.Format("setTimeout(function(){{ if (typeof hvEditarCliente === 'function') {{ hvEditarCliente({0}, {1}); }} }}, 120);", idVenta, idCliente);
-            ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
+            FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
+
+            Acquirer_Request acquirer_Request = new Acquirer_Request();
+
+            acquirer_Request.environment = new Acquirer_Request.Environment();
+            acquirer_Request.environment.type_environment_id = 1;
+
+            acquirer_Request.type_document_identification_id = 6;
+            acquirer_Request.identification_number = nit;
+
+            string TokenFE = await controlador_tokenEmpresa.ConsultarTokenSerinsisPC();
+
+            Acquirer_Response response = await facturacionElectronica.ConsultarAcquirer(acquirer_Request, TokenFE);
+
+            return response;
         }
+
+        #endregion
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

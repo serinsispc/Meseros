@@ -10,6 +10,19 @@ namespace DAL.Controler
 {
     public class V_TablaVentasControler
     {
+        public static async Task<List<V_TablaVentas>> Lista(string db, int idbase)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                return await cn.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == idbase);
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
         public static async Task<V_TablaVentas> Consultar_Id(string db,int idventa)
         {
             try

@@ -15,71 +15,93 @@ namespace WebApplication
     {
 
         /// <summary>
-        /// Control hfVentaResolucionId.
+        /// Control rpVentas.
         /// </summary>
-        protected global::System.Web.UI.WebControls.HiddenField hfVentaResolucionId;
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rpVentas;
 
         /// <summary>
-        /// Control ddlResolucionEditar.
+        /// Control rpDetalleCaja.
         /// </summary>
-        protected global::System.Web.UI.WebControls.DropDownList ddlResolucionEditar;
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rpDetalleCaja;
 
         /// <summary>
-        /// Control btnGuardarResolucion.
+        /// Control rpResoluciones.
         /// </summary>
-        protected global::System.Web.UI.WebControls.Button btnGuardarResolucion;
-
-        /// <summary>
-        /// Control hfVentaClienteId.
-        /// </summary>
-        protected global::System.Web.UI.WebControls.HiddenField hfVentaClienteId;
-
-        /// <summary>
-        /// Control hfClienteEditarSeleccionadoId.
-        /// </summary>
-        protected global::System.Web.UI.WebControls.HiddenField hfClienteEditarSeleccionadoId;
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rpResoluciones;
 
         /// <summary>
         /// Control ddlTipoDocumentoHv.
         /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ddlTipoDocumentoHv;
 
         /// <summary>
         /// Control ddlTipoOrganizacionHv.
         /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ddlTipoOrganizacionHv;
 
         /// <summary>
         /// Control ddlMunicipioHv.
         /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ddlMunicipioHv;
 
         /// <summary>
         /// Control ddlTipoRegimenHv.
         /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ddlTipoRegimenHv;
 
         /// <summary>
         /// Control ddlTipoResponsabilidadHv.
         /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ddlTipoResponsabilidadHv;
 
         /// <summary>
         /// Control ddlDetalleImpuestoHv.
         /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
         protected global::System.Web.UI.WebControls.DropDownList ddlDetalleImpuestoHv;
 
         /// <summary>
-        /// Control ddlClienteEditar.
+        /// Control rpClientes.
         /// </summary>
-        protected global::System.Web.UI.WebControls.DropDownList ddlClienteEditar;
-
-        /// <summary>
-        /// Control btnGuardarCliente.
-        /// </summary>
-        protected global::System.Web.UI.WebControls.Button btnGuardarCliente;
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rpClientes;
     }
 }
-
-
-

@@ -62,5 +62,20 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<Clientes> Consultar_nit(string db, string nit)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                var resp = await cn.ConsultarUno<Clientes>(db, x => x.identificationNumber == nit);
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }

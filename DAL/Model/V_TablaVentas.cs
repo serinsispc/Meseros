@@ -8,56 +8,56 @@ namespace DAL.Model
 {
     public class V_TablaVentas
     {
-        public int id { get; set; }
-        public DateTime fechaVenta { get; set; }
-        public string aliasVenta { get; set; }
-        public string tipoFactura { get; set; }
-        public string prefijo { get; set; }
-        public int numeroVenta { get; set; }
-        public decimal descuentoVenta { get; set; }
-        public int idMedioDePago { get; set; }
-        public int idResolucion { get; set; }
-        public int idFormaDePago { get; set; }
-        public decimal subtotalVenta { get; set; }
-        public decimal basesIva { get; set; }
-        public decimal basesIva_5 { get; set; }
-        public decimal basesIva_19 { get; set; }
-        public decimal IVA { get; set; }
-        public decimal IVA_5 { get; set; }
-        public decimal IVA_19 { get; set; }
-        public decimal INC { get; set; }
-        public decimal INCBolsas { get; set; }
-        public decimal otrosImpuestos { get; set; }
-        public decimal ivaVenta { get; set; }
-        public decimal totalVenta { get; set; }
-        public decimal total_A_Pagar { get; set; }
-        public decimal efectivoVenta { get; set; }
-        public decimal cambioVenta { get; set; }
-        public string formaDePago { get; set; }
-        public decimal abonoEfectivo { get; set; }
-        public decimal abonoTarjeta { get; set; }
-        public decimal totalPagadoVenta { get; set; }
-        public decimal totalPendienteVenta { get; set; }
-        public string estadoVenta { get; set; }
-        public string medioDePago { get; set; }
-        public string numeroReferenciaPago { get; set; }
-        public int diasCredito { get; set; }
-        public DateTime fechaVencimiento { get; set; }
-        public string observacionVenta { get; set; }
-        public int IdSede { get; set; }
-        public Guid guidVenta { get; set; }
-        public decimal costoTotalVenta { get; set; }
-        public decimal utilidadTotalVenta { get; set; }
-        public int idCliente { get; set; }
-        public string nit { get; set; }
-        public string nombreCliente { get; set; }
-        public decimal propina { get; set; }
-        public string cufe { get; set; }
-        public string estadoFE { get; set; }
-        public string imagenQR { get; set; }
-        public int idBaseCaja { get; set; }
-        public string razonDescuento { get; set; }
-        public decimal por_propina { get; set; }
-        public bool eliminada { get; set; }
+        public int id { get; set; } = 0;
+        public DateTime fechaVenta { get; set; }= DateTime.Now;
+        public string aliasVenta { get; set; } = "";
+        public string tipoFactura { get; set; } = string.Empty;
+        public string prefijo { get; set; }= string.Empty;
+        public int numeroVenta { get; set; }= 0;
+        public decimal descuentoVenta { get; set; }= decimal.Zero;
+        public int idMedioDePago { get; set; } = 0;
+        public int idResolucion { get; set; } = 0;
+        public int idFormaDePago { get; set; } = 0;
+        public decimal subtotalVenta { get; set; } = decimal.Zero;  
+        public decimal basesIva { get; set; } = decimal.Zero;
+        public decimal basesIva_5 { get; set; } = decimal.Zero;
+        public decimal basesIva_19 { get; set; } = decimal.Zero;
+        public decimal IVA { get; set; } = decimal.Zero;
+        public decimal IVA_5 { get; set; } = decimal.Zero;
+        public decimal IVA_19 { get; set; } = decimal.Zero;
+        public decimal INC { get; set; } = decimal.Zero;
+        public decimal INCBolsas { get; set; } = decimal.Zero;
+        public decimal otrosImpuestos { get; set; } = decimal.Zero;
+        public decimal ivaVenta { get; set; } = decimal.Zero;
+        public decimal totalVenta { get; set; } = decimal.Zero;
+        public decimal total_A_Pagar { get; set; } = decimal.Zero;
+        public decimal efectivoVenta { get; set; } = decimal.Zero;
+        public decimal cambioVenta { get; set; } = decimal.Zero;
+        public string formaDePago { get; set; } = string.Empty;
+        public decimal abonoEfectivo { get; set; } = decimal.Zero;
+        public decimal abonoTarjeta { get; set; } = decimal.Zero;
+        public decimal totalPagadoVenta { get; set; } = decimal.Zero;
+        public decimal totalPendienteVenta { get; set; } = decimal.Zero;
+        public string estadoVenta { get; set; }=string.Empty;
+        public string medioDePago { get; set; } = string.Empty;
+        public string numeroReferenciaPago { get; set; } = string.Empty;
+        public int diasCredito { get; set; }=int.MaxValue;
+        public DateTime fechaVencimiento { get; set; }=DateTime.Now;
+        public string observacionVenta { get; set; } = string.Empty;
+        public int IdSede { get; set; } = 0;
+        public Guid guidVenta { get; set; }=Guid.Empty;
+        public decimal costoTotalVenta { get; set; }=decimal.Zero;
+        public decimal utilidadTotalVenta { get; set; } = decimal.Zero;
+        public int idCliente { get; set; } = 0;
+        public string nit { get; set; } = string.Empty;
+        public string nombreCliente { get; set; } = string.Empty;
+        public decimal propina { get; set; } = decimal.Zero;
+        public string cufe { get; set; } = string.Empty;
+        public string estadoFE { get; set; } = string.Empty;
+        public string imagenQR { get; set; } = string.Empty;
+        public int idBaseCaja { get; set; } = 0;
+        public string razonDescuento { get; set; } = string.Empty;
+        public decimal por_propina { get; set; } = decimal.Zero;
+        public bool eliminada { get; set; } = false;
     }
 }

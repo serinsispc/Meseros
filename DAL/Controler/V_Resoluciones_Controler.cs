@@ -47,5 +47,24 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<List<V_Resoluciones>> Lista(string db)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                var resp = await cn.ConsultarLista<V_Resoluciones>(db);
+                if (resp != null)
+                {
+                    return resp;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }

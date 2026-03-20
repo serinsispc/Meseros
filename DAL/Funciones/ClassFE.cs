@@ -35,16 +35,16 @@ namespace DAL.Funciones
 
             FacturaNacionalRequest facturaNacional = new FacturaNacionalRequest();
             int numeroFacturaElectronica = 0;
-            //if (numeroFE == false)
-            //{
-            //    numeroFacturaElectronica = await HallarNumeroFE(db,Convert.ToInt32(v_TablaVentas.idResolucion));
-            //}
-            //else
-            //{
-            //    numeroFacturaElectronica = v_TablaVentas.numeroVenta;
-            //}
+            if (numeroFE == false)
+            {
+                numeroFacturaElectronica = await HallarNumeroFE(db, Convert.ToInt32(v_TablaVentas.idResolucion));
+            }
+            else
+            {
+                numeroFacturaElectronica = v_TablaVentas.numeroVenta;
+            }
 
-            numeroFacturaElectronica = v_TablaVentas.numeroVenta;
+
 
             facturaNacional.number = numeroFacturaElectronica;
 
