@@ -394,7 +394,7 @@
     const btnVolver = byId('btnVolver');
     if (btnVolver) {
         btnVolver.addEventListener('click', () => {
-            const url = window.CobrarConfig?.urlMenu || '/Menu.aspx';
+            const url = window.CobrarConfig?.urlMenu || '/caja.aspx';
             window.location.href = url;
         });
     }
