@@ -513,7 +513,7 @@
 
                                     <button type="button" class="btn-cuenta-general <%= models.IdCuenteClienteActiva == 0 ? "cuenta-item-activa" : string.Empty %>" onclick="EjecutarAccion('SeleccionarCuentaCliente','ID=0',this)">
                                         <span><%: NombreCuentaClienteActiva() == "Cuenta General" ? "Cuenta General" : "Cuenta General" %></span>
-                                        <span class="cuenta-total"><%: FormatearMoneda(models.venta?.total_A_Pagar ?? 0) %></span>
+                                        <span class="cuenta-total"><%: FormatearMoneda(models.venta.total_A_Pagar) %></span>
                                     </button>
                                 </div>
 

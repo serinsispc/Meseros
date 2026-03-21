@@ -2,8 +2,6 @@
 using System.Globalization;
 using System.Threading;
 using System.Web;
-using System.Web.Optimization;
-using System.Web.Routing;
 using WebApplication.Helpers;
 
 namespace WebApplication
@@ -12,8 +10,6 @@ namespace WebApplication
     {
         void Application_Start(object sender, EventArgs e)
         {
-            RouteConfig.RegisterRoutes(RouteTable.Routes);
-            BundleConfig.RegisterBundles(BundleTable.Bundles);
         }
 
         void Session_Start(object sender, EventArgs e)

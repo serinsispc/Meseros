@@ -9,6 +9,8 @@
 
     <title></title>
 
+        <link rel="icon" type="image/png" href='<%: ResolveUrl("~/Recursos/Imagenes/Logo/favicon-" + Convert.ToString(Session["db"]) + ".png") %>' />
+
     <asp:ContentPlaceHolder ID="head" runat="server"></asp:ContentPlaceHolder>
 
     <!-- Bootstrap 5 -->

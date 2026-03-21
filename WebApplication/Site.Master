@@ -126,7 +126,7 @@
       <%: Page.Title %> - <%: Convert.ToString(Session["NombreEmpresa"] ?? "Mi empresa") %>
     </title>
 
-    <link rel="icon" type="image/png" href="<%:ResolveUrl($"~/Recursos/Imagenes/Logo/favicon-{Session["db"]}.png") %>" />
+<link rel="icon" type="image/png" href='<%: ResolveUrl("~/Recursos/Imagenes/Logo/favicon-" + Convert.ToString(Session["db"]) + ".png") %>' />
 
 
 

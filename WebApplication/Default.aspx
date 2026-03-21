@@ -49,7 +49,7 @@
         <div class="login-card">
 
             <div class="logo-badge">
-                <img src="<%:ResolveUrl($"~/Recursos/Imagenes/Logo/{models.db}.png") %>" alt="Logo" />
+                    <link rel="icon" type="image/png" href='<%: ResolveUrl("~/Recursos/Imagenes/Logo/favicon-" + Convert.ToString(Session["db"]) + ".png") %>' />
             </div>
 
             <h2 class="login-title">Iniciar Sesión</h2>
