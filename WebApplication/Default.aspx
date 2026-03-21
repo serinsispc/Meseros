@@ -48,9 +48,7 @@
     <main class="login-page">
         <div class="login-card">
 
-            <div class="logo-badge">
-                    <link rel="icon" type="image/png" href='<%: ResolveUrl("~/Recursos/Imagenes/Logo/favicon-" + Convert.ToString(Session["db"]) + ".png") %>' />
-            </div>
+            <div class="logo-badge"></div>
 
             <h2 class="login-title">Iniciar Sesión</h2>
             <div class="login-subtitle">Selecciona tu usuario y escribe tu clave</div>

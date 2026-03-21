@@ -394,7 +394,7 @@
     const btnVolver = byId('btnVolver');
     if (btnVolver) {
         btnVolver.addEventListener('click', () => {
-            window.location.href = '<%= ResolveUrl("~/caja.aspx") %>';
+            window.location.href = 'caja.aspx';
         });
     }
 
