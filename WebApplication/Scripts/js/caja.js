@@ -1,9 +1,195 @@
+window.CajaConfig = window.CajaConfig || {};
+
+(function () {
+    const STORAGE_KEY = "caja_scroll_state:" + window.location.pathname;
+
+    function getConfig() {
+        window.CajaConfig = window.CajaConfig || {};
+        return {
+            autoFocusBusquedaDesktop: window.CajaConfig.autoFocusBusquedaDesktop !== false,
+            desktopMinWidth: parseInt(window.CajaConfig.desktopMinWidth || "992", 10),
+            preservarPosicionEnMobile: window.CajaConfig.preservarPosicionEnMobile !== false
+        };
+    }
+
+    function esEscritorio() {
+        const cfg = getConfig();
+        return window.innerWidth >= cfg.desktopMinWidth;
+    }
+
+    function esMobile() {
+        return !esEscritorio();
+    }
+
+    function obtenerScrollPagina() {
+        return document.scrollingElement || document.documentElement || document.body;
+    }
+
+    function obtenerContenedoresScroll() {
+        return Array.from(document.querySelectorAll(
+            ".cuentas-box, .mesas-box, .zonas-box, .categorias-box, .productos-box, .h-lista, .ventas-tabla-responsive"
+        ));
+    }
+
+    function asegurarKeyScroll(el, index) {
+        if (!el) return "";
+        if (!el.dataset.scrollKey) {
+            const base =
+                el.id ||
+                el.getAttribute("data-scroll-id") ||
+                (el.className || "").toString().replace(/\s+/g, "-").toLowerCase() ||
+                ("scroll-" + index);
+
+            el.dataset.scrollKey = base + "-" + index;
+        }
+        return el.dataset.scrollKey;
+    }
+
+    function guardarEstadoScroll() {
+        const cfg = getConfig();
+        if (!cfg.preservarPosicionEnMobile || !esMobile()) return;
+
+        const pagina = obtenerScrollPagina();
+        const estado = {
+            pageTop: pagina ? pagina.scrollTop || 0 : 0,
+            pageLeft: pagina ? pagina.scrollLeft || 0 : 0,
+            containers: {}
+        };
+
+        obtenerContenedoresScroll().forEach(function (el, index) {
+            const key = asegurarKeyScroll(el, index);
+            estado.containers[key] = {
+                top: el.scrollTop || 0,
+                left: el.scrollLeft || 0
+            };
+        });
+
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+        } catch (e) {
+        }
+    }
+
+    function restaurarEstadoScroll() {
+        const cfg = getConfig();
+        if (!cfg.preservarPosicionEnMobile || !esMobile()) return;
+
+        let raw = null;
+        try {
+            raw = sessionStorage.getItem(STORAGE_KEY);
+        } catch (e) {
+            raw = null;
+        }
+
+        if (!raw) return;
+
+        let estado = null;
+        try {
+            estado = JSON.parse(raw);
+        } catch (e) {
+            estado = null;
+        }
+
+        if (!estado) return;
+
+        function aplicar() {
+            const pagina = obtenerScrollPagina();
+
+            if (pagina) {
+                pagina.scrollTop = estado.pageTop || 0;
+                pagina.scrollLeft = estado.pageLeft || 0;
+            }
+
+            window.scrollTo(estado.pageLeft || 0, estado.pageTop || 0);
+
+            obtenerContenedoresScroll().forEach(function (el, index) {
+                const key = asegurarKeyScroll(el, index);
+                const item = estado.containers ? estado.containers[key] : null;
+                if (!item) return;
+
+                el.scrollTop = item.top || 0;
+                el.scrollLeft = item.left || 0;
+            });
+        }
+
+        requestAnimationFrame(function () {
+            aplicar();
+            setTimeout(aplicar, 80);
+            setTimeout(aplicar, 180);
+            setTimeout(aplicar, 350);
+            setTimeout(aplicar, 600);
+        });
+    }
+
+    function activarFocusBuscadorSiAplica() {
+        const cfg = getConfig();
+        if (!cfg.autoFocusBusquedaDesktop || !esEscritorio()) return;
+
+        const input = document.getElementById("btnbuscar");
+        if (!input) return;
+
+        function enfocar() {
+            try {
+                input.focus({ preventScroll: true });
+            } catch (e) {
+                try {
+                    input.focus();
+                } catch (err) {
+                }
+            }
+
+            try {
+                const len = (input.value || "").length;
+                input.setSelectionRange(len, len);
+            } catch (e) {
+            }
+        }
+
+        requestAnimationFrame(function () {
+            enfocar();
+            setTimeout(enfocar, 120);
+            setTimeout(enfocar, 300);
+        });
+    }
+
+    window.CajaViewport = {
+        esEscritorio: esEscritorio,
+        esMobile: esMobile,
+        guardarEstadoScroll: guardarEstadoScroll,
+        restaurarEstadoScroll: restaurarEstadoScroll,
+        activarFocusBuscadorSiAplica: activarFocusBuscadorSiAplica
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        restaurarEstadoScroll();
+    });
+
+    window.addEventListener("load", function () {
+        restaurarEstadoScroll();
+        activarFocusBuscadorSiAplica();
+    });
+
+    window.addEventListener("pageshow", function () {
+        restaurarEstadoScroll();
+        activarFocusBuscadorSiAplica();
+    });
+
+    window.addEventListener("beforeunload", function () {
+        guardarEstadoScroll();
+    });
+})();
+
+
 (function () {
     let busy = false;
 
     window.EjecutarAccion = function (accion, argumento, btn) {
         if (busy) return;
         busy = true;
+
+        if (window.CajaViewport && typeof window.CajaViewport.guardarEstadoScroll === "function") {
+            window.CajaViewport.guardarEstadoScroll();
+        }
 
         const hidAccion = document.getElementById("hidAccion");
         const hidArgumento = document.getElementById("hidArgumento");
@@ -17,7 +203,9 @@
         hidAccion.value = accion || "";
         hidArgumento.value = argumento || "";
 
-        if (window.SerinsisLoading && typeof window.SerinsisLoading.show === "function") {
+        const mostrarLoader = accion !== "SeleccionarCategoria";
+
+        if (mostrarLoader && window.SerinsisLoading && typeof window.SerinsisLoading.show === "function") {
             window.SerinsisLoading.show();
         }
 
@@ -227,8 +415,82 @@ function guardarCuentaDirecto(btn) {
         configurarBuscadorCaja();
         configurarCantidadProductos();
         configurarDetalleCaja();
+        configurarMenuFlotanteMovil();
     });
 })();
+
+
+
+
+function configurarMenuFlotanteMovil() {
+    const nav = document.getElementById("mobileQuickNav");
+    const toggle = document.getElementById("mobileQuickNavToggle");
+    const panel = document.getElementById("mobileQuickNavPanel");
+    const links = Array.from(document.querySelectorAll(".mobile-quick-nav__link[data-target]"));
+
+    if (!nav || !toggle || !panel || !links.length) {
+        return;
+    }
+
+    function esMobileMenu() {
+        return window.innerWidth < 992;
+    }
+
+    function abrir() {
+        nav.classList.add("is-open");
+        toggle.setAttribute("aria-expanded", "true");
+    }
+
+    function cerrar() {
+        nav.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+    }
+
+    toggle.addEventListener("click", function () {
+        if (!esMobileMenu()) return;
+
+        if (nav.classList.contains("is-open")) {
+            cerrar();
+        } else {
+            abrir();
+        }
+    });
+
+    links.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            const targetId = btn.getAttribute("data-target");
+            if (!targetId) return;
+
+            const destino = document.getElementById(targetId);
+            if (!destino) return;
+
+            const top = destino.getBoundingClientRect().top + window.pageYOffset - 12;
+
+            window.scrollTo({
+                top: top,
+                behavior: "smooth"
+            });
+
+            setTimeout(function () {
+                cerrar();
+            }, 180);
+        });
+    });
+
+    document.addEventListener("click", function (e) {
+        if (!nav.classList.contains("is-open")) return;
+        if (nav.contains(e.target)) return;
+        cerrar();
+    });
+
+    window.addEventListener("resize", function () {
+        if (!esMobileMenu()) {
+            cerrar();
+        }
+    });
+}
+
+
 
 function configurarBuscadorCaja() {
     const input = document.getElementById("btnbuscar");

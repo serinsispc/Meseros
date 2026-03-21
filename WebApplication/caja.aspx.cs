@@ -18,6 +18,16 @@ namespace WebApplication
 {
     public partial class caja : System.Web.UI.Page
     {
+        protected bool AutoFocusBusquedaDesktop()
+        {
+            return true;
+        }
+
+        protected int DesktopMinWidth()
+        {
+            return 992;
+        }
+
         private const string ok = "Ok";
         private const string SessionVistaCaja = "CajaVistaActual";
         private const string VistaCaja = "caja";
@@ -216,7 +226,27 @@ namespace WebApplication
             await Cargar_RP();
             Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
 
-            btnbuscar.Focus();
+            ScriptManager.RegisterStartupScript(
+                this,
+                GetType(),
+                "CajaPostRenderConfig",
+                $@"
+        window.CajaConfig = window.CajaConfig || {{}};
+        window.CajaConfig.autoFocusBusquedaDesktop = {(AutoFocusBusquedaDesktop() ? "true" : "false")};
+        window.CajaConfig.desktopMinWidth = {DesktopMinWidth()};
+        window.CajaConfig.preservarPosicionEnMobile = true;
+
+        if (window.CajaViewport) {{
+            if (typeof window.CajaViewport.restaurarEstadoScroll === 'function') {{
+                window.CajaViewport.restaurarEstadoScroll();
+            }}
+            if (typeof window.CajaViewport.activarFocusBuscadorSiAplica === 'function') {{
+                window.CajaViewport.activarFocusBuscadorSiAplica();
+            }}
+        }}
+        ",
+                true
+            );
         }
         private async Task Cargar_RP()
         {
@@ -965,7 +995,13 @@ namespace WebApplication
                 string texto = (eventArgument ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(texto))
                 {
-                    btnbuscar.Focus();
+                    ScriptManager.RegisterStartupScript(
+                        this,
+                        GetType(),
+                        "CajaFocusBusquedaVacia",
+                        "if (window.CajaViewport && typeof window.CajaViewport.activarFocusBuscadorSiAplica === 'function') { window.CajaViewport.activarFocusBuscadorSiAplica(); }",
+                        true
+                    );
                     return;
                 }
 
@@ -974,8 +1010,15 @@ namespace WebApplication
 
                 if (producto == null)
                 {
-                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Producto no encontrado", true, 2000);
-                    btnbuscar.Focus();
+                    AlertModerno.Warning(this, "Atención", "Producto no encontrado", true, 2000);
+
+                    ScriptManager.RegisterStartupScript(
+                        this,
+                        GetType(),
+                        "CajaFocusProductoNoEncontrado",
+                        "if (window.CajaViewport && typeof window.CajaViewport.activarFocusBuscadorSiAplica === 'function') { window.CajaViewport.activarFocusBuscadorSiAplica(); }",
+                        true
+                    );
                     return;
                 }
 
@@ -1007,7 +1050,17 @@ namespace WebApplication
                     this,
                     GetType(),
                     "LimpiarBuscadorCaja",
-                    "if (window.CajaBuscador) { CajaBuscador.clear(false); } document.getElementById('btnbuscar')?.focus();",
+                    @"
+    if (window.CajaBuscador) { CajaBuscador.clear(false); }
+    if (window.CajaViewport) {
+        if (typeof window.CajaViewport.restaurarEstadoScroll === 'function') {
+            window.CajaViewport.restaurarEstadoScroll();
+        }
+        if (typeof window.CajaViewport.activarFocusBuscadorSiAplica === 'function') {
+            window.CajaViewport.activarFocusBuscadorSiAplica();
+        }
+    }
+    ",
                     true
                 );
             }

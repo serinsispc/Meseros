@@ -1,263 +1,8 @@
 ﻿<%@ Page Title="" Language="C#" MasterPageFile="~/CajaMaster.Master" AutoEventWireup="true" CodeBehind="caja.aspx.cs" Inherits="WebApplication.caja" Async="true" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="head" runat="server">
-        <style>
-        :root {
-            --serinsis-blue: #0b3a7e;
-            --serinsis-blue2: #1e88ff;
-        }
-
-        .btn-eliminar-servicio-disabled {
-            background: #e5e7eb !important;
-            color: #6b7280 !important;
-            border: 1px solid #cbd5e1 !important;
-            box-shadow: none !important;
-            cursor: not-allowed !important;
-        }
-
-        .btn-eliminar-servicio-disabled i {
-            color: #6b7280 !important;
-        }
-
-        .cuenta-item.cuenta-item-activa,
-        .btn-cuenta-general.cuenta-item-activa {
-            border-color: rgba(30, 136, 255, .42) !important;
-            background: linear-gradient(135deg, rgba(11,58,126,.08), rgba(30,136,255,.18)) !important;
-            color: #0b3a7e !important;
-            box-shadow: 0 14px 28px rgba(30, 136, 255, .18) !important;
-            transform: translateY(-2px);
-        }
-
-        .cuenta-item small {
-            display: block;
-            margin-top: 4px;
-            font-weight: 700;
-            color: rgba(15, 23, 42, .56);
-        }
-
-        .detalle-empty {
-            padding: 28px 18px;
-            border: 1px dashed rgba(148, 163, 184, .8);
-            border-radius: 18px;
-            background: rgba(248, 250, 252, .9);
-            text-align: center;
-            color: rgba(15, 23, 42, .68);
-            font-weight: 700;
-        }
-
-        .detalle-empty i {
-            font-size: 2rem;
-            color: #94a3b8;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .prod-actions-detalle .act-btn[disabled] {
-            opacity: .45;
-            cursor: not-allowed;
-        }
-
-        .cuenta-detalle-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 10px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, .08);
-            border: 1px solid rgba(37, 99, 235, .14);
-            color: #1d4ed8;
-            font-size: .78rem;
-            font-weight: 800;
-        }
-
-        .app-loading {
-            position: fixed;
-            inset: 0;
-            z-index: 999999;
-            align-items: center;
-            justify-content: center;
-            background: rgba(10, 22, 45, .38);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-        }
-
-        .app-loading-card {
-            width: min(360px, calc(100% - 32px));
-            background: rgba(255,255,255,.92);
-            border: 1px solid rgba(255,255,255,.55);
-            border-radius: 18px;
-            box-shadow: 0 18px 45px rgba(0,0,0,.20);
-            padding: 18px 18px 16px;
-            text-align: center;
-        }
-
-        .app-spinner {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            border: 5px solid rgba(30, 136, 255, .22);
-            border-top-color: var(--serinsis-blue2);
-            border-right-color: var(--serinsis-blue);
-            animation: appSpin .9s linear infinite;
-            margin: 8px auto 10px;
-        }
-
-        .app-loading-title {
-            font-weight: 800;
-            color: #0f172a;
-            font-size: 1.05rem;
-        }
-
-        .app-loading-sub {
-            color: rgba(15,23,42,.70);
-            font-size: .92rem;
-            margin-top: 4px;
-        }
-
-        @keyframes appSpin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        .ventas-vista {
-            background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
-            border: 1px solid rgba(148,163,184,.18);
-            border-radius: 24px;
-            padding: 18px;
-            box-shadow: 0 20px 40px rgba(15,23,42,.08);
-        }
-
-        .ventas-vista__hero {
-            background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(14,165,233,.08));
-            border: 1px solid rgba(37,99,235,.14);
-            border-radius: 20px;
-            padding: 18px;
-        }
-
-        .ventas-vista__title {
-            font-size: 1.45rem;
-            font-weight: 800;
-            color: #0f172a;
-            margin: 0;
-        }
-
-        .ventas-vista__sub {
-            color: rgba(15,23,42,.68);
-            margin-top: 4px;
-            font-weight: 600;
-        }
-
-        .ventas-kpi {
-            background: #fff;
-            border: 1px solid rgba(148,163,184,.18);
-            border-radius: 18px;
-            padding: 14px;
-            box-shadow: 0 12px 24px rgba(15,23,42,.06);
-            height: 100%;
-        }
-
-        .ventas-kpi__label {
-            color: rgba(15,23,42,.60);
-            font-size: .82rem;
-            font-weight: 800;
-        }
-
-        .ventas-kpi__value {
-            color: #0f172a;
-            font-size: 1.35rem;
-            font-weight: 900;
-            margin-top: 6px;
-        }
-
-        .ventas-kpi__muted {
-            color: rgba(15,23,42,.56);
-            font-weight: 700;
-            margin-top: 4px;
-            font-size: .84rem;
-        }
-
-        .ventas-tabla-wrap {
-            margin-top: 14px;
-            background: #fff;
-            border: 1px solid rgba(148,163,184,.18);
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 14px 28px rgba(15,23,42,.06);
-        }
-
-        .ventas-tabla-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(148,163,184,.18);
-        }
-
-        .ventas-tabla-head h3 {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 800;
-            color: #0f172a;
-        }
-
-        .ventas-tabla-responsive {
-            overflow: auto;
-            max-height: 62vh;
-        }
-
-        .ventas-tabla {
-            width: 100%;
-            min-width: 980px;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        .ventas-tabla thead th {
-            position: sticky;
-            top: 0;
-            background: #f8fafc;
-            color: rgba(15,23,42,.72);
-            font-size: .8rem;
-            font-weight: 900;
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(148,163,184,.18);
-            white-space: nowrap;
-        }
-
-        .ventas-tabla tbody td {
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(226,232,240,.85);
-            vertical-align: middle;
-            color: #0f172a;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .ventas-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: .78rem;
-            font-weight: 900;
-        }
-
-        .ventas-badge.ok { background: rgba(22,163,74,.10); color: #15803d; }
-        .ventas-badge.warn { background: rgba(245,158,11,.12); color: #b45309; }
-        .ventas-badge.bad { background: rgba(239,68,68,.10); color: #dc2626; }
-        .ventas-badge.info { background: rgba(14,165,233,.10); color: #0369a1; }
-        .ventas-badge.gray { background: rgba(148,163,184,.16); color: #475569; }
-
-        .ventas-empty {
-            padding: 32px 18px;
-            text-align: center;
-            color: rgba(15,23,42,.60);
-            font-weight: 700;
-        }
-    </style>
+    <%-- llamamos la hoja de estilos --%>
+    <link href="Content/css/caja.css" rel="stylesheet" />
 </asp:Content>
 <asp:Content ID="Content2" ContentPlaceHolderID="ContentPlaceHolder1" runat="server">
 
@@ -299,7 +44,7 @@
 
                         <!-- IZQUIERDA -->
                         <div class="fw-bold text-dark ps-2">
-                            ?? <span class="fw-semibold"><%: models.vendedor.nombreVendedor %></span>
+                            <span class="fw-semibold"><%: models.vendedor.nombreVendedor %></span>
                         </div>
 
                         <!-- DERECHA: Botones -->
@@ -360,7 +105,7 @@
 
                 <% if (!EnVistaVentas()) { %>
                 <!-- Top: cuentas + nuevo servicio -->
-                <div class="panel panel-alto-auto b-orange mb-1 border-0">
+                <div id="bloqueServicios" class="panel panel-alto-auto b-orange mb-1 border-0">
                     <div class="row g-1">
 
                         <!-- CUENTAS -->
@@ -406,7 +151,7 @@
 
                     <!-- Zonas + Mesas -->
                     <div id="divZonas" runat="server" class="col-12 col-lg-5 d-flex">
-                        <div class="panel bg-light w-100 border-1">
+                        <div id="bloqueZonas" class="panel bg-light w-100 border-1">
                             <div class="row">
                                 <div class="col-12 panel-zona">
                                     <div class="box p-0 h-zonas zonas-box">
@@ -461,7 +206,7 @@
                     <div id="divProductos" runat="server" class="col-12 col-lg-7 d-flex">
                         <div class="panel b-purple w-100">
                             <div class="row g-0 ">
-                                <div class="col-12" style="height: 50px">
+                                <div id="bloqueBuscarProducto" class="col-12" style="height: 50px">
 
                                     <div class="buscar-wrapper w-100">
 
@@ -478,7 +223,7 @@
                                     </div>
                                 </div>
 
-                                <div class="col-12 panel-alto-auto">
+                                <div id="bloqueCategorias" class="col-12 panel-alto-auto">
                                     <div class="box h-categorias p-1 categorias-box" style="height: 40vh;">
 
                                         <div class="categorias-grid">
@@ -503,7 +248,7 @@
                                     </div>
                                 </div>
 
-                                <div class="col-12">
+                                <div id="bloqueProductos" class="col-12">
                                     <div class="box h-productos p-0 productos-box">
 
                                         <div class="productos-list">
@@ -698,7 +443,7 @@
                 <div class="panel w-100">
                     <div class="row g-0 h-100 aside-stack">
 
-                        <div class="col-12">
+                        <div id="bloqueResumen" class="col-12">
                             <div class="box h-precios p-0 precios-box">
                                 <div class="precios-resumen">
                                     <div class="precio-row">
@@ -758,7 +503,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12">
+                        <div id="bloqueCuentasDetalle" class="col-12">
                             <div class="box h-nueva-cuenta">
                                 <div class="cuentas-header col-12">
                                     <button type="button" class="btn-nueva-cuenta" onclick="return abrirModalCuentaClienteNueva();">
@@ -785,7 +530,7 @@
                             </div>
                         </div>
 
-                        <div class="col-12">
+                        <div id="bloqueDetalleProductos" class="col-12">
                             <div class="box h-lista">
                                 <div class="row lista-productos">
                                     <asp:Repeater runat="server" ID="rpDetalleCaja">
@@ -865,6 +610,56 @@
 
         </div>
     </main>
+
+
+
+    <nav id="mobileQuickNav" class="mobile-quick-nav d-lg-none" aria-label="Navegación rápida móvil">
+    <button type="button" id="mobileQuickNavToggle" class="mobile-quick-nav__toggle" aria-expanded="false" aria-controls="mobileQuickNavPanel">
+        <i class="bi bi-chevron-right"></i>
+    </button>
+
+    <div id="mobileQuickNavPanel" class="mobile-quick-nav__panel">
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueServicios">
+            <i class="bi bi-collection"></i>
+            <span>Servicios</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueZonas">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Zonas</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueBuscarProducto">
+            <i class="bi bi-search"></i>
+            <span>Buscar</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueCategorias">
+            <i class="bi bi-tags"></i>
+            <span>Categorías</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueProductos">
+            <i class="bi bi-bag"></i>
+            <span>Productos</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueResumen">
+            <i class="bi bi-receipt"></i>
+            <span>Resumen</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueCuentasDetalle">
+            <i class="bi bi-people"></i>
+            <span>Cuentas</span>
+        </button>
+
+        <button type="button" class="mobile-quick-nav__link" data-target="bloqueDetalleProductos">
+            <i class="bi bi-list-ul"></i>
+            <span>Detalle</span>
+        </button>
+    </div>
+</nav>
 
 
     <div class="modal fade" id="modalDomicilio" tabindex="-1" aria-hidden="true">
@@ -1184,6 +979,16 @@
         });
     </script>
     <% } %>
+
+    <%-- codigo para formas foco --%>
+    <script>
+        window.CajaConfig = {
+            autoFocusBusquedaDesktop: true,
+            desktopMinWidth: 992,
+            preservarPosicionEnMobile: true
+        };
+    </script>
+
     <script src="Scripts/js/caja.js"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>

@@ -1,0 +1,275 @@
+﻿:root {
+    --serinsis-blue: #0b3a7e;
+    --serinsis-blue2: #1e88ff;
+}
+
+.btn-eliminar-servicio-disabled {
+    background: #e5e7eb !important;
+    color: #6b7280 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+}
+
+    .btn-eliminar-servicio-disabled i {
+        color: #6b7280 !important;
+    }
+
+.cuenta-item.cuenta-item-activa,
+.btn-cuenta-general.cuenta-item-activa {
+    border-color: rgba(30, 136, 255, .42) !important;
+    background: linear-gradient(135deg, rgba(11,58,126,.08), rgba(30,136,255,.18)) !important;
+    color: #0b3a7e !important;
+    box-shadow: 0 14px 28px rgba(30, 136, 255, .18) !important;
+    transform: translateY(-2px);
+}
+
+.cuenta-item small {
+    display: block;
+    margin-top: 4px;
+    font-weight: 700;
+    color: rgba(15, 23, 42, .56);
+}
+
+.detalle-empty {
+    padding: 28px 18px;
+    border: 1px dashed rgba(148, 163, 184, .8);
+    border-radius: 18px;
+    background: rgba(248, 250, 252, .9);
+    text-align: center;
+    color: rgba(15, 23, 42, .68);
+    font-weight: 700;
+}
+
+    .detalle-empty i {
+        font-size: 2rem;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+.prod-actions-detalle .act-btn[disabled] {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.cuenta-detalle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, .08);
+    border: 1px solid rgba(37, 99, 235, .14);
+    color: #1d4ed8;
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.app-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 22, 45, .38);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.app-loading-card {
+    width: min(360px, calc(100% - 32px));
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgba(0,0,0,.20);
+    padding: 18px 18px 16px;
+    text-align: center;
+}
+
+.app-spinner {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 5px solid rgba(30, 136, 255, .22);
+    border-top-color: var(--serinsis-blue2);
+    border-right-color: var(--serinsis-blue);
+    animation: appSpin .9s linear infinite;
+    margin: 8px auto 10px;
+}
+
+.app-loading-title {
+    font-weight: 800;
+    color: #0f172a;
+    font-size: 1.05rem;
+}
+
+.app-loading-sub {
+    color: rgba(15,23,42,.70);
+    font-size: .92rem;
+    margin-top: 4px;
+}
+
+@keyframes appSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ventas-vista {
+    background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.98));
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 24px;
+    padding: 18px;
+    box-shadow: 0 20px 40px rgba(15,23,42,.08);
+}
+
+.ventas-vista__hero {
+    background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(14,165,233,.08));
+    border: 1px solid rgba(37,99,235,.14);
+    border-radius: 20px;
+    padding: 18px;
+}
+
+.ventas-vista__title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+
+.ventas-vista__sub {
+    color: rgba(15,23,42,.68);
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+.ventas-kpi {
+    background: #fff;
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 12px 24px rgba(15,23,42,.06);
+    height: 100%;
+}
+
+.ventas-kpi__label {
+    color: rgba(15,23,42,.60);
+    font-size: .82rem;
+    font-weight: 800;
+}
+
+.ventas-kpi__value {
+    color: #0f172a;
+    font-size: 1.35rem;
+    font-weight: 900;
+    margin-top: 6px;
+}
+
+.ventas-kpi__muted {
+    color: rgba(15,23,42,.56);
+    font-weight: 700;
+    margin-top: 4px;
+    font-size: .84rem;
+}
+
+.ventas-tabla-wrap {
+    margin-top: 14px;
+    background: #fff;
+    border: 1px solid rgba(148,163,184,.18);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 14px 28px rgba(15,23,42,.06);
+}
+
+.ventas-tabla-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(148,163,184,.18);
+}
+
+    .ventas-tabla-head h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+.ventas-tabla-responsive {
+    overflow: auto;
+    max-height: 62vh;
+}
+
+.ventas-tabla {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+    .ventas-tabla thead th {
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        color: rgba(15,23,42,.72);
+        font-size: .8rem;
+        font-weight: 900;
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(148,163,184,.18);
+        white-space: nowrap;
+    }
+
+    .ventas-tabla tbody td {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(226,232,240,.85);
+        vertical-align: middle;
+        color: #0f172a;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+.ventas-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 900;
+}
+
+    .ventas-badge.ok {
+        background: rgba(22,163,74,.10);
+        color: #15803d;
+    }
+
+    .ventas-badge.warn {
+        background: rgba(245,158,11,.12);
+        color: #b45309;
+    }
+
+    .ventas-badge.bad {
+        background: rgba(239,68,68,.10);
+        color: #dc2626;
+    }
+
+    .ventas-badge.info {
+        background: rgba(14,165,233,.10);
+        color: #0369a1;
+    }
+
+    .ventas-badge.gray {
+        background: rgba(148,163,184,.16);
+        color: #475569;
+    }
+
+.ventas-empty {
+    padding: 32px 18px;
+    text-align: center;
+    color: rgba(15,23,42,.60);
+    font-weight: 700;
+}
