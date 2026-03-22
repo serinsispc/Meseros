@@ -98,6 +98,7 @@ namespace WebApplication
         private async Task InicializarPantalla()
         {
             await CargarMediosPago();
+            await btnSeleccionarPagoInterno("1|10");
             await CargarTiposDocumento();
             await CargarTiposOrganizacion();
             await CargarMunicipios();
