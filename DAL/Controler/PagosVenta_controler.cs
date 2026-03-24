@@ -43,6 +43,19 @@ namespace DAL.Controler
             }
         }
 
-
+        public static async Task<List<PagosVenta>> ConsultarListaPagos(string db, int idventa)
+        {
+            try
+            {
+                var cn =new SqlAutoDAL();
+                var resp = await cn.ConsultarLista<PagosVenta>(db,x=>x.idVenta==idventa);
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                string msg= ex.Message;
+                return new List<PagosVenta>();
+            }
+        }
     }
 }

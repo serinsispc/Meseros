@@ -950,7 +950,19 @@ namespace WebApplication
                     }
                 }
 
-                var pagoventa = new PagosVenta { id = 0, idMedioDePagointerno = idMedioInterno, idVenta = VentaActual.id, payment_methods_id = idMetodoPago, valorPago = Convert.ToInt32(VentaActual.total_A_Pagar) };
+                //borramos los pagos que tenga el id venta
+                var pagosventas = await PagosVenta_controler.ConsultarListaPagos(Session["db"].ToString(), Models.IdCuentaActiva);
+                if (pagosventas.Count > 0)
+                {
+                    await PagosVenta_controler.CRUD(Session["db"].ToString(), pagosventas, 2);
+                }
+
+                var pagoventa = new PagosVenta { 
+                    id = 0, 
+                    idMedioDePagointerno = idMedioInterno, 
+                    idVenta = VentaActual.id, 
+                    payment_methods_id = idMetodoPago, 
+                    valorPago = Convert.ToInt32(VentaActual.total_A_Pagar) };
 
                 var pagosJSON = JsonConvert.SerializeObject(pagoventa);
 
