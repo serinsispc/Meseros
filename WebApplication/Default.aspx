@@ -56,7 +56,7 @@
             <div class="login-subtitle">Selecciona tu usuario y escribe tu clave</div>
 
             <div class="mb-3">
-                <div class="users-grid-title">Meseros disponibles</div>
+                <div class="users-grid-title">Usuarios disponibles</div>
 
                 <asp:Repeater ID="rptUsuarios" runat="server">
                     <HeaderTemplate>
