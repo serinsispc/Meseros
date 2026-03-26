@@ -4,6 +4,7 @@ using DAL.Model;
 using System;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using WebApplication.Class;
@@ -106,7 +107,7 @@ namespace WebApplication
 
         private void PintarTurnoDesdeVista(V_TurnosCaja turno)
         {
-            var totalEfectivo = ObtenerTotalPagoInterno("EFECTIVO", turno.totalEfectivo);
+            var totalEfectivo = turno.totalEfectivo;
             var ventasTarjeta = ObtenerTotalPagosNoEfectivo(turno.ventasTargeta);
             var efectivoMasBase = turno.efectivoMasBase > 0 ? turno.efectivoMasBase : (baseCaja.valorBase + totalEfectivo);
             var totalIngresos = turno.totalIngresos > 0 ? turno.totalIngresos : (totalEfectivo + ventasTarjeta + turno.ventasCredito);
@@ -152,7 +153,58 @@ namespace WebApplication
                 case "ConfirmarCierre":
                     await ConfirmarCierre(eventArgument);
                     break;
+                case "ActualizarBase":
+                    await ActualizarValorBase(eventArgument);
+                    break;
             }
+        }
+
+        private async Task ActualizarValorBase(string eventArgument)
+        {
+            if (!string.Equals(baseCaja.estadoBase, "ACTIVA", StringComparison.OrdinalIgnoreCase))
+            {
+                AlertModerno.Warning(this, "Atencion", "Solo puedes modificar la base mientras la caja este activa.", true);
+                return;
+            }
+
+            var valorRaw = ObtenerArgumento(eventArgument, "VALOR_BASE")?.Trim() ?? string.Empty;
+            valorRaw = valorRaw.Replace(".", string.Empty).Replace(",", string.Empty);
+
+            if (!decimal.TryParse(valorRaw, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal nuevoValorBase) || nuevoValorBase <= 0)
+            {
+                AlertModerno.Warning(this, "Atencion", "Ingrese un valor de base valido.", true);
+                return;
+            }
+
+            baseCaja.valorBase = nuevoValorBase;
+            var resp = await BaseCajaControler.CRUD(db, baseCaja, 1);
+            if (!resp)
+            {
+                AlertModerno.Error(this, "Error", "No fue posible actualizar la base activa. Verifique e intente nuevamente.", true);
+                return;
+            }
+
+            if (turnoCaja != null)
+            {
+                turnoCaja.valorBase = nuevoValorBase;
+            }
+
+            models.BaseCaja = baseCaja;
+            SessionContextHelper.ApplyOperationalContext(Session, models);
+            RefrescarIndicadoresBase();
+
+            var script = @"(function(){
+                var modalEl = document.getElementById('mdlEditarBase');
+                if (modalEl && window.bootstrap && bootstrap.Modal) {
+                    var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.hide();
+                }
+                var txt = document.getElementById('txtValorBaseEditar');
+                if (txt) { txt.value = ''; }
+            })();";
+
+            System.Web.UI.ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
+            AlertModerno.Success(this, "OK", "La base activa fue actualizada correctamente.", true, 1800);
         }
 
         private async Task ConfirmarCierre(string eventArgument)
@@ -413,6 +465,13 @@ namespace WebApplication
         private string FormatearMoneda(decimal valor)
         {
             return valor.ToString("C0");
+        }
+
+        private void RefrescarIndicadoresBase()
+        {
+            var totalEfectivo = ParseMoney(lblTotalEfectivo?.InnerText);
+            lblValorBase.InnerText = FormatearMoneda(baseCaja.valorBase);
+            lblEfectivoMasBase.InnerText = FormatearMoneda(baseCaja.valorBase + totalEfectivo);
         }
 
 

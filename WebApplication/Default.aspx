@@ -48,7 +48,9 @@
     <main class="login-page">
         <div class="login-card">
 
-            <div class="logo-badge"></div>
+            <div class="logo-badge">
+                <asp:Image ID="imgLogoLogin" runat="server" AlternateText="Logo" Visible="false" />
+            </div>
 
             <h2 class="login-title">Iniciar Sesión</h2>
             <div class="login-subtitle">Selecciona tu usuario y escribe tu clave</div>

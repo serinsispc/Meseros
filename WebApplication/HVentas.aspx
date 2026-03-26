@@ -186,6 +186,7 @@
 
                                             <a href="#"
                                                 class='btn btn-outline-secondary btn-sm hv-linkbtn btn-descargar-pdf <%# Item.cufe == "--" ? "disabled" : "" %>'
+                                                data-id="<%# Item.id %>"
                                                 data-cufe="<%# Item.cufe %>"
                                                 <%# Item.cufe == "--" ? "onclick=\"return false;\"" : "" %>>
                                                 <i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF
@@ -607,7 +608,10 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="Scripts/js/hventas.actions.js"></script>
+    <script src="Scripts/js/hventas.pdf.js"></script>
     <script src="Scripts/js/hventas.js"></script>
 
     <% if (_mdlVenta) { %>

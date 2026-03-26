@@ -24,7 +24,6 @@
         <!-- TOPBAR -->
         <div class="topbar">
             <div class="brand">
-                <link rel="icon" type="image/png" href='<%: ResolveUrl("~/Recursos/Imagenes/Logo/" + Convert.ToString(Session["db"]) + ".png") %>' />
                 <div class="title">
                     <b>Cobro Caja</b>
                 </div>

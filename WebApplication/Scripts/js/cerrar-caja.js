@@ -145,7 +145,10 @@
 
     function ccInitCerrarCaja() {
         var btn = document.getElementById('btnConfirmarCierre');
+        var btnGuardarBase = document.getElementById('btnGuardarBase');
+        var btnEditarBase = document.getElementById('btnEditarBase');
         var txtEfectivoFisico = document.getElementById('txtEfectivoFisico');
+        var txtValorBaseEditar = document.getElementById('txtValorBaseEditar');
 
         ccEnsureLoadingApi();
         if (window.SerinsisLoading) {
@@ -166,6 +169,28 @@
                 EjecutarAccion('ConfirmarCierre', BuildArgs({ OBS: obs }));
             });
             btn.dataset.ccBound = '1';
+        }
+
+        if (btnEditarBase && !btnEditarBase.dataset.ccBound) {
+            btnEditarBase.addEventListener('click', function () {
+                if (!txtValorBaseEditar) {
+                    return;
+                }
+
+                var valorActual = ccParseMoney((document.getElementById('lblValorBase') || {}).textContent || '0');
+                txtValorBaseEditar.value = valorActual > 0 ? Math.round(valorActual).toString() : '';
+                txtValorBaseEditar.focus();
+                txtValorBaseEditar.select();
+            });
+            btnEditarBase.dataset.ccBound = '1';
+        }
+
+        if (btnGuardarBase && !btnGuardarBase.dataset.ccBound) {
+            btnGuardarBase.addEventListener('click', function () {
+                var valorBase = (txtValorBaseEditar || {}).value || '';
+                EjecutarAccion('ActualizarBase', BuildArgs({ VALOR_BASE: valorBase }));
+            });
+            btnGuardarBase.dataset.ccBound = '1';
         }
 
         ccActualizarDiferencia();

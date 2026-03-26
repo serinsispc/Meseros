@@ -9,6 +9,7 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using WebApplication.Class;
+using WebApplication.Helpers;
 using WebApplication.ViewModels;
 
 namespace WebApplication
@@ -30,6 +31,18 @@ namespace WebApplication
             {
                 //Session["db"] = ClassConexionDinamica.db;
                 Response.Redirect("Salir.aspx");
+            }
+        }
+
+        protected override void OnPreRender(EventArgs e)
+        {
+            base.OnPreRender(e);
+
+            var faviconUrl = BrandingImageHelper.ResolveFaviconUrl(Page);
+            faviconLink.Visible = !string.IsNullOrWhiteSpace(faviconUrl);
+            if (faviconLink.Visible)
+            {
+                faviconLink.Href = faviconUrl;
             }
         }
 

@@ -1,6 +1,6 @@
 ﻿using System;
-using System.IO;
 using System.Web.UI;
+using WebApplication.Helpers;
 
 namespace WebApplication
 {
@@ -8,16 +8,17 @@ namespace WebApplication
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (Session["db"] != null)
-            {
-                string db = Session["db"].ToString();
-                string origen = Server.MapPath($"~/Recursos/Imagenes/Logo/{db}.png");
-                string destino = Server.MapPath($"~/Recursos/Imagenes/Logo/favicon-{db}.png");
+        }
 
-                if (File.Exists(origen))
-                {
-                    File.Copy(origen, destino, true);
-                }
+        protected override void OnPreRender(EventArgs e)
+        {
+            base.OnPreRender(e);
+
+            var faviconUrl = BrandingImageHelper.ResolveFaviconUrl(Page);
+            faviconLink.Visible = !string.IsNullOrWhiteSpace(faviconUrl);
+            if (faviconLink.Visible)
+            {
+                faviconLink.Href = faviconUrl;
             }
         }
     }

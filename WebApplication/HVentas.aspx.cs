@@ -6,13 +6,18 @@ using RFacturacionElectronicaDIAN.Entities.Request;
 using RFacturacionElectronicaDIAN.Factories;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using System.Web;
+using WebApplication.Helpers;
 using WebApplication.ViewModels;
+using System.Text.RegularExpressions;
 using Acquirer_Response = RFacturacionElectronicaDIAN.Entities.Response.Acquirer_Response;
 
 namespace WebApplication
@@ -38,6 +43,7 @@ namespace WebApplication
         protected bool _mdlClienteVenta = false;
 
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
+        private readonly CultureInfo _co = new CultureInfo("es-CO");
 
 
         #region Ciclo de vida
@@ -231,6 +237,54 @@ namespace WebApplication
         {
             public int resolucionId { get; set; }
             public int ventaId { get; set; }
+        }
+
+        public class FacturaPdfDetalleDto
+        {
+            public string codigo { get; set; }
+            public string descripcion { get; set; }
+            public string cantidad { get; set; }
+            public decimal unitario { get; set; }
+            public decimal impuesto { get; set; }
+            public decimal total { get; set; }
+        }
+
+        public class FacturaPdfDto
+        {
+            public string archivo { get; set; }
+            public string empresaNombre { get; set; }
+            public string empresaNit { get; set; }
+            public string empresaDireccion { get; set; }
+            public string empresaTelefono { get; set; }
+            public string empresaEmail { get; set; }
+            public string tipoFactura { get; set; }
+            public string numeroFactura { get; set; }
+            public string fechaGeneracion { get; set; }
+            public string fechaExpedicion { get; set; }
+            public string fechaVencimiento { get; set; }
+            public string clienteNombre { get; set; }
+            public string clienteDocumento { get; set; }
+            public string clienteDireccion { get; set; }
+            public string clienteTelefono { get; set; }
+            public string clienteCiudad { get; set; }
+            public string formaPago { get; set; }
+            public string observacion { get; set; }
+            public string resolucionNumero { get; set; }
+            public string resolucionFecha { get; set; }
+            public string resolucionRango { get; set; }
+            public string cufe { get; set; }
+            public string nombreImpuesto { get; set; }
+            public string nombreRecargo { get; set; }
+            public int totalItems { get; set; }
+            public decimal totalBruto { get; set; }
+            public decimal descuento { get; set; }
+            public decimal iva { get; set; }
+            public decimal recargo { get; set; }
+            public decimal totalPagar { get; set; }
+            public string valorLetras { get; set; }
+            public string logoBase64 { get; set; }
+            public string qrBase64 { get; set; }
+            public List<FacturaPdfDetalleDto> detalles { get; set; }
         }
         private async Task btnGuardarResolucion(string data)
         {
@@ -592,17 +646,24 @@ namespace WebApplication
 
             await MostrarMensaje(TipoMensaje.Success, "DIAN", "Factura enviada con éxito.");
         }
-        private async Task btnDescargarPDF(string cufe)
+        private async Task btnDescargarPDF(string idVentaRaw)
         {
-            if (string.IsNullOrWhiteSpace(cufe) || cufe == "--")
+            if (!int.TryParse(idVentaRaw, out var idVenta) || idVenta <= 0)
             {
-                await MostrarMensaje(TipoMensaje.Error, "Error", "No hay PDF disponible.");
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No se recibió una venta válida para descargar el PDF.");
                 return;
             }
 
-            string link = $"https://catalogo-vpfe.dian.gov.co/User/SearchDocument?DocumentKey={cufe}";
-            string script = $"window.open('{link}', '_blank');";
-            ScriptManager.RegisterStartupScript(this, this.GetType(), "AbrirPDF", script, true);
+            var payload = await ConstruirFacturaPdf(idVenta);
+            if (payload == null)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No fue posible construir el PDF de la factura.");
+                return;
+            }
+
+            var json = HttpUtility.JavaScriptStringEncode(JsonConvert.SerializeObject(payload));
+            var script = $"window.hvBuildInvoicePdf(JSON.parse('{json}'));";
+            await EjecutarScript(script);
         }
 
         #endregion
@@ -682,6 +743,240 @@ namespace WebApplication
             Acquirer_Response response = await facturacionElectronica.ConsultarAcquirer(acquirer_Request, TokenFE);
 
             return response;
+        }
+
+        private async Task<FacturaPdfDto> ConstruirFacturaPdf(int idVenta)
+        {
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                return null;
+            }
+
+            var ventaFactura = await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            if (ventaFactura == null || string.IsNullOrWhiteSpace(ventaFactura.cufe) || ventaFactura.cufe == "--")
+            {
+                return null;
+            }
+
+            var detalleVenta = await V_DetalleCajaControler.Lista_IdVenta(db, idVenta, 0) ?? new List<V_DetalleCaja>();
+            var model = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels { db = db };
+            var sede = model.Sede ?? await SedeControler.Consultar(db);
+            var cliente = ventaFactura.idCliente > 0 ? await ClientesControler.Consultar_id(db, ventaFactura.idCliente) : null;
+            var resolucion = ventaFactura.idResolucion > 0 ? await V_Resoluciones_Controler.ConsultarID(db, ventaFactura.idResolucion) : null;
+            var facturaElectronica = await FacturaElectronicaControler.ConsultarIdVenta(db, idVenta);
+
+            return new FacturaPdfDto
+            {
+                archivo = $"{(ventaFactura.prefijo ?? "FACT")}-{ventaFactura.numeroVenta}",
+                empresaNombre = sede?.nombreSede ?? Convert.ToString(Session["NombreEmpresa"] ?? "Mi empresa"),
+                empresaNit = sede?.nit ?? string.Empty,
+                empresaDireccion = sede?.direccion ?? string.Empty,
+                empresaTelefono = !string.IsNullOrWhiteSpace(sede?.telefono) ? sede.telefono : (sede?.celular ?? string.Empty),
+                empresaEmail = sede?.correoAdmin1 ?? string.Empty,
+                tipoFactura = string.IsNullOrWhiteSpace(ventaFactura.tipoFactura) ? "FACTURA DE VENTA" : ventaFactura.tipoFactura,
+                numeroFactura = $"N. {ventaFactura.prefijo} {ventaFactura.numeroVenta}",
+                fechaGeneracion = FormatearFechaPdf(ventaFactura.fechaVenta),
+                fechaExpedicion = FormatearFechaPdf(ventaFactura.fechaVenta),
+                fechaVencimiento = FormatearFechaPdf(ventaFactura.fechaVencimiento),
+                clienteNombre = !string.IsNullOrWhiteSpace(cliente?.nameCliente) ? cliente.nameCliente : ventaFactura.nombreCliente,
+                clienteDocumento = !string.IsNullOrWhiteSpace(cliente?.identificationNumber) ? cliente.identificationNumber : ventaFactura.nit,
+                clienteDireccion = cliente?.adress ?? string.Empty,
+                clienteTelefono = cliente?.phone ?? string.Empty,
+                clienteCiudad = string.Empty,
+                formaPago = !string.IsNullOrWhiteSpace(ventaFactura.medioDePago) ? ventaFactura.medioDePago : ventaFactura.formaDePago,
+                observacion = string.IsNullOrWhiteSpace(ventaFactura.observacionVenta) ? "--" : ventaFactura.observacionVenta,
+                resolucionNumero = resolucion?.numeroResolucion ?? string.Empty,
+                resolucionFecha = resolucion?.fechaAvilitacion ?? string.Empty,
+                resolucionRango = resolucion == null
+                    ? string.Empty
+                    : $"Prefijo {resolucion.prefijo} desde el número {resolucion.desde} hasta el número {resolucion.hasta}",
+                cufe = ventaFactura.cufe,
+                nombreImpuesto = "IVA",
+                nombreRecargo = "Propina",
+                totalItems = detalleVenta.Count,
+                totalBruto = ventaFactura.subtotalVenta,
+                descuento = ventaFactura.descuentoVenta,
+                iva = ventaFactura.ivaVenta,
+                recargo = ventaFactura.propina,
+                totalPagar = ventaFactura.total_A_Pagar,
+                valorLetras = ConvertirMonedaALetras(ventaFactura.total_A_Pagar),
+                logoBase64 = ObtenerLogoBase64(db),
+                qrBase64 = ObtenerQrBase64(ventaFactura, facturaElectronica),
+                detalles = detalleVenta.Select(x => new FacturaPdfDetalleDto
+                {
+                    codigo = string.IsNullOrWhiteSpace(x.codigoProducto) ? "ITEM" : x.codigoProducto,
+                    descripcion = ConstruirDescripcionDetalle(x),
+                    cantidad = x.unidad.ToString("N1", _co),
+                    unitario = x.precioVenta,
+                    impuesto = x.valorImpuesto,
+                    total = x.totalDetalle
+                }).ToList()
+            };
+        }
+
+        private string ConstruirDescripcionDetalle(V_DetalleCaja detalle)
+        {
+            var descripcion = detalle?.nombreProducto ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(detalle?.adiciones))
+            {
+                descripcion += " - " + detalle.adiciones;
+            }
+
+            return descripcion.Trim();
+        }
+
+        private string FormatearFechaPdf(DateTime fecha)
+        {
+            return fecha == DateTime.MinValue
+                ? string.Empty
+                : fecha.ToString("dd/MM/yyyy h:mm:ss tt", _co);
+        }
+
+        private string ObtenerLogoBase64(string db)
+        {
+            var ruta = Server.MapPath($"~/Recursos/Imagenes/logo/{db}.png");
+            if (!File.Exists(ruta))
+            {
+                return string.Empty;
+            }
+
+            return "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(ruta));
+        }
+
+        private string ObtenerQrBase64(V_TablaVentas ventaFactura, FacturaElectronica facturaElectronica)
+        {
+            var qr = NormalizarImagenBase64(ventaFactura?.imagenQR);
+            if (!string.IsNullOrWhiteSpace(qr))
+            {
+                return qr;
+            }
+
+            qr = NormalizarImagenBase64(facturaElectronica?.imagenQR);
+            if (!string.IsNullOrWhiteSpace(qr))
+            {
+                return qr;
+            }
+
+            if (!string.IsNullOrWhiteSpace(facturaElectronica?.dataQR) && facturaElectronica.dataQR != "--")
+            {
+                try
+                {
+                    var contenidoQr = ExtraerContenidoQr(facturaElectronica.dataQR);
+                    var qrGenerado = ClassFE.General_qr(contenidoQr, ventaFactura?.id ?? 0)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    return NormalizarImagenBase64(qrGenerado);
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private string NormalizarImagenBase64(string base64)
+        {
+            if (string.IsNullOrWhiteSpace(base64) || base64 == "--")
+            {
+                return string.Empty;
+            }
+
+            base64 = base64.Trim();
+            if (base64.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+            {
+                return base64;
+            }
+
+            return "data:image/png;base64," + base64;
+        }
+
+        private string ConvertirMonedaALetras(decimal valor)
+        {
+            valor = Math.Round(valor, 2, MidpointRounding.AwayFromZero);
+            var entero = (long)Math.Truncate(valor);
+            var decimales = (int)((valor - entero) * 100m);
+
+            return $"{NumeroALetras(entero)} PESOS {decimales:00}/100";
+        }
+
+        private string NumeroALetras(long numero)
+        {
+            if (numero == 0) return "CERO";
+            if (numero < 0) return "MENOS " + NumeroALetras(Math.Abs(numero));
+
+            if (numero >= 1000000)
+            {
+                var millones = numero / 1000000;
+                var resto = numero % 1000000;
+                var textoMillones = millones == 1 ? "UN MILLON" : NumeroALetras(millones) + " MILLONES";
+                return resto > 0 ? textoMillones + " " + NumeroALetras(resto) : textoMillones;
+            }
+
+            if (numero >= 1000)
+            {
+                var miles = numero / 1000;
+                var resto = numero % 1000;
+                var textoMiles = miles == 1 ? "MIL" : NumeroALetras(miles) + " MIL";
+                return resto > 0 ? textoMiles + " " + NumeroALetras(resto) : textoMiles;
+            }
+
+            if (numero >= 100)
+            {
+                if (numero == 100) return "CIEN";
+
+                string[] centenas = { "", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS", "QUINIENTOS", "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS" };
+                var centena = centenas[numero / 100];
+                var resto = numero % 100;
+                return resto > 0 ? centena + " " + NumeroALetras(resto) : centena;
+            }
+
+            if (numero >= 30)
+            {
+                string[] decenas = { "", "", "", "TREINTA", "CUARENTA", "CINCUENTA", "SESENTA", "SETENTA", "OCHENTA", "NOVENTA" };
+                var decena = decenas[numero / 10];
+                var unidad = numero % 10;
+                return unidad > 0 ? decena + " Y " + NumeroALetras(unidad) : decena;
+            }
+
+            if (numero >= 20)
+            {
+                if (numero == 20) return "VEINTE";
+                return "VEINTI" + NumeroALetras(numero - 20).ToLowerInvariant();
+            }
+
+            string[] especiales =
+            {
+                "", "UN", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE",
+                "DIEZ", "ONCE", "DOCE", "TRECE", "CATORCE", "QUINCE", "DIECISEIS", "DIECISIETE", "DIECIOCHO", "DIECINUEVE",
+                "VEINTE", "VEINTIUN", "VEINTIDOS", "VEINTITRES", "VEINTICUATRO", "VEINTICINCO", "VEINTISEIS", "VEINTISIETE", "VEINTIOCHO", "VEINTINUEVE"
+            };
+
+            return especiales[numero];
+        }
+
+        private string ExtraerContenidoQr(string dataQr)
+        {
+            if (string.IsNullOrWhiteSpace(dataQr))
+            {
+                return string.Empty;
+            }
+
+            var match = Regex.Match(
+                dataQr,
+                @"QRCode:\s*(https?://\S+)",
+                RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+            if (match.Success)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+
+            return dataQr.Trim();
         }
 
         #endregion

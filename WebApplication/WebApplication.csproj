@@ -186,6 +186,7 @@
     <Content Include="Scripts\js\cerrar-caja.js" />
     <Content Include="Scripts\js\cobrar.js" />
     <Content Include="Scripts\js\hventas.actions.js" />
+    <Content Include="Scripts\js\hventas.pdf.js" />
     <Content Include="Scripts\js\hventas.js" />
     <Content Include="Scripts\js\loader-global.js" />
     <Content Include="Scripts\modernizr-2.8.3.js" />
@@ -275,6 +276,7 @@
     </Compile>
     <Compile Include="Helpers\EmailAperturaCajaHelper.cs" />
     <Compile Include="Helpers\EmailCierreCajaHelper.cs" />
+    <Compile Include="Helpers\BrandingImageHelper.cs" />
     <Compile Include="Helpers\EventArgumentParser.cs" />
     <Compile Include="Helpers\SessionContextHelper.cs" />
     <Compile Include="Helpers\WhatsAppMetaAperturaHelper.cs" />

@@ -58,10 +58,7 @@ namespace WebApplication
             var vendedores = vendedoresTask.Result ?? new List<Vendedor>();
             var imagenes = imagenTask.Result;
 
-            if (imagenes?.imagenBytes != null && imagenes.imagenBytes.Length > 0)
-            {
-                GuardarLogoSiNoExiste(db, imagenes.imagenBytes);
-            }
+            ConfigurarLogoLogin(db, imagenes?.imagenBytes);
 
             rptUsuarios.DataSource = vendedores;
             rptUsuarios.DataBind();
@@ -96,24 +93,30 @@ namespace WebApplication
             return db;
         }
 
-        private void GuardarLogoSiNoExiste(string db, byte[] imagen)
+        private void ConfigurarLogoLogin(string db, byte[] imagen)
         {
-            if (imagen == null || imagen.Length == 0)
-            {
-                return;
-            }
+            var rutaVirtual = $"~/Recursos/Imagenes/logo/{db}.png";
+            var rutaFisica = Server.MapPath(rutaVirtual);
+            var carpeta = Path.GetDirectoryName(rutaFisica);
 
-            var carpeta = Server.MapPath("~/Recursos/Imagenes/logo/");
             if (!Directory.Exists(carpeta))
             {
                 Directory.CreateDirectory(carpeta);
             }
 
-            var rutaCompleta = Path.Combine(carpeta, $"{db}.png");
-            if (!File.Exists(rutaCompleta))
+            if (imagen != null && imagen.Length > 0)
             {
-                File.WriteAllBytes(rutaCompleta, imagen);
+                File.WriteAllBytes(rutaFisica, imagen);
             }
+
+            if (!File.Exists(rutaFisica))
+            {
+                imgLogoLogin.Visible = false;
+                return;
+            }
+
+            imgLogoLogin.ImageUrl = ResolveUrl(rutaVirtual) + "?v=" + File.GetLastWriteTimeUtc(rutaFisica).Ticks;
+            imgLogoLogin.Visible = true;
         }
 
         private void DeserializarModels()

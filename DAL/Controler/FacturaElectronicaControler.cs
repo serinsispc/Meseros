@@ -40,5 +40,21 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<FacturaElectronica> ConsultarIdVenta(string db, int idVenta)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                var resp = await cn.ConsultarUno<FacturaElectronica>(db, x => x.idVenta == idVenta);
+                if (resp == null) return null;
+                return resp;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }

@@ -389,13 +389,13 @@
                 btnDescargarPDF.dataset.loading = '1';
                 btnDescargarPDF.disabled = true;
 
-                var cufe = btnDescargarPDF.dataset.cufe;
+                var idVentaPdf = btnDescargarPDF.dataset.id;
 
                 if (window.LoaderGlobal) {
                     LoaderGlobal.mostrar('Descargando PDF...');
                 }
 
-                hvDescargarPDF(cufe);
+                hvDescargarPDF(idVentaPdf);
                 return;
             }
         });
@@ -498,9 +498,9 @@
         showInfo('Error', 'No se encontró la acción enviar factura.', 'error');
     };
 
-    window.hvDescargarPDF = function (cufe) {
+    window.hvDescargarPDF = function (idVenta) {
         if (window.hvAction && typeof window.hvAction.descargarPDF === 'function') {
-            window.hvAction.descargarPDF(cufe);
+            window.hvAction.descargarPDF(idVenta);
             return;
         }
 

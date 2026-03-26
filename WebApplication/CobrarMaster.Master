@@ -9,7 +9,7 @@
 
     <title></title>
 
-        <link rel="icon" type="image/png" href='<%: ResolveUrl("~/Recursos/Imagenes/Logo/favicon-" + Convert.ToString(Session["db"]) + ".png") %>' />
+        <link id="faviconLink" runat="server" rel="icon" type="image/png" />
 
     <asp:ContentPlaceHolder ID="head" runat="server"></asp:ContentPlaceHolder>
 

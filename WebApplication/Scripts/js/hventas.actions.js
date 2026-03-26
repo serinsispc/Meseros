@@ -60,8 +60,8 @@
             postback('btnEnviarDIAN', String(idVenta || 0));
         },
 
-        descargarPDF: function (cufe) {
-            postback('btnDescargarPDF', String(cufe || ''));
+        descargarPDF: function (idVenta) {
+            postback('btnDescargarPDF', String(idVenta || 0));
         }
     };
 })();

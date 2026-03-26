@@ -215,6 +215,9 @@
                     <a href="caja.aspx" class="btn btn-success shadow-sm">
                         <i class="bi bi-cash-coin me-2"></i>Caja
                     </a>
+                    <button type="button" class="btn btn-outline-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#mdlEditarBase" id="btnEditarBase">
+                        <i class="bi bi-pencil-square me-2"></i>Modificar Base
+                    </button>
                     <button type="button" class="btn btn-outline-primary shadow-sm" id="btnImprimir">
                         <i class="bi bi-printer me-2"></i>Imprimir
                     </button>
@@ -520,6 +523,38 @@
 
 
     </div>
+    <div class="modal fade" id="mdlEditarBase" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content cc-card">
+                <div class="cc-card-h">
+                    <h3 class="cc-card-t"><i class="bi bi-safe2"></i>Modificar base activa</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="cc-card-b">
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Actualiza el valor de la base activa y se guardará en la base de datos del turno actual.
+                    </div>
+
+                    <label class="small fw-bold text-muted mb-1 d-block">Nuevo valor base</label>
+                    <input type="text" class="form-control cc-input" id="txtValorBaseEditar" inputmode="numeric" placeholder="$ 0" />
+
+                    <div class="text-muted small fw-semibold mt-2">
+                        Ingresa solo números. El sistema recalculará "Efectivo + Base" con el nuevo valor.
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3 cc-actions">
+                        <button type="button" class="btn btn-outline-secondary shadow-sm" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </button>
+                        <button type="button" class="btn btn-primary shadow-sm" id="btnGuardarBase">
+                            <i class="bi bi-save me-2"></i>Guardar Base
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- ✅ Modal confirmar cierre -->
     <div class="modal fade" id="mdlConfirmarCierre" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -556,7 +591,7 @@
 
 
 
-    <script src="Scripts/js/cerrar-caja.js?v=20260314-2"></script>
+    <script src="Scripts/js/cerrar-caja.js?v=20260325-1"></script>
 
 
 <script>
