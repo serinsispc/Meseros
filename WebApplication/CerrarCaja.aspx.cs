@@ -156,7 +156,24 @@ namespace WebApplication
                 case "ActualizarBase":
                     await ActualizarValorBase(eventArgument);
                     break;
+                case "AperturarCajon":
+                    await AperturarCajonMonedero();
+                    break;
             }
+        }
+
+        private async Task AperturarCajonMonedero()
+        {
+            var cajon = new AperturarCajon() { estado = true };
+            var respCajon = await AperturarCajonControler.CRUD(db, cajon, 0);
+
+            if (!respCajon)
+            {
+                AlertModerno.Error(this, "Error", "No fue posible aperturar el cajón monedero.", true, 1800);
+                return;
+            }
+
+            AlertModerno.Success(this, "OK", "Cajón abierto correctamente.", true, 1600);
         }
 
         private async Task ActualizarValorBase(string eventArgument)

@@ -398,19 +398,30 @@ namespace WebApplication
                     }
                 }
 
+
+                //aca guardamos la respuesta del cuadro de dialogo 
+                var respuestaDialogo = payload.imprimirFactura;
+
                 // ==========================================================
                 // 11) Orden de impresión
                 // ==========================================================
-                var printer = new ImprimirFactura { id = 0, idventa = venta.id };
-                var ordenPrinter = await ImprimirFacturaControler.CRUD(db, printer, 0);
-
-                if (!ordenPrinter.estado)
+                if (respuestaDialogo)
                 {
-                    AlertModerno.Error(this, "Error", "La factura no se pudo imprimir.", true, 1200);
-                    GuardarModelsEnSesion();
-                    DataBind();
-                    return;
+                    var printer = new ImprimirFactura { id = 0, idventa = venta.id };
+                    var ordenPrinter = await ImprimirFacturaControler.CRUD(db, printer, 0);
+
+                    if (!ordenPrinter.estado)
+                    {
+                        AlertModerno.Error(this, "Error", "La factura no se pudo imprimir.", true, 1200);
+                        GuardarModelsEnSesion();
+                        DataBind();
+                        return;
+                    }
                 }
+
+                //cargamos orden para abrir el cajon
+                var cajon=new AperturarCajon() { estado = true };
+                var respCajon = await AperturarCajonControler.CRUD(Session["db"].ToString(),cajon,0);
 
                 //antes de terminar liberamos las mesas que est\u00e1n ancladas a esta cuenta
                 var relaciones = await R_VentaMesaControler.ListaRelacion(db,venta.id);
@@ -459,6 +470,7 @@ namespace WebApplication
             public int efectivo { get; set; }
             public int cambio { get; set; }
             public bool facturaElectronica { get; set; }
+            public bool imprimirFactura { get; set; }
         }
 
         private void GuardarModelsEnSesion()

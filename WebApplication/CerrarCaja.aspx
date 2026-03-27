@@ -215,6 +215,9 @@
                     <a href="caja.aspx" class="btn btn-success shadow-sm">
                         <i class="bi bi-cash-coin me-2"></i>Caja
                     </a>
+                    <button type="button" class="btn btn-outline-warning shadow-sm" id="btnAperturarCajon">
+                        <i class="bi bi-safe me-2"></i>Aperturar Cajón
+                    </button>
                     <button type="button" class="btn btn-outline-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#mdlEditarBase" id="btnEditarBase">
                         <i class="bi bi-pencil-square me-2"></i>Modificar Base
                     </button>

@@ -145,6 +145,7 @@
 
     function ccInitCerrarCaja() {
         var btn = document.getElementById('btnConfirmarCierre');
+        var btnAperturarCajon = document.getElementById('btnAperturarCajon');
         var btnGuardarBase = document.getElementById('btnGuardarBase');
         var btnEditarBase = document.getElementById('btnEditarBase');
         var txtEfectivoFisico = document.getElementById('txtEfectivoFisico');
@@ -191,6 +192,13 @@
                 EjecutarAccion('ActualizarBase', BuildArgs({ VALOR_BASE: valorBase }));
             });
             btnGuardarBase.dataset.ccBound = '1';
+        }
+
+        if (btnAperturarCajon && !btnAperturarCajon.dataset.ccBound) {
+            btnAperturarCajon.addEventListener('click', function () {
+                EjecutarAccion('AperturarCajon', '', btnAperturarCajon);
+            });
+            btnAperturarCajon.dataset.ccBound = '1';
         }
 
         ccActualizarDiferencia();

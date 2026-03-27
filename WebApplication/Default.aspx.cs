@@ -276,6 +276,10 @@ namespace WebApplication
                 mensaje += " Correo pendiente: " + ex.Message;
             }
 
+            //cargamos orden para abrir el cajon
+            var cajon = new AperturarCajon() { estado = true };
+            var respCajon = await AperturarCajonControler.CRUD(Session["db"].ToString(), cajon, 0);
+
             AlertModerno.SuccessGoTo(this, "Ok", mensaje, "~/caja.aspx", false, 1800);
         }
 

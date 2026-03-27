@@ -422,7 +422,7 @@
 
     const btnGuardar = byId('btnGuardar');
     if (btnGuardar) {
-        btnGuardar.addEventListener('click', () => {
+        btnGuardar.addEventListener('click', async () => {
             // asegurar cambio actualizado
             calcularCambioDesdeEfectivo();
 
@@ -438,10 +438,29 @@
             const hfVenta = byId('hfIdVentaActual');
             const idVenta = hfVenta ? parseInt(hfVenta.value || '0', 10) : 0;
 
+            let imprimirFactura = true;
+            if (window.Swal) {
+                const result = await Swal.fire({
+                    icon: 'question',
+                    title: 'Imprimir factura',
+                    text: '¿Desea imprimir la factura?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, imprimir',
+                    cancelButtonText: 'No imprimir',
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6c757d'
+                });
+
+                imprimirFactura = !!result.isConfirmed;
+            } else {
+                imprimirFactura = window.confirm('¿Desea imprimir la factura?');
+            }
+
             const payload = {
                 efectivo: efectivo,
                 cambio: cambio,
                 facturaElectronica: facturaElectronica,
+                imprimirFactura: imprimirFactura,
                 idMetodoPago: idMetodoPago,   // opcional, pero útil
                 idVenta: idVenta              // opcional, pero útil
             };
