@@ -1,4 +1,6 @@
 using DAL;
+using DAL.Controler;
+using DAL.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -106,6 +108,9 @@ namespace WebApplication
                 await CargarGastos();
                 return;
             }
+
+            var cajon = new AperturarCajon() { estado = true };
+            var respCajon = await AperturarCajonControler.CRUD(db, cajon, 0);
 
             LimpiarFormularioGasto();
             //wait CargarCombos();
