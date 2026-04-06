@@ -103,6 +103,7 @@
     <Compile Include="Controler\ComandImpresaaControler.cs" />
     <Compile Include="Controler\controlador_tokenEmpresa.cs" />
     <Compile Include="Controler\CuentaClienteControler.cs" />
+    <Compile Include="Controler\DBConexionControler.cs" />
     <Compile Include="Controler\DetalleVentaControler.cs" />
     <Compile Include="Controler\FacturaElectronicaControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
@@ -144,6 +145,7 @@
     <Compile Include="Controler\ZonasControler.cs" />
     <Compile Include="CrudSpHelper.cs" />
     <Compile Include="Model\AperturarCajon.cs" />
+    <Compile Include="Model\DBConexion.cs" />
     <Compile Include="RuntimeSettings.cs" />
     <Compile Include="Funciones\ClassFE.cs" />
     <Compile Include="Funciones\ComandImpresaa_f.cs" />

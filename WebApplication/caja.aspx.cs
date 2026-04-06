@@ -39,6 +39,7 @@ namespace WebApplication
         protected int VentasCajaCantidad;
         protected decimal VentasCajaPendiente;
         protected int VentasCajaAnuladas;
+        protected DBConexion ajustes = new DBConexion();
 
         protected bool EnVistaVentas()
         {
@@ -274,6 +275,10 @@ namespace WebApplication
         }
         private async Task IniciarPagina()
         {
+            // cargarmos el DBConexion
+            string dbJson = Session["DBConexion"]?.ToString();
+            ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson);
+
             // Obtener cuentas del vendedor
             var cuentas = new List<V_CuentasVenta>();
             cuentas = await CargarCuentas();

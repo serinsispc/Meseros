@@ -34,6 +34,36 @@
         .user-card .user-name { margin-top: .2rem; word-break: break-word; color: #003366 !important; font-weight: 600; }
         .user-card.selected { border-color: #00c6ff !important; box-shadow: 0 0 0 2px rgba(0, 198, 255, 0.45); }
         .user-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); }
+        .download-server-link {
+            margin-top: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .55rem;
+            width: 100%;
+            padding: .9rem 1rem;
+            border-radius: .95rem;
+            text-decoration: none;
+            font-weight: 700;
+            color: #0b4dbb;
+            background: linear-gradient(180deg, #f8fbff 0%, #edf5ff 100%);
+            border: 1px solid rgba(11, 77, 187, 0.16);
+            box-shadow: 0 12px 28px rgba(11, 77, 187, 0.08);
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .download-server-link:hover {
+            color: #083b8f;
+            transform: translateY(-1px);
+            box-shadow: 0 16px 34px rgba(11, 77, 187, 0.14);
+            border-color: rgba(11, 77, 187, 0.28);
+        }
+        .download-server-link i {
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+        .download-server-link span {
+            display: inline-block;
+        }
         @media (max-width: 575.98px) { .user-card { font-size: .8rem; padding: .5rem .3rem; min-height: 70px; } }
     </style>
 
@@ -98,6 +128,13 @@
                 <asp:Button ID="btnIngresar" runat="server" CssClass="btn btn-login text-white"
                     Text="Ingresar" UseSubmitBehavior="true" OnClick="btnIngresar_Click" />
             </div>
+
+            <a class="download-server-link"
+               href="https://pos.serinsispc.com/ServerPrinter/Setup_ServerPrinter.exe"
+               download="Setup_ServerPrinter.exe">
+                <i class="bi bi-download"></i>
+                <span>Descargar Servidor de Impresoras</span>
+            </a>
 
             <div class="login-foot">
                 © <%: DateTime.Now.Year %> · Todos los derechos reservados

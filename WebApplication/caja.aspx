@@ -567,12 +567,20 @@
                                                         <button type="button" class="act-btn" aria-label="Dividir" title="Dividir producto" onclick="return dividirDetalle(this);">
                                                             <i class="bi bi-scissors"></i>
                                                         </button>
+
+                                                        <%if (ajustes.DecuentoVendedorJSON==true)
+                                                            {%>
+
                                                         <button type="button" class="act-btn" aria-label="Descuento" title="Editar valor o descuento" onclick="return editarValorDetalle(this);">
                                                             <i class="bi bi-cash-coin"></i>
                                                         </button>
                                                         <button type="button" class="act-btn" aria-label="Editar" title="Editar producto" onclick="return editarNombreDetalle(this);">
                                                             <i class="bi bi-pencil-square"></i>
                                                         </button>
+
+                                                        <% } %>
+
+
                                                     </div>
 
                                                     <div class="cuenta-detalle-chip <%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("nombreCuenta"))) ? "d-none" : string.Empty %>">

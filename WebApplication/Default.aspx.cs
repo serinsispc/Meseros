@@ -51,6 +51,14 @@ namespace WebApplication
 
             models.Sede = sede;
 
+            //ahora consultamos la tabla DBConexion y lo gardamos en session para futuras consultas
+            var ajustesDb = await DBConexionControler.DAsync(db);
+            if (ajustesDb!=null)
+            {
+                string dbconexion = JsonConvert.SerializeObject(ajustesDb);
+                Session["DBConexion"] = dbconexion;
+            }
+
             var vendedoresTask = VendedorControler.ListaVendedor(db);
             var imagenTask = ImagenesControler.Consultar(db, sede.guidSede);
             await Task.WhenAll(vendedoresTask, imagenTask);
@@ -171,7 +179,7 @@ namespace WebApplication
                 var tokenEmpresa = await tokenEmpresaControler.ConsultarToken(db);
                 models.TokenEmpresa = tokenEmpresa?.token ?? string.Empty;
 
-                var baseActiva = await BaseCajaControler.VerificarBaseCaja(db, usuarioCaja.id);
+                var baseActiva = await BaseCajaControler.VerificarBaseCaja(db, usuarioCaja.idUSuario);
                 if (baseActiva != null)
                 {
                     models.BaseCaja = baseActiva;
@@ -227,10 +235,10 @@ namespace WebApplication
             {
                 id = 0,
                 fechaApertura = DateTime.Now,
-                idUsuarioApertura = usuarioCaja.id,
+                idUsuarioApertura = usuarioCaja.idUSuario,
                 valorBase = Convert.ToInt32(valorBase),
                 fechaCierre = DateTime.Now,
-                idUsuarioCierre = usuarioCaja.id,
+                idUsuarioCierre = usuarioCaja.idUSuario,
                 estadoBase = "ACTIVA",
                 idSedeBAse = models.Sede?.id ?? 1
             }, 0);
