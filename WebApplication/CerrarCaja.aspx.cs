@@ -21,9 +21,14 @@ namespace WebApplication
         private V_TurnosCaja turnoCaja;
         private List<V_TablaVentas> ventas = new List<V_TablaVentas>();
         private List<InformePagoInternoTurnoItem> pagosInternosTurno = new List<InformePagoInternoTurnoItem>();
+        protected DBConexion ajustes;
 
         protected async void Page_Load(object sender, EventArgs e)
         {
+            // cargarmos el DBConexion
+            string dbJson = Session["DBConexion"]?.ToString();
+            ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson);
+
             if (!IsPostBack)
             {
                 if (!CargarContexto())

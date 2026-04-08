@@ -215,7 +215,10 @@
                     <a href="caja.aspx" class="btn btn-success shadow-sm">
                         <i class="bi bi-cash-coin me-2"></i>Caja
                     </a>
-                    <button type="button" class="btn btn-outline-warning shadow-sm" id="btnAperturarCajon">
+
+                            <%if (ajustes.MostrarCierreCaja == true)
+                                {%>
+                                        <button type="button" class="btn btn-outline-warning shadow-sm" id="btnAperturarCajon">
                         <i class="bi bi-safe me-2"></i>Aperturar Cajón
                     </button>
                     <button type="button" class="btn btn-outline-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#mdlEditarBase" id="btnEditarBase">
@@ -224,13 +227,24 @@
                     <button type="button" class="btn btn-outline-primary shadow-sm" id="btnImprimir">
                         <i class="bi bi-printer me-2"></i>Imprimir
                     </button>
+                    
+                    <%  }%>
+
+
+
+
+
                     <button type="button" class="btn btn-danger shadow-sm" data-bs-toggle="modal" data-bs-target="#mdlConfirmarCierre" id="btnCerrarCaja">
                         <i class="bi bi-lock-fill me-2"></i>Cerrar Caja
                     </button>
                 </div>
             </div>
 
-            <!-- ✅ KPIs principales -->
+
+            <% if(ajustes.MostrarCierreCaja==true)
+            {%>
+
+                        <!-- ✅ KPIs principales -->
             <div class="row g-3 mt-2">
                 <div class="col-12 col-md-6 col-xl-3">
                     <div class="cc-kpi">
@@ -284,9 +298,19 @@
                     </div>
                 </div>
             </div>
+
+<%            } %>
+
+
+
+
         </div>
 
-        <!-- ✅ Datos del turno + Arqueo -->
+        <%if (ajustes.MostrarCierreCaja == true)
+            {%>
+
+
+                <!-- ✅ Datos del turno + Arqueo -->
         <div class="row g-3 mt-3">
 
             <!-- Turno -->
@@ -525,6 +549,11 @@
         </div>
 
 
+            <%} %>
+
+
+
+
     </div>
     <div class="modal fade" id="mdlEditarBase" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -558,6 +587,8 @@
             </div>
         </div>
     </div>
+
+
     <!-- ✅ Modal confirmar cierre -->
     <div class="modal fade" id="mdlConfirmarCierre" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

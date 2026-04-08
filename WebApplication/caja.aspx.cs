@@ -192,6 +192,10 @@ namespace WebApplication
         }
         protected async void Page_Load(object sender, EventArgs e)
         {
+            // cargarmos el DBConexion
+            string dbJson = Session["DBConexion"]?.ToString();
+            ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson);
+
             if (!IsPostBack)
             {
                 if (!await DeserializarModels())
@@ -275,9 +279,6 @@ namespace WebApplication
         }
         private async Task IniciarPagina()
         {
-            // cargarmos el DBConexion
-            string dbJson = Session["DBConexion"]?.ToString();
-            ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson);
 
             // Obtener cuentas del vendedor
             var cuentas = new List<V_CuentasVenta>();
