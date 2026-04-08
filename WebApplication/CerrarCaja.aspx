@@ -5,6 +5,8 @@
 
     <asp:HiddenField ID="hidAccion" runat="server" ClientIDMode="Static" />
     <asp:HiddenField ID="hidArgumento" runat="server" ClientIDMode="Static" />
+    <asp:HiddenField ID="hidGastosTurnoJson" runat="server" ClientIDMode="Static" />
+    <asp:HiddenField ID="hidProductosVendidosJson" runat="server" ClientIDMode="Static" />
 
         <div id="appLoading" class="app-loading">
         <div class="app-loading-card">
@@ -663,6 +665,68 @@
         }).join('');
     }
 
+    function ccGetProductosVendidosInline() {
+        var field = document.getElementById('hidProductosVendidosJson');
+        if (!field || !field.value) return [];
+        try {
+            var data = JSON.parse(field.value);
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function ccGetGastosTurnoInline() {
+        var field = document.getElementById('hidGastosTurnoJson');
+        if (!field || !field.value) return [];
+        try {
+            var data = JSON.parse(field.value);
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function ccFormatCantidadInline(value) {
+        var number = Number(value || 0);
+        if (!isFinite(number)) return '0';
+        if (Math.floor(number) === number) return number.toString();
+        return number.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function ccFormatMoneyInline(value) {
+        var number = Number(value || 0);
+        if (!isFinite(number)) number = 0;
+        return number.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function ccProductosVendidosInline() {
+        var productos = ccGetProductosVendidosInline();
+        if (!productos.length) return '';
+
+        var rows = productos.map(function (item) {
+            return '' +
+                '<div class="row"><span>' + ccEscapeHtmlInline(item.nombreProducto || '-') + '</span><strong>' + ccEscapeHtmlInline(ccFormatCantidadInline(item.cantidad)) + '</strong></div>' +
+                '<div class="row"><span>Valor</span><strong>' + ccEscapeHtmlInline(ccFormatMoneyInline(item.valor)) + '</strong></div>';
+        }).join('<div style="border-top:1px dotted #000;margin:4px 0;"></div>');
+
+        return '<div class="sep"></div><div class="section"><h4>Productos vendidos</h4>' + rows + '</div>';
+    }
+
+    function ccGastosTurnoInline() {
+        var gastos = ccGetGastosTurnoInline();
+        if (!gastos.length) return '';
+
+        var rows = gastos.map(function (item) {
+            var concepto = item.concepto || '-';
+            var tipo = item.nombreTipoGasto || '';
+            var etiqueta = tipo ? (concepto + ' (' + tipo + ')') : concepto;
+            return '<div class="row"><span>' + ccEscapeHtmlInline(etiqueta) + '</span><strong>' + ccEscapeHtmlInline(ccFormatMoneyInline(item.valor)) + '</strong></div>';
+        }).join('');
+
+        return '<div class="sep"></div><div class="section"><h4>Gastos del turno</h4>' + rows + '<div class="row tot"><span>Total gastos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblGastosEfectivo', '$ 0')) + '</strong></div></div>';
+    }
+
     window.ccImprimirTicketInline = function () {
         var efectivoFisicoEl = document.getElementById('txtEfectivoFisico');
         var efectivoFisico = efectivoFisicoEl && efectivoFisicoEl.value ? efectivoFisicoEl.value : '$ 0';
@@ -703,7 +767,8 @@
             ccTicketLineInline('Pago CxP efectivo', ccGetTextInline('lblPagoCP_Efectivo', '$ 0')) +
             '<div class="row tot"><span>Total egresos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalEgresos2', '$ 0')) + '</strong></div>' +
             '</div><div class="sep"></div><div class="section"><h4>Pagos internos</h4>' + ccPagosInternosInline() + '<div class="row tot"><span>Total pagos internos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalPagosInternos', '$ 0')) + '</strong></div>' +
-            '</div><div class="sep"></div><div class="section"><h4>Observacion</h4><div class="note">' + ccEscapeHtmlInline(observacion || 'Sin observacion.') + '</div></div>' +
+            '</div>' + ccGastosTurnoInline() + ccProductosVendidosInline() +
+            '<div class="sep"></div><div class="section"><h4>Observacion</h4><div class="note">' + ccEscapeHtmlInline(observacion || 'Sin observacion.') + '</div></div>' +
             '<div class="sep"></div><div class="center">Impreso: ' + ccEscapeHtmlInline(new Date().toLocaleString('es-CO')) + '</div></body></html>';
         var win = window.open('', 'cierreCajaTicket', 'width=380,height=760');
         if (!win) return;

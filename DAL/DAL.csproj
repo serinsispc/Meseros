@@ -108,6 +108,7 @@
     <Compile Include="Controler\FacturaElectronicaControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
     <Compile Include="Controler\InformePagoInternoTurnoControler.cs" />
+    <Compile Include="Controler\InformeProductoVendidoTurnoControler.cs" />
     <Compile Include="Controler\ImprecionComandaAddControler.cs" />
     <Compile Include="Controler\ImprimirCuentaControler.cs" />
     <Compile Include="Controler\ImprimirFacturaControler.cs" />
@@ -166,6 +167,7 @@
     <Compile Include="Model\FacturaElectronica.cs" />
     <Compile Include="Model\Imagenes.cs" />
     <Compile Include="Model\InformePagoInternoTurnoItem.cs" />
+    <Compile Include="Model\InformeProductoVendidoTurnoItem.cs" />
     <Compile Include="Model\ImprecionComandaAdd.cs" />
     <Compile Include="Model\ImprimirCuenta.cs" />
     <Compile Include="Model\ImprimirFactura.cs" />

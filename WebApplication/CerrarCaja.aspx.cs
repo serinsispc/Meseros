@@ -21,6 +21,8 @@ namespace WebApplication
         private V_TurnosCaja turnoCaja;
         private List<V_TablaVentas> ventas = new List<V_TablaVentas>();
         private List<InformePagoInternoTurnoItem> pagosInternosTurno = new List<InformePagoInternoTurnoItem>();
+        private List<GastoTurnoItem> gastosTurno = new List<GastoTurnoItem>();
+        private List<InformeProductoVendidoTurnoItem> productosVendidosTurno = new List<InformeProductoVendidoTurnoItem>();
         protected DBConexion ajustes;
 
         protected async void Page_Load(object sender, EventArgs e)
@@ -66,6 +68,10 @@ namespace WebApplication
             var dal = new SqlAutoDAL();
             turnoCaja = await dal.ConsultarUno<V_TurnosCaja>(db, x => x.id == baseCaja.id);
             pagosInternosTurno = await ConsultarPagosInternosTurno();
+            gastosTurno = await ConsultarGastosTurno();
+            productosVendidosTurno = await ConsultarProductosVendidosTurno();
+            hidGastosTurnoJson.Value = JsonConvert.SerializeObject(gastosTurno);
+            hidProductosVendidosJson.Value = JsonConvert.SerializeObject(productosVendidosTurno);
 
             if (turnoCaja != null)
             {
@@ -444,6 +450,45 @@ namespace WebApplication
             }
         }
 
+        private async Task<List<InformeProductoVendidoTurnoItem>> ConsultarProductosVendidosTurno()
+        {
+            if (ajustes == null || !ajustes.ImprimirProductosVendidos)
+            {
+                return new List<InformeProductoVendidoTurnoItem>();
+            }
+
+            try
+            {
+                return await InformeProductoVendidoTurnoControler.Lista(db, baseCaja.id);
+            }
+            catch
+            {
+                return new List<InformeProductoVendidoTurnoItem>();
+            }
+        }
+
+        private async Task<List<GastoTurnoItem>> ConsultarGastosTurno()
+        {
+            try
+            {
+                using (var cn = new Conection_SQL(db))
+                {
+                    var sql = "select idGasto, fecha, concepto, valor, VidBolsillo as idBolsillo, VnombreBolsillo as nombreBolsillo, idTipoGasto, nombreTipoGasto, idBaseGasto from v_Gastos where idBaseGasto = " + baseCaja.id + " order by fecha desc, idGasto desc";
+                    var json = await cn.EjecutarConsulta(sql, true);
+                    if (string.IsNullOrWhiteSpace(json))
+                    {
+                        return new List<GastoTurnoItem>();
+                    }
+
+                    return JsonConvert.DeserializeObject<List<GastoTurnoItem>>(json) ?? new List<GastoTurnoItem>();
+                }
+            }
+            catch
+            {
+                return new List<GastoTurnoItem>();
+            }
+        }
+
         private decimal ObtenerTotalPagoInterno(string nombre, decimal fallback)
         {
             var item = pagosInternosTurno.FirstOrDefault(x => string.Equals(x.nombreMPI, nombre, StringComparison.OrdinalIgnoreCase));
@@ -494,6 +539,19 @@ namespace WebApplication
             var totalEfectivo = ParseMoney(lblTotalEfectivo?.InnerText);
             lblValorBase.InnerText = FormatearMoneda(baseCaja.valorBase);
             lblEfectivoMasBase.InnerText = FormatearMoneda(baseCaja.valorBase + totalEfectivo);
+        }
+
+        private class GastoTurnoItem
+        {
+            public int idGasto { get; set; }
+            public DateTime fecha { get; set; }
+            public string concepto { get; set; }
+            public decimal valor { get; set; }
+            public int idBolsillo { get; set; }
+            public string nombreBolsillo { get; set; }
+            public int idTipoGasto { get; set; }
+            public string nombreTipoGasto { get; set; }
+            public int idBaseGasto { get; set; }
         }
 
 

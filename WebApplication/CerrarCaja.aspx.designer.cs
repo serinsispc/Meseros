@@ -33,6 +33,24 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.HiddenField hidArgumento;
 
         /// <summary>
+        /// Control hidGastosTurnoJson.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hidGastosTurnoJson;
+
+        /// <summary>
+        /// Control hidProductosVendidosJson.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hidProductosVendidosJson;
+
+        /// <summary>
         /// Control btnBridge.
         /// </summary>
         /// <remarks>
