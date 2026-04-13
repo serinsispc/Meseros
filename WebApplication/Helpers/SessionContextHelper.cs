@@ -18,6 +18,7 @@ namespace WebApplication.Helpers
         public const string BaseCajaKey = "base_caja";
         public const string IdBaseKey = "idBase";
         public const string UsuarioCajaKey = "usuario_caja";
+        public const string AdminControlReminderAtKey = "admincontrol_reminder_at";
 
         public static MenuViewModels LoadModels(HttpSessionState session)
         {
@@ -153,6 +154,7 @@ namespace WebApplication.Helpers
             session.Remove(BaseCajaKey);
             session.Remove(IdBaseKey);
             session.Remove(UsuarioCajaKey);
+            session.Remove(AdminControlReminderAtKey);
         }
     }
 }

@@ -95,6 +95,7 @@
     <Compile Include="AjustarJson.cs" />
     <Compile Include="Conection_SQL.cs" />
     <Compile Include="Controler\AperturarCajonControler.cs" />
+    <Compile Include="Controler\AdminControlControler.cs" />
     <Compile Include="Controler\AperturasCajon_controler.cs" />
     <Compile Include="Controler\BaseCajaControler.cs" />
     <Compile Include="Controler\CargoDescuentoVentasControler.cs" />
@@ -146,6 +147,7 @@
     <Compile Include="Controler\ZonasControler.cs" />
     <Compile Include="CrudSpHelper.cs" />
     <Compile Include="Model\AperturarCajon.cs" />
+    <Compile Include="Model\AdminControl.cs" />
     <Compile Include="Model\DBConexion.cs" />
     <Compile Include="RuntimeSettings.cs" />
     <Compile Include="Funciones\ClassFE.cs" />

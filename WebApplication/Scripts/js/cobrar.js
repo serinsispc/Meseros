@@ -198,8 +198,106 @@
         return ddl_ ? (ddl_.options[ddl_.selectedIndex]?.text || '') : '';
     };
 
+    const asegurarTipoVentaSeleccionado = () => {
+        const chkContado = byId('chkContado');
+        const chkCredito = byId('chkCredito');
+        const hfTipoVenta = byId('hfTipoVenta');
+        if (!chkContado || !chkCredito) return;
+
+        if (!chkContado.checked && !chkCredito.checked) {
+            chkContado.checked = true;
+        }
+
+        if (hfTipoVenta) {
+            hfTipoVenta.value = chkCredito.checked ? 'credito' : 'contado';
+        }
+    };
+
+    const restaurarTipoVentaDesdeHidden = () => {
+        const chkContado = byId('chkContado');
+        const chkCredito = byId('chkCredito');
+        const hfTipoVenta = byId('hfTipoVenta');
+        if (!chkContado || !chkCredito || !hfTipoVenta) return;
+
+        const tipoVenta = (hfTipoVenta.value || '').toLowerCase();
+        if (tipoVenta === 'credito') {
+            chkCredito.checked = true;
+            chkContado.checked = false;
+            return;
+        }
+
+        chkContado.checked = true;
+        chkCredito.checked = false;
+    };
+
+    const sincronizarFacturaElectronica = () => {
+        const swFE = byId('swFE');
+        const hfFacturaElectronica = byId('hfFacturaElectronica');
+        if (!swFE || !hfFacturaElectronica) return;
+        hfFacturaElectronica.value = swFE.checked ? 'true' : 'false';
+    };
+
+    const restaurarFacturaElectronicaDesdeHidden = () => {
+        const swFE = byId('swFE');
+        const hfFacturaElectronica = byId('hfFacturaElectronica');
+        if (!swFE || !hfFacturaElectronica) return;
+        swFE.checked = (hfFacturaElectronica.value || '').toLowerCase() === 'true';
+    };
+
+    const esVentaCredito = () => {
+        const chkCredito = byId('chkCredito');
+        return !!(chkCredito && chkCredito.checked);
+    };
+
+    const aplicarModoCreditoUI = () => {
+        const ddl = byId('ddlMedioPago');
+        const txtAbonoEfectivo = byId('txtAbonoEfectivo');
+        const txtEfectivo = byId('txtEfectivo');
+        const txtCambio = byId('txtCambio');
+        const btnConfirmarPagoMixto = byId('btnConfirmarPagoMixto');
+
+        if (esVentaCredito()) {
+            setVal('txtAbonoEfectivo', 0);
+            setVal('txtEfectivo', 0);
+            setVal('txtCambio', 0);
+            sumMixtoInternos = 0;
+            limpiarSumMixto();
+            efectivoTouched = false;
+
+            if (ddl) ddl.disabled = true;
+            if (txtAbonoEfectivo) txtAbonoEfectivo.readOnly = true;
+            if (txtEfectivo) txtEfectivo.readOnly = true;
+            if (txtCambio) txtCambio.readOnly = true;
+            if (btnConfirmarPagoMixto) btnConfirmarPagoMixto.disabled = true;
+            return;
+        }
+
+        if (ddl) ddl.disabled = false;
+        if (txtAbonoEfectivo) txtAbonoEfectivo.readOnly = true;
+        if (txtEfectivo) txtEfectivo.readOnly = false;
+        if (txtCambio) txtCambio.readOnly = true;
+        if (btnConfirmarPagoMixto) btnConfirmarPagoMixto.disabled = false;
+
+        aplicarReglaEfectivoPorMedio();
+    };
+
+    const abrirModalClientePorCredito = () => {
+        const modalClienteEl = byId('mdlCliente');
+        if (!modalClienteEl || !window.bootstrap) return;
+
+        const modalCliente = bootstrap.Modal.getOrCreateInstance(modalClienteEl, { backdrop: 'static' });
+        modalCliente.show();
+    };
+
     // ✅ Regla principal
     const aplicarReglaEfectivoPorMedio = () => {
+        if (esVentaCredito()) {
+            setVal('txtAbonoEfectivo', 0);
+            setVal('txtEfectivo', 0);
+            setVal('txtCambio', 0);
+            return;
+        }
+
         const nombre_ = getNombreMedioSeleccionado();
 
         // Detectar cambio de medio
@@ -281,7 +379,7 @@
     };
 
     // ====== Propina (% <-> valor) sobre SubTotal ======
-    const propinaDesdePct = () => {
+    const propinaDesdePct = (actualizarTotal) => {
         if (lock) return;
         lock = true;
 
@@ -290,12 +388,12 @@
         const valor = Math.round((subtotal * pct) / 100);
 
         setVal('txtPropina', valor);
-        recalcularTotal();
+        if (actualizarTotal) recalcularTotal();
 
         lock = false;
     };
 
-    const pctDesdePropina = () => {
+    const pctDesdePropina = (actualizarTotal) => {
         if (lock) return;
         lock = true;
 
@@ -306,7 +404,7 @@
         const elPct = byId('txtPropinaPorcentaje');
         if (elPct) elPct.value = pct.toString();
 
-        recalcularTotal();
+        if (actualizarTotal) recalcularTotal();
         lock = false;
     };
 
@@ -346,8 +444,14 @@
     const elDescPct = byId('txtDescuentoPorcentaje');
     const elDescVal = byId('txtDescuento');
 
-    if (elPropPct) { elPropPct.addEventListener('input', propinaDesdePct); elPropPct.addEventListener('change', propinaDesdePct); }
-    if (elPropVal) { elPropVal.addEventListener('input', pctDesdePropina); elPropVal.addEventListener('change', pctDesdePropina); }
+    if (elPropPct) {
+        elPropPct.addEventListener('input', () => propinaDesdePct(false));
+        elPropPct.addEventListener('change', () => propinaDesdePct(false));
+    }
+    if (elPropVal) {
+        elPropVal.addEventListener('input', () => pctDesdePropina(false));
+        elPropVal.addEventListener('change', () => pctDesdePropina(false));
+    }
 
     if (elDescPct) { elDescPct.addEventListener('input', descuentoDesdePct); elDescPct.addEventListener('change', descuentoDesdePct); }
     if (elDescVal) { elDescVal.addEventListener('input', pctDesdeDescuento); elDescVal.addEventListener('change', pctDesdeDescuento); }
@@ -357,9 +461,9 @@
 
     if (elSub) {
         elSub.addEventListener('input', () => {
-            if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct();
+            if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct(false);
             if (getVal('txtDescuentoPorcentaje') > 0) descuentoDesdePct();
-            if (getVal('txtPropina') > 0) pctDesdePropina();
+            if (getVal('txtPropina') > 0) pctDesdePropina(false);
             if (getVal('txtDescuento') > 0) pctDesdeDescuento();
             recalcularTotal();
         });
@@ -423,6 +527,8 @@
     const btnGuardar = byId('btnGuardar');
     if (btnGuardar) {
         btnGuardar.addEventListener('click', async () => {
+            asegurarTipoVentaSeleccionado();
+
             // asegurar cambio actualizado
             calcularCambioDesdeEfectivo();
 
@@ -437,6 +543,7 @@
 
             const hfVenta = byId('hfIdVentaActual');
             const idVenta = hfVenta ? parseInt(hfVenta.value || '0', 10) : 0;
+            const ventaCredito = esVentaCredito();
 
             let imprimirFactura = true;
             if (window.Swal) {
@@ -461,6 +568,8 @@
                 cambio: cambio,
                 facturaElectronica: facturaElectronica,
                 imprimirFactura: imprimirFactura,
+                idFormaDePago: ventaCredito ? 2 : 1,
+                esCredito: ventaCredito,
                 idMetodoPago: idMetodoPago,   // opcional, pero útil
                 idVenta: idVenta              // opcional, pero útil
             };
@@ -490,6 +599,7 @@
             valorPropina = valorPropina.replace(/\./g, "").replace(",", ".");
 
             // 3️⃣ Enviar al servidor
+            recalcularTotal();
             mostrarProcesando('Guardando propina');
             firePostBack('btnGuardarPropina', valorPropina + '|' + getVal('txtPropinaPorcentaje'));
 
@@ -518,8 +628,31 @@
     const modalClienteEl = byId('mdlCliente');
     if (swFE && modalClienteEl) {
         const modalCliente = bootstrap.Modal.getOrCreateInstance(modalClienteEl, { backdrop: 'static' });
-        swFE.addEventListener('change', function () { if (this.checked) modalCliente.show(); });
-        modalClienteEl.addEventListener('hidden.bs.modal', function () { swFE.checked = false; });
+        swFE.addEventListener('change', function () {
+            sincronizarFacturaElectronica();
+            if (this.checked) modalCliente.show();
+        });
+        modalClienteEl.addEventListener('hidden.bs.modal', function () {
+            sincronizarFacturaElectronica();
+        });
+    }
+
+    const chkContado = byId('chkContado');
+    const chkCredito = byId('chkCredito');
+    if (chkCredito) {
+        chkCredito.addEventListener('change', function () {
+            asegurarTipoVentaSeleccionado();
+            if (this.checked) {
+                aplicarModoCreditoUI();
+                abrirModalClientePorCredito();
+            }
+        });
+    }
+    if (chkContado) {
+        chkContado.addEventListener('change', function () {
+            asegurarTipoVentaSeleccionado();
+            aplicarModoCreditoUI();
+        });
     }
 
     // ====== Medios internos ======
@@ -704,6 +837,11 @@
     const ddl = byId('ddlMedioPago');
     if (ddl) {
         ddl.addEventListener('change', function () {
+            if (esVentaCredito()) {
+                aplicarModoCreditoUI();
+                return;
+            }
+
             const idMedioPago = this.value;
             const nombre = this.options[this.selectedIndex]?.text || '';
 
@@ -952,6 +1090,12 @@
             firePostBack('btnGuardarCliente', encodeB64(JSON.stringify(payload)));
         });
     }
+
+    restaurarTipoVentaDesdeHidden();
+    asegurarTipoVentaSeleccionado();
+    restaurarFacturaElectronicaDesdeHidden();
+    sincronizarFacturaElectronica();
+    aplicarModoCreditoUI();
     const btnBuscarNIT = byId('btnBuscarNIT');
     if (btnBuscarNIT) {
         btnBuscarNIT.addEventListener('click', () => {
@@ -992,8 +1136,8 @@
         sumMixtoInternos = cargarSumMixto();
     }
 
-    if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct();
-    else if (getVal('txtPropina') > 0) pctDesdePropina();
+    if (getVal('txtPropinaPorcentaje') > 0) propinaDesdePct(true);
+    else if (getVal('txtPropina') > 0) pctDesdePropina(true);
 
     if (getVal('txtDescuentoPorcentaje') > 0) descuentoDesdePct();
     else if (getVal('txtDescuento') > 0) pctDesdeDescuento();

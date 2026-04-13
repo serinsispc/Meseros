@@ -213,13 +213,21 @@
         white-space: nowrap;
     }
 
-    .hv-table td {
-        vertical-align: middle;
-        font-size: .90rem;
-        color: rgba(11, 27, 51, .88);
-        border-color: rgba(2,6,23,.06);
-        white-space: nowrap;
-    }
+.hv-table td {
+    vertical-align: middle;
+    font-size: .90rem;
+    color: rgba(11, 27, 51, .88);
+    border-color: rgba(2,6,23,.06);
+    white-space: nowrap;
+}
+
+.hv-venta-row-anulada td {
+    background: rgba(239, 68, 68, .06);
+}
+
+.hv-venta-row-anulada:hover td {
+    background: rgba(239, 68, 68, .10);
+}
 
 .hv-badge {
     display: inline-flex;

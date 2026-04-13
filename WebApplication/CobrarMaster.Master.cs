@@ -12,7 +12,7 @@ namespace WebApplication
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-
+            Page.RegisterAsyncTask(new PageAsyncTask(() => AdminControlAccessHelper.AplicarControlAsync(Page)));
         }
 
         protected override void OnPreRender(EventArgs e)

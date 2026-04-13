@@ -1,0 +1,72 @@
+@page "/dashboard"
+
+<PageTitle>Dashboard</PageTitle>
+
+<section class="hero-panel">
+    <div>
+        <div class="eyebrow">Nuevo front de trabajo</div>
+        <h1>Dashboard inicial para la migracion a Blazor</h1>
+        <p>
+            Este proyecto nace separado del sistema ASPX actual para construir la nueva experiencia
+            de meseros y caja sin poner en riesgo la operacion que ya funciona en produccion.
+        </p>
+    </div>
+
+    <div class="hero-actions">
+        <a class="btn btn-primary" href="mesas">Ir a mesas</a>
+        <a class="btn btn-outline-dark" href="caja">Ver caja</a>
+    </div>
+</section>
+
+<section class="dashboard-grid">
+    <article class="metric-card accent-orange">
+        <span class="metric-label">Mesas</span>
+        <strong>24</strong>
+        <p>Zonas, disponibilidad y asignacion para meseros.</p>
+    </article>
+
+    <article class="metric-card accent-blue">
+        <span class="metric-label">Servicios activos</span>
+        <strong>12</strong>
+        <p>Cuentas abiertas listas para migrar a componentes interactivos.</p>
+    </article>
+
+    <article class="metric-card accent-green">
+        <span class="metric-label">Objetivo</span>
+        <strong>100%</strong>
+        <p>Recrear el flujo completo antes de apagar la version ASPX.</p>
+    </article>
+</section>
+
+<section class="roadmap-panel">
+    <div class="panel-header">
+        <h2>Ruta sugerida</h2>
+        <span>Base del nuevo proyecto</span>
+    </div>
+
+    <div class="roadmap-list">
+        <div class="roadmap-item">
+            <div class="roadmap-step">01</div>
+            <div>
+                <h3>Acceso y contexto</h3>
+                <p>Login, sede, vendedor y caja activa.</p>
+            </div>
+        </div>
+
+        <div class="roadmap-item">
+            <div class="roadmap-step">02</div>
+            <div>
+                <h3>Mesas y servicios</h3>
+                <p>Seleccion de zonas, mesas, cuentas y detalle de pedido.</p>
+            </div>
+        </div>
+
+        <div class="roadmap-item">
+            <div class="roadmap-step">03</div>
+            <div>
+                <h3>Cobro y cierre</h3>
+                <p>Pagos, gastos, cierre de caja e integraciones externas.</p>
+            </div>
+        </div>
+    </div>
+</section>

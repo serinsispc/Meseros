@@ -1,0 +1,100 @@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<nav class="quick-menu-nav">
+    @if (InPageCajaMenu)
+    {
+        @foreach (var item in CajaMenuItems)
+        {
+            <a class="quick-menu-link"
+               href="@item.Target"
+               @onclick:preventDefault="true"
+               @onclick="@(() => NavigateToCajaSectionAsync(item.Target))">
+                <span class="quick-menu-icon">
+                    <i class="@item.Icon"></i>
+                </span>
+                <span class="quick-menu-title">@item.Title</span>
+            </a>
+        }
+    }
+    else
+    {
+        @foreach (var item in RouteMenuItems)
+        {
+            <NavLink class="quick-menu-link"
+                     href="@BuildHref(item.Href)"
+                     Match="@(item.MatchAll ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                     @onclick="OnSelected">
+                <span class="quick-menu-icon">
+                    <i class="@item.Icon"></i>
+                </span>
+                <span class="quick-menu-title">@item.Title</span>
+            </NavLink>
+        }
+    }
+</nav>
+
+@code {
+    [Parameter]
+    public bool SidebarOpen { get; set; }
+
+    [Parameter]
+    public bool InPageCajaMenu { get; set; }
+
+    [Parameter]
+    public EventCallback OnItemSelected { get; set; }
+
+    private static readonly MenuItem[] CajaMenuItems =
+    [
+        new("bi bi-briefcase", "#bloqueServicios", "Servicios", false),
+        new("bi bi-grid-3x3-gap", "#bloqueZonas", "Zonas", false),
+        new("bi bi-search", "#bloqueBuscarProducto", "Buscar", false),
+        new("bi bi-tags", "#bloqueCategorias", "Categorías", false),
+        new("bi bi-bag", "#bloqueProductos", "Productos", false),
+        new("bi bi-receipt", "#bloqueResumen", "Resumen", false),
+        new("bi bi-people", "#bloqueCuentasDetalle", "Cuentas", false),
+        new("bi bi-list-ul", "#bloqueDetalleProductos", "Detalle", false)
+    ];
+
+    private static readonly MenuItem[] RouteMenuItems =
+    [
+        new("bi bi-grid-1x2-fill", "/dashboard", "Resumen", false),
+        new("bi bi-window-stack", "/mesas", "Mesas", false),
+        new("bi bi-cart3", "/caja", "Caja", false),
+        new("bi bi-person-circle", "/login", "Login", true)
+    ];
+
+    private async Task OnSelected()
+    {
+        if (OnItemSelected.HasDelegate)
+        {
+            await OnItemSelected.InvokeAsync();
+        }
+    }
+
+    private async Task NavigateToCajaSectionAsync(string target)
+    {
+        await OnSelected();
+        await JSRuntime.InvokeVoidAsync("serinsisScrollToSection", target);
+    }
+
+    private string BuildHref(string basePath)
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        if (!query.TryGetValue("db", out var dbValues))
+        {
+            return basePath;
+        }
+
+        var db = dbValues.FirstOrDefault();
+        return string.IsNullOrWhiteSpace(db)
+            ? basePath
+            : $"{basePath}?db={Uri.EscapeDataString(db)}";
+    }
+
+    private sealed record MenuItem(string Icon, string Target, string Title, bool MatchAll)
+    {
+        public string Href => Target;
+    }
+}

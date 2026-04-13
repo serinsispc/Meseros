@@ -133,6 +133,9 @@
                                                     onclick="EjecutarAccion('SeleccionarCuenta','ID=<%# Eval("id") %>',this)">
                                                     <div class="cuenta-num"><%# Eval("aliasVenta") %></div>
                                                     <div class="cuenta-name"><%# Eval("nombremesa") %></div>
+                                                    <div class="cuenta-vendedor" title="<%# Eval("nombrevendedor") %>">
+                                                        <%# NombreVendedorCorto(Eval("nombrevendedor")) %>
+                                                    </div>
                                                 </div>
 
                                             </div>
@@ -188,8 +191,8 @@
                                                     <button type="button"
                                                         class='mesa-btn <%# (int)Eval("estadoMesa") == 1 ? "mesa-activa" : "" %>'
                                                         onclick="EjecutarAccion('SeleccionarMesa','ID=<%# Eval("id") %>', this)">
-
-                                                        <%# Eval("nombreMesa") %>
+                                                        <span class="mesa-titulo"><%# Eval("nombreMesa") %></span>
+                                                        <%# string.IsNullOrWhiteSpace(NombreVendedorMesa(Eval("nombreMesa"))) ? string.Empty : "<span class=\"mesa-vendedor\" title=\"" + Server.HtmlEncode(Convert.ToString(NombreVendedorMesa(Eval("nombreMesa")))) + "\">" + Server.HtmlEncode(Convert.ToString(NombreVendedorMesa(Eval("nombreMesa")))) + "</span>" %>
                                                     </button>
                                                 </ItemTemplate>
                                             </asp:Repeater>
@@ -224,7 +227,7 @@
                                 </div>
 
                                 <div id="bloqueCategorias" class="col-12 panel-alto-auto">
-                                    <div class="box h-categorias p-1 categorias-box" style="height: 40vh;">
+                                    <div class="box h-categorias p-1 categorias-box">
 
                                         <div class="categorias-grid">
 

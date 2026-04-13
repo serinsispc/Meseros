@@ -29,6 +29,8 @@ namespace WebApplication
         private const string SessionZonaActivaKey = "zonaactiva";
         private const string SessionModelsKey = "Models";
         private const string SessionIdVendedorKey = "idvendedor";
+        private const string SessionTipoVentaCobroKey = "cobro_tipo_venta";
+        private const string SessionFacturaElectronicaKey = "fe";
         #endregion
 
         private List<type_document_identifications> _tiposDocumento;
@@ -61,6 +63,9 @@ namespace WebApplication
                 return;
             }
 
+            ResolverTipoVentaUI();
+            ResolverFacturaElectronicaUI();
+
             if (!IsPostBack)
             {
                 await InicializarPantalla();
@@ -80,6 +85,8 @@ namespace WebApplication
             txtRazonDescuento.Value = Session["descuento_razon"]?.ToString() ?? "";
             txtDescuento.Value = Convert.ToString(descu);
             txtPropina.Value = Convert.ToString(pro);
+            hfTipoVenta.Value = Convert.ToString(Session[SessionTipoVentaCobroKey] ?? "contado");
+            hfFacturaElectronica.Value = Convert.ToBoolean(Session[SessionFacturaElectronicaKey] ?? false) ? "true" : "false";
         }
 
         private bool EnsureCobroContext()
@@ -106,17 +113,22 @@ namespace WebApplication
             await CargarTiposResponsabilidad();
             await CargarDetallesImpuesto();
             await CargarClientesModal();
-            CargarDatosVenta();
-            await CargarRelMediosInternos();
-            await AsegurarPagoJsonInicial();
 
             ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(DbActual, ModelSesion.venta.id);
+            await SincronizarPropinaDesdeVista();
+
+            ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(DbActual, ModelSesion.venta.id) ?? ModelSesion.venta;
             var descuento = (ModelSesion.cargoDescuentoVentas ?? new List<CargoDescuentoVentas>()).FirstOrDefault(x => x.tipo == false);
             Session["descuento_valor"] = descuento?.valor ?? 0;
             Session["descuento_razon"] = descuento?.razon ?? "";
 
             var propina = (ModelSesion.cargoDescuentoVentas ?? new List<CargoDescuentoVentas>()).FirstOrDefault(x => x.tipo == true);
             Session["propina_valor"] = propina?.valor ?? 0;
+            Session["propina_pct"] = Convert.ToInt32(Math.Round((ModelSesion.venta?.por_propina ?? 0m) * 100m, 0));
+
+            CargarDatosVenta();
+            await CargarRelMediosInternos();
+            await AsegurarPagoJsonInicial();
 
             var cliente = await ClientesControler.Consultar_id(DbActual, ModelSesion.venta.idCliente);
             if (cliente != null)
@@ -132,6 +144,122 @@ namespace WebApplication
             }
 
             hfIdVentaActual.Value = VentaActual.id.ToString();
+            hfTipoVenta.Value = Convert.ToString(Session[SessionTipoVentaCobroKey] ?? "contado");
+            hfFacturaElectronica.Value = Convert.ToBoolean(Session[SessionFacturaElectronicaKey] ?? false) ? "true" : "false";
+        }
+
+        private async Task SincronizarPropinaDesdeVista()
+        {
+            if (ModelSesion?.venta == null || ModelSesion.venta.id <= 0)
+            {
+                return;
+            }
+
+            var propinaVista = Convert.ToDecimal(ModelSesion.venta.propina);
+            if (propinaVista <= 0)
+            {
+                return;
+            }
+
+            var cargos = ModelSesion.cargoDescuentoVentas ?? new List<CargoDescuentoVentas>();
+            var propinaExistente = cargos.FirstOrDefault(x => x.tipo == true);
+            if (propinaExistente != null)
+            {
+                return;
+            }
+
+            var creada = await GuardarPropinaUnica(ModelSesion.venta.id, propinaVista);
+            if (creada)
+            {
+                ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(DbActual, ModelSesion.venta.id);
+            }
+        }
+
+        private async Task<bool> GuardarPropinaUnica(int idVenta, decimal valorPropina)
+        {
+            var db = DbActual;
+            if (idVenta <= 0 || string.IsNullOrWhiteSpace(db))
+            {
+                return false;
+            }
+
+            try
+            {
+                using (var cn = new Conection_SQL(db))
+                {
+                    await cn.EjecutarConsulta($"DELETE FROM CargoDescuentoVentas WHERE idVenta = {idVenta} AND tipo = 1; SELECT CAST(1 AS bit) AS estado;", false);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (valorPropina <= 0)
+            {
+                return true;
+            }
+
+            var ventaVista = ModelSesion?.venta ?? await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            var propina = new CargoDescuentoVentas
+            {
+                id = 0,
+                idVenta = idVenta,
+                tipo = true,
+                codigo = 1,
+                razon = "propina",
+                valor = valorPropina,
+                baseCD = ventaVista?.totalVenta ?? 0,
+                descripcionCargoDescuento = "propina"
+            };
+
+            return await CargoDescuentoVentasControler.CRUD(db, propina, 0);
+        }
+
+        private void ResolverTipoVentaUI()
+        {
+            if (!IsPostBack)
+            {
+                Session[SessionTipoVentaCobroKey] = "contado";
+                return;
+            }
+
+            var tipoVentaPost = (hfTipoVenta?.Value ?? string.Empty).Trim().ToLowerInvariant();
+            if (tipoVentaPost == "credito" || tipoVentaPost == "contado")
+            {
+                Session[SessionTipoVentaCobroKey] = tipoVentaPost;
+                return;
+            }
+
+            if (Session[SessionTipoVentaCobroKey] == null)
+            {
+                Session[SessionTipoVentaCobroKey] = "contado";
+            }
+        }
+
+        private void ResolverFacturaElectronicaUI()
+        {
+            if (!IsPostBack)
+            {
+                if (Session[SessionFacturaElectronicaKey] == null)
+                {
+                    Session[SessionFacturaElectronicaKey] = false;
+                }
+
+                return;
+            }
+
+            var facturaElectronicaPost = (hfFacturaElectronica?.Value ?? string.Empty).Trim().ToLowerInvariant();
+            if (facturaElectronicaPost == "true" || facturaElectronicaPost == "false")
+            {
+                Session[SessionFacturaElectronicaKey] = facturaElectronicaPost == "true";
+                return;
+            }
+
+            if (Session[SessionFacturaElectronicaKey] == null)
+            {
+                Session[SessionFacturaElectronicaKey] = false;
+            }
         }
         private async Task ProcesarPostBack()
         {
@@ -204,34 +332,11 @@ namespace WebApplication
                 // ==========================================================
                 if (VentaActual == null) return;
 
-                if (Session["PagoVentaJSON"] == null)
-                {
-                    await AsegurarPagoJsonInicial();
-                }
-
-                if (Session["PagoVentaJSON"] == null)
-                {
-                    AlertModerno.Warning(this, "Atención", "No se especificó el medio de pago.", true, 2000);
-                    return;
-                }
-
                 if (string.IsNullOrWhiteSpace(eventArgument))
                 {
                     AlertModerno.Warning(this, "Atenci\u00f3n", "No lleg\u00f3 informaci\u00f3n del cobro.", true, 2000);
                     return;
                 }
-
-                // ==========================================================
-                // 1) Leer pagos desde Session (asegurar lista)
-                // ==========================================================
-                string pagojson = Session["PagoVentaJSON"]?.ToString() ?? "";
-                if (!pagojson.Contains("[") && !pagojson.Contains("]"))
-                    pagojson = $"[{pagojson}]";
-
-                var Pagos = JsonConvert.DeserializeObject<List<PagosVenta>>(pagojson) ?? new List<PagosVenta>();
-
-                decimal abonoEfectivo = Pagos.Where(x => x.payment_methods_id == 10).Sum(x => x.valorPago);
-                decimal abonoBanco = Pagos.Where(x => x.payment_methods_id != 10).Sum(x => x.valorPago);
 
                 // ==========================================================
                 // 2) eventArgument: Base64 -> JSON (con fallback)
@@ -255,27 +360,62 @@ namespace WebApplication
                 }
 
                 // ==========================================================
+                // 1) Leer pagos desde Session (solo contado)
+                // ==========================================================
+                var Pagos = new List<PagosVenta>();
+                decimal abonoEfectivo = 0;
+                decimal abonoBanco = 0;
+
+                if (payload.idFormaDePago != 2)
+                {
+                    if (Session["PagoVentaJSON"] == null)
+                    {
+                        await AsegurarPagoJsonInicial();
+                    }
+
+                    if (Session["PagoVentaJSON"] == null)
+                    {
+                        AlertModerno.Warning(this, "Atención", "No se especificó el medio de pago.", true, 2000);
+                        return;
+                    }
+
+                    string pagojson = Session["PagoVentaJSON"]?.ToString() ?? "";
+                    if (!pagojson.Contains("[") && !pagojson.Contains("]"))
+                        pagojson = $"[{pagojson}]";
+
+                    Pagos = JsonConvert.DeserializeObject<List<PagosVenta>>(pagojson) ?? new List<PagosVenta>();
+
+                    abonoEfectivo = Pagos.Where(x => x.payment_methods_id == 10).Sum(x => x.valorPago);
+                    abonoBanco = Pagos.Where(x => x.payment_methods_id != 10).Sum(x => x.valorPago);
+                }
+
+                // ==========================================================
                 // 3) Guardar datos de cobro en Session / ModelSesion
                 // ==========================================================
-                Session["efectivo"] = payload.efectivo;
-                Session["cambio"] = payload.cambio;
+                Session["efectivo"] = payload.idFormaDePago == 2 ? 0 : payload.efectivo;
+                Session["cambio"] = payload.idFormaDePago == 2 ? 0 : payload.cambio;
                 Session["fe"] = payload.facturaElectronica;
 
                 try
                 {
-                    ModelSesion.venta.efectivoVenta = payload.efectivo;
-                    ModelSesion.venta.cambioVenta = payload.cambio;
+                    ModelSesion.venta.efectivoVenta = payload.idFormaDePago == 2 ? 0 : payload.efectivo;
+                    ModelSesion.venta.cambioVenta = payload.idFormaDePago == 2 ? 0 : payload.cambio;
+                    ModelSesion.venta.idFormaDePago = payload.idFormaDePago == 2 ? 2 : 1;
                 }
                 catch { }
 
                 // ==========================================================
-                // 4) Validaci\u00f3n FE: cliente seleccionado
+                // 4) Validaci\u00f3n FE / cr\u00e9dito: cliente seleccionado
                 // ==========================================================
-                if (payload.facturaElectronica)
+                if (payload.facturaElectronica || payload.idFormaDePago == 2)
                 {
                     if (Session["cliente_seleccionado_id"] == null)
                     {
-                        AlertModerno.Warning(this, "Atenci\u00f3n", "Factura electr\u00f3nica activa: debes seleccionar un cliente.", true, 2200);
+                        var mensajeCliente = payload.idFormaDePago == 2
+                            ? "Venta a cr\u00e9dito: debes seleccionar un cliente."
+                            : "Factura electr\u00f3nica activa: debes seleccionar un cliente.";
+
+                        AlertModerno.Warning(this, "Atenci\u00f3n", mensajeCliente, true, 2200);
                         return;
                     }
                 }
@@ -319,12 +459,16 @@ namespace WebApplication
                 venta.estadoVenta = "CANCELADO";
 
                 // ?? OJO: mantengo tu lógica: FirstOrDefault() como estaba
-                venta.numeroReferenciaPago = await MediosDePagoInternos_Controler.ConsultarReferencia(
-                    db,
-                    Pagos.FirstOrDefault().idMedioDePagointerno
-                );
+                venta.numeroReferenciaPago = payload.idFormaDePago == 2
+                    ? "-"
+                    : await MediosDePagoInternos_Controler.ConsultarReferencia(
+                        db,
+                        Pagos.FirstOrDefault().idMedioDePagointerno
+                    );
 
-                venta.diasCredito = ModelSesion.venta.diasCredito;
+                venta.diasCredito = payload.idFormaDePago == 2
+                    ? ModelSesion.venta.diasCredito
+                    : 0;
                 venta.observacionVenta = ModelSesion.venta.observacionVenta;
                 venta.IdSede = ModelSesion.venta.IdSede;
                 venta.guidVenta = ModelSesion.venta.guidVenta;
@@ -333,9 +477,11 @@ namespace WebApplication
                 venta.propina = valorPropina;
                 venta.abonoEfectivo = abonoEfectivo;
 
-                venta.idMedioDePago = Pagos.FirstOrDefault().payment_methods_id;
+                venta.idMedioDePago = payload.idFormaDePago == 2
+                    ? 0
+                    : Pagos.FirstOrDefault().payment_methods_id;
                 venta.idResolucion = resolucion.idResolucion;
-                venta.idFormaDePago = 1;
+                venta.idFormaDePago = payload.idFormaDePago == 2 ? 2 : 1;
 
                 venta.razonDescuento = ModelSesion.venta.razonDescuento;
                 var idBaseCaja = SessionContextHelper.ResolveBaseCajaId(Session, ModelSesion);
@@ -370,10 +516,19 @@ namespace WebApplication
 
                 }
 
-                bool respPagos = await PagosVenta_controler.CRUD(db, Pagos, 0);
-                if (!respPagos)
+                var pagosExistentes = await PagosVenta_controler.ConsultarListaPagos(db, ModelSesion.IdCuentaActiva);
+                if (pagosExistentes.Count > 0)
                 {
+                    await PagosVenta_controler.CRUD(db, pagosExistentes, 2);
+                }
 
+                if (payload.idFormaDePago != 2 && Pagos.Count > 0)
+                {
+                    bool respPagos = await PagosVenta_controler.CRUD(db, Pagos, 0);
+                    if (!respPagos)
+                    {
+
+                    }
                 }
 
 
@@ -471,6 +626,8 @@ namespace WebApplication
             public int cambio { get; set; }
             public bool facturaElectronica { get; set; }
             public bool imprimirFactura { get; set; }
+            public int idFormaDePago { get; set; }
+            public bool esCredito { get; set; }
         }
 
         private void GuardarModelsEnSesion()
@@ -530,8 +687,6 @@ namespace WebApplication
             cliente_seleccionado_nit.Text = cliente.identificationNumber ?? "";
             cliente_seleccionado_nombre.Text = cliente.nameCliente ?? "";
             cliente_seleccionado_correo.Text = cliente.email ?? "";
-
-            Session["fe"] = true;
 
             AlertModerno.Success(this, "OK", $"Cliente seleccionado: {cliente.nameCliente}", true, 1500);
 
@@ -879,24 +1034,19 @@ namespace WebApplication
                 Session["propina_valor"] = valor;
                 Session["propina_pct"] = pct;
 
-                var descuento = new CargoDescuentoVentas
-                {
-                    id = 0,
-                    idVenta = idVentaActual,
-                    tipo = true,
-                    codigo = 1,
-                    razon = "propina",
-                    valor = valor,
-                    baseCD = ModelSesion.venta.totalVenta,
-                    descripcionCargoDescuento = "propina"
-                };
-
-                var respuestaCRUD = await CargoDescuentoVentasControler.CRUD(db, descuento, 0);
+                var respuestaCRUD = await GuardarPropinaUnica(idVentaActual, valor);
 
                 if (!respuestaCRUD)
                 {
                     AlertModerno.Error(this, "\u00a1Error!", "No fue posible agregar la propina.", true);
                     return;
+                }
+
+                var ventaTabla = await TablaVentasControler.ConsultarIdVenta(db, idVentaActual);
+                if (ventaTabla != null)
+                {
+                    ventaTabla.porpropina = pct / 100m;
+                    await TablaVentasControler.CRUD(db, ventaTabla, 1);
                 }
 
                 ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(db, idVentaActual);
@@ -929,6 +1079,13 @@ namespace WebApplication
                 {
                     AlertModerno.Error(this, "\u00a1Error!", "No fue posible eliminar la propina.", true);
                     return;
+                }
+
+                var ventaTabla = await TablaVentasControler.ConsultarIdVenta(Session["db"].ToString(), idventa);
+                if (ventaTabla != null)
+                {
+                    ventaTabla.porpropina = 0;
+                    await TablaVentasControler.CRUD(Session["db"].ToString(), ventaTabla, 1);
                 }
 
                 ModelSesion.venta = new V_TablaVentas();
@@ -1323,6 +1480,10 @@ namespace WebApplication
             if (VentaActual == null) return;
 
             var co = new CultureInfo("es-CO");
+            var porcentajePropina = Convert.ToInt32(Math.Round(VentaActual.por_propina * 100m, 0));
+
+            Session["propina_valor"] = Convert.ToInt32(Math.Round(VentaActual.propina, 0));
+            Session["propina_pct"] = porcentajePropina;
 
             txtSubTotal.Value = VentaActual.subtotalVenta.ToString("N0", co);
             txtIVA.Value = VentaActual.ivaVenta.ToString("N0", co);
@@ -1333,6 +1494,14 @@ namespace WebApplication
 
             txtEfectivo.Value = VentaActual.efectivoVenta.ToString("N0", co);
             txtCambio.Value = VentaActual.cambioVenta.ToString("N0", co);
+
+            ScriptManager.RegisterStartupScript(
+                this,
+                GetType(),
+                "SetPropinaPctDesdeVista",
+                $"(function(){{var el=document.getElementById('txtPropinaPorcentaje'); if(el) el.value='{porcentajePropina}';}})();",
+                true
+            );
         }
 
         private async Task CargarRelMediosInternos()

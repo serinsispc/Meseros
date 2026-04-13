@@ -88,5 +88,20 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<List<R_VentaMesa>> ListaPorMesa(string db, int idmesa)
+        {
+            try
+            {
+                var auto = new SqlAutoDAL();
+                var relaciones = await auto.ConsultarLista<R_VentaMesa>(db, x => x.idMesa == idmesa);
+                return relaciones;
+            }
+            catch (Exception ex)
+            {
+                string error = ex.Message;
+                return null;
+            }
+        }
     }
 }

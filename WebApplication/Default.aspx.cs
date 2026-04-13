@@ -153,6 +153,11 @@ namespace WebApplication
                 return;
             }
 
+            if (await AdminControlAccessHelper.BloquearIngresoSiSuspendidoAsync(this, db))
+            {
+                return;
+            }
+
             string usuario = txtCelular.Text.Trim();
             string clave = txtContrasena.Text.Trim();
 
@@ -184,16 +189,34 @@ namespace WebApplication
                 {
                     models.BaseCaja = baseActiva;
                     SessionContextHelper.ApplyOperationalContext(Session, models);
+
+                    if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, "~/caja.aspx"))
+                    {
+                        return;
+                    }
+
                     AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {vendedor.nombreVendedor}", "~/caja.aspx", false, 1200);
                     return;
                 }
 
                 SessionContextHelper.ApplyOperationalContext(Session, models);
+
+                if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, onCloseScript: "openBaseModal();"))
+                {
+                    return;
+                }
+
                 AbrirModalBase();
                 return;
             }
 
             SessionContextHelper.ApplyOperationalContext(Session, models);
+
+            if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, "~/caja.aspx"))
+            {
+                return;
+            }
+
             AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {vendedor.nombreVendedor}", "~/caja.aspx", false, 1200);
         }
 

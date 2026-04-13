@@ -30,7 +30,8 @@ namespace WebApplication
             public decimal propina { get; set; }
             public int facturas { get; set; }
             public int anuladas { get; set; }
-
+            public int ventasCreditoCantidad { get; set; }
+            public decimal ventasCreditoValor { get; set; }
         }
         protected Valores valores { get; set; } = new Valores();
         protected V_TablaVentas venta { get; set; } = new V_TablaVentas();
@@ -162,17 +163,31 @@ namespace WebApplication
         {
             var model = JsonConvert.DeserializeObject<MenuViewModels>(Session["ModelsJson"].ToString());
             var listaventas = await V_TablaVentasControler.Lista(Session["db"].ToString(), model.BaseCaja.id);
+            var ventasValidas = listaventas?.Where(x => EsVentaValida(x)).ToList() ?? new List<V_TablaVentas>();
+            var ventasContadoValidas = ventasValidas.Where(x => x.idFormaDePago != 2).ToList();
 
             valores = new Valores
             {
-                total = listaventas?.Sum(x => x.total_A_Pagar) ?? 0,
-                propina = listaventas?.Sum(x => x.propina) ?? 0,
-                facturas = listaventas?.Count(x => x.estadoVenta != "ANULADA") ?? 0,
-                anuladas = listaventas?.Count(x => x.estadoVenta == "ANULADA") ?? 0
+                total = ventasContadoValidas.Sum(x => x.total_A_Pagar),
+                propina = ventasValidas.Sum(x => x.propina),
+                facturas = ventasContadoValidas.Count,
+                anuladas = listaventas?.Count(x => EsVentaAnulada(x)) ?? 0,
+                ventasCreditoCantidad = ventasValidas.Count(x => x.idFormaDePago == 2),
+                ventasCreditoValor = ventasValidas.Where(x => x.idFormaDePago == 2).Sum(x => x.total_A_Pagar)
             };
 
             rpVentas.DataSource = listaventas;
             rpVentas.DataBind();
+        }
+
+        protected bool EsVentaAnulada(V_TablaVentas item)
+        {
+            return string.Equals(item?.estadoVenta, "ANULADA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected bool EsVentaValida(V_TablaVentas item)
+        {
+            return string.Equals(item?.estadoVenta, "CANCELADO", StringComparison.OrdinalIgnoreCase);
         }
 
         protected string ObtenerEstadoBadge(string cufe, string tipoFactura)
@@ -275,6 +290,7 @@ namespace WebApplication
             public string cufe { get; set; }
             public string nombreImpuesto { get; set; }
             public string nombreRecargo { get; set; }
+            public decimal porcentajeRecargo { get; set; }
             public int totalItems { get; set; }
             public decimal totalBruto { get; set; }
             public decimal descuento { get; set; }
@@ -765,6 +781,7 @@ namespace WebApplication
             var cliente = ventaFactura.idCliente > 0 ? await ClientesControler.Consultar_id(db, ventaFactura.idCliente) : null;
             var resolucion = ventaFactura.idResolucion > 0 ? await V_Resoluciones_Controler.ConsultarID(db, ventaFactura.idResolucion) : null;
             var facturaElectronica = await FacturaElectronicaControler.ConsultarIdVenta(db, idVenta);
+            var porcentajePropina = Math.Round(ventaFactura.por_propina * 100m, 2);
 
             return new FacturaPdfDto
             {
@@ -793,7 +810,8 @@ namespace WebApplication
                     : $"Prefijo {resolucion.prefijo} desde el número {resolucion.desde} hasta el número {resolucion.hasta}",
                 cufe = ventaFactura.cufe,
                 nombreImpuesto = "IVA",
-                nombreRecargo = "Propina",
+                nombreRecargo = porcentajePropina > 0 ? $"Propina ({porcentajePropina.ToString("0.##", _co)}%)" : "Propina",
+                porcentajeRecargo = porcentajePropina,
                 totalItems = detalleVenta.Count,
                 totalBruto = ventaFactura.subtotalVenta,
                 descuento = ventaFactura.descuentoVenta,

@@ -1,0 +1,380 @@
+@page "/"
+@page "/login"
+@layout ComandasVentas.Blazor.Components.Layout.LoginLayout
+@using System.Globalization
+@using ComandasVentas.Blazor.Models.Auth
+@inject NavigationManager NavigationManager
+@inject ComandasVentas.Blazor.Services.Auth.LoginDataService LoginDataService
+@inject ComandasVentas.Blazor.Services.Auth.AppSessionState SessionState
+@inject ComandasVentas.Blazor.Services.Auth.LogoCacheService LogoCacheService
+
+<PageTitle>Iniciar Sesion</PageTitle>
+
+<div id="appLoading" class="app-loading @(IsOpeningCaja ? "is-visible" : string.Empty)" aria-hidden="@(!IsOpeningCaja)">
+    <div class="app-loading-card">
+        <div class="app-spinner" aria-hidden="true"></div>
+        <div class="app-loading-title">Procesando...</div>
+        <div class="app-loading-sub">Estamos aperturando la caja. Por favor espera.</div>
+    </div>
+</div>
+
+<div id="loginLoading" class="login-loading @(IsSubmitting ? "is-visible" : string.Empty)">
+    <div class="login-loading-card">
+        <div class="login-loading-spinner"></div>
+        <div class="fw-bold">Procesando...</div>
+        <div class="text-muted small mt-1">Estamos validando tus datos, por favor espera.</div>
+    </div>
+</div>
+
+<main class="login-page">
+    <div class="login-card">
+        <div class="logo-badge">
+            <img src="@LogoPath" alt="Logo" />
+        </div>
+
+        <h2 class="login-title">Iniciar Sesión</h2>
+        <div class="login-subtitle">Selecciona tu usuario y escribe tu clave</div>
+
+        @if (!string.IsNullOrWhiteSpace(StatusMessage))
+        {
+            <div class="alert @(HasError ? "alert-danger" : "alert-info") mb-3" role="alert">
+                @StatusMessage
+            </div>
+        }
+
+        <div class="mb-3">
+            <div class="users-grid-title">Usuarios disponibles</div>
+
+            @if (IsLoading)
+            {
+                <div class="text-muted small">Cargando usuarios...</div>
+            }
+            else if (BootstrapResult?.Vendedores?.Count > 0)
+            {
+                <div class="row g-2 row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6">
+                    @foreach (var usuario in BootstrapResult.Vendedores)
+                    {
+                        <div class="col">
+                            <button type="button"
+                                    class="btn user-card w-100 @(usuario.TelefonoVendedor == SelectedPhone ? "selected" : string.Empty)"
+                                    @key="usuario.TelefonoVendedor"
+                                    @onclick="@(() => SeleccionarUsuario(usuario))">
+                                <div class="user-avatar mb-1">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                                <div class="user-name">
+                                    @usuario.NombreVendedor
+                                </div>
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-muted small">No hay usuarios disponibles para esta base.</div>
+            }
+        </div>
+
+        <div class="mb-3 input-icon d-none">
+            <label for="txtCelular" class="form-label">Celular</label>
+            <input id="txtCelular" class="form-control with-icon" value="@SelectedPhone" readonly />
+        </div>
+
+        <div class="mb-3 input-icon">
+            <label for="txtContrasena" class="form-label">Contraseña</label>
+            <input id="txtContrasena"
+                   type="password"
+                   class="form-control with-icon"
+                   placeholder=""
+                   @bind="Password"
+                   @bind:event="oninput"
+                   @ref="PasswordInput"
+                   @onkeyup="HandlePasswordKeyUp" />
+        </div>
+
+        <div class="d-grid">
+            <button class="btn btn-login text-white"
+                    @onclick="IngresarAsync"
+                    disabled="@(!CanSubmit)">
+                Ingresar
+            </button>
+        </div>
+
+        <a class="download-server-link"
+           href="https://pos.serinsispc.com/ServerPrinter/Setup_ServerPrinter.exe"
+           download="Setup_ServerPrinter.exe">
+            <i class="bi bi-download"></i>
+            <span>Descargar Servidor de Impresoras</span>
+        </a>
+
+        <div class="login-foot">
+            © 2026 · Todos los derechos reservados
+        </div>
+    </div>
+</main>
+
+@if (ShowCajaModal)
+{
+    <div class="modal fade show d-block" id="modalBaseCaja" tabindex="-1" aria-hidden="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aperturar caja</h5>
+                    <button type="button" class="btn-close" @onclick="CancelarAperturaCaja" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-2 text-muted">
+                        No hay una base activa. Ingresa el valor de la base del día para aperturar.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Valor base (COP)</label>
+                        <input class="form-control"
+                               placeholder="Ej: 200000"
+                               @bind="ValorBaseInput"
+                               @bind:event="oninput"
+                               @ref="ValorBaseInputRef"
+                               @onkeyup="HandleValorBaseKeyUp" />
+                        <small class="text-muted">Puedes escribir 200000 o 200.000</small>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(CajaModalMessage))
+                    {
+                        <div class="alert @(CajaModalHasError ? "alert-danger" : "alert-success") mb-0" role="alert">
+                            @CajaModalMessage
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CancelarAperturaCaja" disabled="@IsOpeningCaja">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="AperturarCajaAsync" disabled="@IsOpeningCaja">Aperturar caja</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private LoginBootstrapResult? BootstrapResult;
+    private LoginResult? PendingLoginResult;
+    private string CurrentDb = string.Empty;
+    private string SelectedPhone = string.Empty;
+    private string Password = string.Empty;
+    private string ValorBaseInput = string.Empty;
+    private bool IsLoading;
+    private bool IsSubmitting;
+    private bool IsOpeningCaja;
+    private bool HasError;
+    private bool ShowCajaModal;
+    private bool CajaModalHasError;
+    private string? StatusMessage;
+    private string? CajaModalMessage;
+    private string LogoPath = "/Recursos/Imagenes/Logo/Logo.png";
+    private bool FocusPasswordRequested;
+    private bool FocusValorBaseRequested;
+    private ElementReference PasswordInput;
+    private ElementReference ValorBaseInputRef;
+
+    private bool CanSubmit =>
+        !IsLoading &&
+        !IsSubmitting &&
+        BootstrapResult?.Vendedores?.Count > 0 &&
+        !string.IsNullOrWhiteSpace(CurrentDb) &&
+        !string.IsNullOrWhiteSpace(SelectedPhone) &&
+        !string.IsNullOrWhiteSpace(Password);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarLoginAsync();
+    }
+
+    private async Task CargarLoginAsync()
+    {
+        IsLoading = true;
+        HasError = false;
+        StatusMessage = null;
+        ShowCajaModal = false;
+        CajaModalMessage = null;
+        SessionState.Clear();
+
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        query.TryGetValue("db", out var dbValues);
+        CurrentDb = LoginDataService.SanitizeDatabaseName(dbValues.FirstOrDefault());
+
+        BootstrapResult = await LoginDataService.LoadLoginAsync(CurrentDb);
+
+        if (BootstrapResult.Vendedores.Count > 0)
+        {
+            SeleccionarUsuario(BootstrapResult.Vendedores[0], false);
+        }
+
+        if (BootstrapResult.Sede is not null)
+        {
+            LogoPath = await LogoCacheService.EnsureLogoAsync(CurrentDb, BootstrapResult.Sede.GuidSede);
+        }
+        else
+        {
+            LogoPath = "/Recursos/Imagenes/Logo/Logo.png";
+        }
+
+        if (!BootstrapResult.IsValid)
+        {
+            HasError = true;
+            StatusMessage = BootstrapResult.ErrorMessage;
+        }
+
+        IsLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (FocusPasswordRequested)
+        {
+            FocusPasswordRequested = false;
+            await PasswordInput.FocusAsync();
+        }
+
+        if (FocusValorBaseRequested)
+        {
+            FocusValorBaseRequested = false;
+            await ValorBaseInputRef.FocusAsync();
+        }
+    }
+
+    private void SeleccionarUsuario(VendedorInfo usuario, bool enfocarClave = true)
+    {
+        SelectedPhone = usuario.TelefonoVendedor;
+        Password = string.Empty;
+        HasError = false;
+        StatusMessage = null;
+        ShowCajaModal = false;
+        CajaModalMessage = null;
+        PendingLoginResult = null;
+
+        if (enfocarClave)
+        {
+            FocusPasswordRequested = true;
+        }
+    }
+
+    private async Task IngresarAsync()
+    {
+        if (!CanSubmit)
+        {
+            HasError = true;
+            StatusMessage = "Debes seleccionar un usuario, indicar la contrasena y tener una db valida en la URL.";
+            return;
+        }
+
+        IsSubmitting = true;
+        HasError = false;
+        StatusMessage = "Validando datos...";
+
+        var result = await LoginDataService.AuthenticateAsync(CurrentDb, SelectedPhone, Password);
+        if (!result.Success)
+        {
+            if (result.RequireCajaApertura)
+            {
+                PendingLoginResult = result;
+                ValorBaseInput = string.Empty;
+                ShowCajaModal = true;
+                CajaModalHasError = false;
+                CajaModalMessage = null;
+                FocusValorBaseRequested = true;
+            }
+
+            HasError = true;
+            StatusMessage = result.ErrorMessage;
+            IsSubmitting = false;
+            return;
+        }
+
+        SessionState.SetLogin(result);
+        StatusMessage = $"Bienvenido {result.Vendedor?.NombreVendedor}";
+        NavigationManager.NavigateTo($"/caja?db={Uri.EscapeDataString(CurrentDb)}");
+    }
+
+    private async Task HandlePasswordKeyUp(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await IngresarAsync();
+        }
+    }
+
+    private async Task HandleValorBaseKeyUp(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            await AperturarCajaAsync();
+        }
+    }
+
+    private void CancelarAperturaCaja()
+    {
+        if (IsOpeningCaja)
+        {
+            return;
+        }
+
+        ShowCajaModal = false;
+        CajaModalMessage = null;
+        CajaModalHasError = false;
+        PendingLoginResult = null;
+        FocusValorBaseRequested = false;
+    }
+
+    private async Task AperturarCajaAsync()
+    {
+        if (PendingLoginResult?.Vendedor is null || PendingLoginResult.UsuarioCaja is null)
+        {
+            CajaModalHasError = true;
+            CajaModalMessage = "No se encontro el contexto del usuario de caja para aperturar.";
+            return;
+        }
+
+        if (!TryParseValorBase(ValorBaseInput, out var valorBase))
+        {
+            CajaModalHasError = true;
+            CajaModalMessage = "Ingresa un valor de base valido.";
+            return;
+        }
+
+        IsOpeningCaja = true;
+        CajaModalHasError = false;
+        CajaModalMessage = "Aperturando caja...";
+
+        var result = await LoginDataService.AperturarBaseCajaAsync(
+            CurrentDb,
+            PendingLoginResult.Vendedor,
+            PendingLoginResult.UsuarioCaja,
+            PendingLoginResult.Sede,
+            valorBase);
+
+        IsOpeningCaja = false;
+        if (!result.Success)
+        {
+            CajaModalHasError = true;
+            CajaModalMessage = result.ErrorMessage;
+            return;
+        }
+
+        SessionState.SetLogin(result);
+        ShowCajaModal = false;
+        CajaModalHasError = false;
+        CajaModalMessage = null;
+        StatusMessage = "Caja aperturada correctamente.";
+        NavigationManager.NavigateTo($"/caja?db={Uri.EscapeDataString(CurrentDb)}");
+    }
+
+    private static bool TryParseValorBase(string? rawValue, out decimal valorBase)
+    {
+        var cleaned = (rawValue ?? string.Empty).Trim().Replace(".", string.Empty).Replace(",", string.Empty);
+        return decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out valorBase) && valorBase > 0;
+    }
+}

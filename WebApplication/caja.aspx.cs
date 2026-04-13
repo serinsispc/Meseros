@@ -87,6 +87,97 @@ namespace WebApplication
             return "Pagada";
         }
 
+        protected string NombreVendedorCorto(object nombreObj)
+        {
+            var nombreCompleto = Convert.ToString(nombreObj ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(nombreCompleto))
+            {
+                return string.Empty;
+            }
+
+            var partes = nombreCompleto
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+
+            if (partes.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (partes.Length == 1)
+            {
+                return partes[0];
+            }
+
+            var dosPalabras = partes[0] + " " + partes[1];
+            if (dosPalabras.Length <= 18)
+            {
+                return dosPalabras;
+            }
+
+            return partes[0] + " " + partes[1].Substring(0, 1).ToUpper() + ".";
+        }
+
+        protected string NombreVendedorMesa(object nombreMesaObj)
+        {
+            var nombreMesa = Convert.ToString(nombreMesaObj ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(nombreMesa) || models?.cuentasMesasVista == null || !models.cuentasMesasVista.Any())
+            {
+                return string.Empty;
+            }
+
+            var cuentaMesa = models.cuentasMesasVista
+                .FirstOrDefault(x => string.Equals(
+                    Convert.ToString(x.nombremesa ?? string.Empty).Trim(),
+                    nombreMesa.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (cuentaMesa == null)
+            {
+                return string.Empty;
+            }
+
+            return NombreVendedorCorto(cuentaMesa.nombrevendedor);
+        }
+
+        private V_CuentasVenta CuentaActivaPorMesa(int idMesa)
+        {
+            var mesa = models?.MesasLista?.FirstOrDefault(x => x.id == idMesa);
+            if (mesa == null || models?.cuentasMesasVista == null || !models.cuentasMesasVista.Any())
+            {
+                return null;
+            }
+
+            return models.cuentasMesasVista.FirstOrDefault(x =>
+                string.Equals(
+                    Convert.ToString(x.nombremesa ?? string.Empty).Trim(),
+                    Convert.ToString(mesa.nombreMesa ?? string.Empty).Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool PuedeGestionarMesa(int idMesa, out V_CuentasVenta cuentaMesa)
+        {
+            cuentaMesa = CuentaActivaPorMesa(idMesa);
+
+            if (models?.vendedor?.cajaMovil == 1)
+            {
+                return true;
+            }
+
+            if (ajustes?.meserosCompartidos == true)
+            {
+                return true;
+            }
+
+            if (cuentaMesa == null)
+            {
+                return true;
+            }
+
+            return cuentaMesa.idvendedor == models.vendedor.id;
+        }
+
         private void EstablecerVistaCaja(string vista)
         {
             Session[SessionVistaCaja] = string.IsNullOrWhiteSpace(vista) ? VistaCaja : vista;
@@ -226,6 +317,20 @@ namespace WebApplication
             models = JsonConvert.DeserializeObject<MenuViewModels>(modelJson);
             return models != null;
         }
+
+        private async Task<bool> RecargarAjustesDb()
+        {
+            var ajustesDb = await DBConexionControler.DAsync(models.db);
+            if (ajustesDb == null)
+            {
+                return false;
+            }
+
+            ajustes = ajustesDb;
+            Session["DBConexion"] = JsonConvert.SerializeObject(ajustesDb);
+            return true;
+        }
+
         private async Task CargarDATA()
         {
             await Cargar_RP();
@@ -360,6 +465,7 @@ namespace WebApplication
             }
             models.IdCuenteClienteActiva = 0;
             models.cuentas = cuentas;
+            models.cuentasMesasVista = await CargarCuentasMesasVista();
             models.zonas = zonas;
             models.MesasLista = mesas;
             models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
@@ -385,7 +491,7 @@ namespace WebApplication
         private async Task<List<V_CuentasVenta>> CargarCuentas()
         {
             var cuentas = new List<V_CuentasVenta>();
-            if (models.vendedor.cajaMovil == 1)
+            if (models.vendedor.cajaMovil == 1 || ajustes?.meserosCompartidos == true)
             {
                 cuentas = await V_CuentasVentaControler.Lista_Cajero(models.db) ?? new List<V_CuentasVenta>();
             }
@@ -393,6 +499,12 @@ namespace WebApplication
             {
                 cuentas = await V_CuentasVentaControler.Lista_IdVendedor(models.db, models.vendedor.id) ?? new List<V_CuentasVenta>();
             }
+            return (cuentas ?? new List<V_CuentasVenta>()).Where(x => !x.eliminada).ToList();
+        }
+
+        private async Task<List<V_CuentasVenta>> CargarCuentasMesasVista()
+        {
+            var cuentas = await V_CuentasVentaControler.Lista_Cajero(models.db) ?? new List<V_CuentasVenta>();
             return (cuentas ?? new List<V_CuentasVenta>()).Where(x => !x.eliminada).ToList();
         }
         protected async void Evento_Click(object sender, EventArgs e)
@@ -544,8 +656,14 @@ namespace WebApplication
         }
         private async Task Actualizar()
         {
+            if (!await RecargarAjustesDb())
+            {
+                AlertModerno.Error(this, "Error", "No fue posible recargar la configuración de DBConexion.", true);
+                return;
+            }
+
             await IniciarPagina();
-            AlertModerno.Success(this, "Ok", "Evento Actualizar", true);
+            AlertModerno.Success(this, "Ok", "Configuración actualizada correctamente.", true);
         }
         private async Task NuevoServicio()
         {
@@ -576,6 +694,7 @@ namespace WebApplication
                 models.IdCuenteClienteActiva = 0;
                 models.IdCuentaActiva = idVenta;
                 models.cuentas = await CargarCuentas();
+                models.cuentasMesasVista = await CargarCuentasMesasVista();
                 models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
                 models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
                 models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
@@ -691,6 +810,7 @@ namespace WebApplication
 
 
                 models.cuentas = await CargarCuentas();
+                models.cuentasMesasVista = await CargarCuentasMesasVista();
                 await CargarDATA();
 
                 AlertModerno.Success(this, "Ok", "Cuenta actualizada correctamente.", true, 2200);
@@ -761,6 +881,16 @@ namespace WebApplication
                 if (idMesa <= 0)
                 {
                     AlertModerno.Warning(this, "Atenci\u00f3n", "No se recibi\u00f3 una mesa v\u00e1lida.", true, 2200);
+                    return;
+                }
+
+                V_CuentasVenta cuentaMesa;
+                if (!PuedeGestionarMesa(idMesa, out cuentaMesa))
+                {
+                    var mesaBloqueada = models.MesasLista?.FirstOrDefault(x => x.id == idMesa);
+                    var nombreMesa = mesaBloqueada?.nombreMesa ?? $"Mesa #{idMesa}";
+                    var nombreVendedor = string.IsNullOrWhiteSpace(cuentaMesa?.nombrevendedor) ? "otro mesero" : cuentaMesa.nombrevendedor;
+                    AlertModerno.Warning(this, "Atención", $"La {nombreMesa} pertenece a {nombreVendedor}. Con meseros compartidos desactivado solo puedes verla, no gestionarla.", true, 2600);
                     return;
                 }
 
@@ -855,6 +985,7 @@ namespace WebApplication
             // Actualizar modelos y UI
             models.IdCuentaActiva = idVenta;
             models.cuentas = await CargarCuentas();
+            models.cuentasMesasVista = await CargarCuentasMesasVista();
             models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
             models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
             models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
@@ -898,24 +1029,30 @@ namespace WebApplication
                     return;
                 }
 
-                var cuentasMesa = await V_CuentasControler.Lista_Mesa(models.db, mesa.nombreMesa) ?? new List<V_Cuentas>();
-                if (cuentasMesa.Any())
+                var relacionesMesa = await R_VentaMesaControler.ListaPorMesa(models.db, mesa.id) ?? new List<R_VentaMesa>();
+                foreach (var relacion in relacionesMesa)
                 {
-                    var relacion = await R_VentaMesaControler.Consultar_relacion(models.db, cuentasMesa.First().id, mesa.id);
-                    if (relacion != null)
+                    if (relacion == null)
                     {
-                        var eliminarRelacion = await R_VentaMesaControler.CRUD(models.db, relacion, 2);
-                        if (!eliminarRelacion.estado)
-                        {
-                            AlertModerno.Error(this, "Error", $"La mesa {mesa.nombreMesa} cambi\u00f3 de estado, pero no se elimin\u00f3 la relaci\u00f3n con la cuenta.", true);
-                            return;
-                        }
+                        continue;
+                    }
+
+                    var eliminarRelacion = await R_VentaMesaControler.CRUD(models.db, relacion, 2);
+                    if (!eliminarRelacion.estado)
+                    {
+                        AlertModerno.Error(this, "Error", $"La mesa {mesa.nombreMesa} cambi\u00f3 de estado, pero no se elimin\u00f3 la relaci\u00f3n con la cuenta.", true);
+                        return;
                     }
                 }
 
                 var mesas = await MesasControler.Lista(models.db) ?? new List<Mesas>();
                 models.MesasLista = mesas;
                 models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
+                models.cuentas = await CargarCuentas();
+                models.cuentasMesasVista = await CargarCuentasMesasVista();
+                models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
+                models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
+                models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
                 await CargarDATA();
 
                 AlertModerno.Success(this, "OK", $"Mesa {mesa.nombreMesa} liberada correctamente.", true, 1500);
@@ -986,6 +1123,7 @@ namespace WebApplication
             models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
 
             models.cuentas = await CargarCuentas();
+            models.cuentasMesasVista = await CargarCuentasMesasVista();
             models.IdCuentaActiva=idCuentaAmarrar;
 
             await CargarDATA();
@@ -1716,6 +1854,7 @@ namespace WebApplication
 
             models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
             models.cuentas = await CargarCuentas();
+            models.cuentasMesasVista = await CargarCuentasMesasVista();
             models.AbrirModalDomicilio = false;
 
             AlertModerno.Success(this, "OK", resp.mensaje ?? "Cliente relacionado con la venta.", true, 1200);
@@ -1733,6 +1872,7 @@ namespace WebApplication
         private async Task RecargarVentaActiva()
         {
             models.cuentas = await CargarCuentas();
+            models.cuentasMesasVista = await CargarCuentasMesasVista();
             models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
             models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
             models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);

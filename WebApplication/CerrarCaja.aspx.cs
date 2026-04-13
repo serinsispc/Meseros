@@ -24,6 +24,7 @@ namespace WebApplication
         private List<GastoTurnoItem> gastosTurno = new List<GastoTurnoItem>();
         private List<InformeProductoVendidoTurnoItem> productosVendidosTurno = new List<InformeProductoVendidoTurnoItem>();
         protected DBConexion ajustes;
+        protected bool MostrarCierreCajaHabilitado => ajustes != null && ajustes.MostrarCierreCaja;
 
         protected async void Page_Load(object sender, EventArgs e)
         {
@@ -119,10 +120,11 @@ namespace WebApplication
         private void PintarTurnoDesdeVista(V_TurnosCaja turno)
         {
             var totalEfectivo = turno.totalEfectivo;
-            var ventasTarjeta = ObtenerTotalPagosNoEfectivo(turno.ventasTargeta);
-            var efectivoMasBase = turno.efectivoMasBase > 0 ? turno.efectivoMasBase : (baseCaja.valorBase + totalEfectivo);
-            var totalIngresos = turno.totalIngresos > 0 ? turno.totalIngresos : (totalEfectivo + ventasTarjeta + turno.ventasCredito);
-            var producido = turno.producido > 0 ? turno.producido : (totalIngresos - turno.totalEgresos);
+            var ventasEfectivo = turno.ventasEfectivo;
+            var ventasTarjeta = turno.ventasTargeta;
+            var efectivoMasBase = turno.efectivoMasBase;
+            var totalIngresos = turno.totalIngresos;
+            var producido = turno.producido;
 
             lblValorBase.InnerText = FormatearMoneda(turno.valorBase);
             lblTotalIngresos.InnerText = FormatearMoneda(totalIngresos);
@@ -137,7 +139,7 @@ namespace WebApplication
             lblTotalEfectivo.InnerText = FormatearMoneda(totalEfectivo);
             lblEfectivoMasBase.InnerText = FormatearMoneda(efectivoMasBase);
             lblVentasTarjeta.InnerText = FormatearMoneda(ventasTarjeta);
-            lblVentasEfectivo.InnerText = FormatearMoneda(totalEfectivo);
+            lblVentasEfectivo.InnerText = FormatearMoneda(ventasEfectivo);
             lblVentasTargeta2.InnerText = FormatearMoneda(ventasTarjeta);
             lblVentasCredito.InnerText = FormatearMoneda(turno.ventasCredito);
             lblTotalIngresos2.InnerText = FormatearMoneda(totalIngresos);
@@ -305,7 +307,7 @@ namespace WebApplication
                 timerProgressBar: true,
                 showConfirmButton: false
             }).then(function(){
-                if (typeof window.ccImprimirTicketInline === 'function') {
+                if (" + (MostrarCierreCajaHabilitado ? "true" : "false") + @" && typeof window.ccImprimirTicketInline === 'function') {
                     window.ccImprimirTicketInline();
                 }
                 setTimeout(function(){ window.location.href = '" + ResolveUrl("~/Salir.aspx") + @"'; }, 2800);

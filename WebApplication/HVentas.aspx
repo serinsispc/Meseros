@@ -25,7 +25,7 @@
             </div>
 
             <div class="row g-3 hv-kpis">
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl-2">
                     <div class="hv-kpi">
                         <div class="kpi-top">
                             <div class="kpi-label">Total ventas</div>
@@ -35,7 +35,7 @@
                         <div class="hv-muted">Sin lógica conectada</div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl-2">
                     <div class="hv-kpi kpi-success">
                         <div class="kpi-top">
                             <div class="kpi-label">Facturas</div>
@@ -45,17 +45,37 @@
                         <div class="hv-muted">Cantidad</div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl-2">
                     <div class="hv-kpi kpi-warning">
                         <div class="kpi-top">
                             <div class="kpi-label">Propina</div>
                             <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
                         </div>
                         <div class="kpi-value"><%: valores.propina.ToString("C0") %></div>
-                        <div class="hv-muted">Cartera / crédito</div>
+                        <div class="hv-muted">Valor propina</div>
                     </div>
                 </div>
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl-2">
+                    <div class="hv-kpi kpi-warning">
+                        <div class="kpi-top">
+                            <div class="kpi-label">Ventas crédito</div>
+                            <div class="kpi-icon"><i class="bi bi-credit-card-2-front"></i></div>
+                        </div>
+                        <div class="kpi-value"><%: valores.ventasCreditoCantidad %></div>
+                        <div class="hv-muted">Cantidad del turno</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
+                    <div class="hv-kpi kpi-warning">
+                        <div class="kpi-top">
+                            <div class="kpi-label">Valor crédito</div>
+                            <div class="kpi-icon"><i class="bi bi-wallet2"></i></div>
+                        </div>
+                        <div class="kpi-value"><%: valores.ventasCreditoValor.ToString("C0") %></div>
+                        <div class="hv-muted">Ventas crédito del turno</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-2">
                     <div class="hv-kpi kpi-danger">
                         <div class="kpi-top">
                             <div class="kpi-label">Anuladas</div>
@@ -127,6 +147,7 @@
                                 <th>Fecha</th>
                                 <th>Factura</th>
                                 <th>Cliente</th>
+                                <th>Tipo venta</th>
                                 <th>Medio</th>
                                 <th class="text-end">Total</th>
                                 <th>Estado</th>
@@ -139,26 +160,36 @@
 
                             <asp:Repeater runat="server" ID="rpVentas" ItemType="DAL.Model.V_TablaVentas">
                                 <ItemTemplate>
-                                    <tr class="hv-venta-row"
+                                    <tr class='hv-venta-row <%# EsVentaAnulada(Item) ? "hv-venta-row-anulada" : "" %>'
                                         data-search="<%# (Item.nombreCliente ?? "") + " " + (Item.nit ?? "") + " " + (Item.prefijo ?? "") + "-" + Item.numeroVenta + " " + (Item.medioDePago ?? "") %>"
                                         data-medio="<%# (Item.medioDePago ?? "").ToLower() %>">
 
-                                        <td><span class="hv-badge gray"><i class="bi bi-hash"></i>1</span></td>
+                                        <td><span class="hv-badge gray"><i class="bi bi-hash"></i><%# Item.aliasVenta %></span></td>
                                         <td>
                                             <div class="fw-bold"><%# Item.fechaVenta.ToShortDateString() %></div>
                                             <div class="hv-muted"><%# Item.fechaVenta.ToShortTimeString() %></div>
                                         </td>
                                         <td>
                                             <div class="fw-bold"><%# Item.prefijo %>-<%# Item.numeroVenta %></div>
-                                            <div class="hv-muted">Alias: <%# Item.id %></div>
                                         </td>
                                         <td>
                                             <div class="fw-bold"><%# Item.nombreCliente %></div>
                                             <div class="hv-muted">NIT: <%# Item.nit %></div>
                                         </td>
+                                        <td>
+                                            <span class='hv-badge <%# Item.idFormaDePago == 2 ? "warning" : "info" %>'>
+                                                <i class='bi <%# Item.idFormaDePago == 2 ? "bi-journal-text" : "bi-cash-coin" %>'></i>
+                                                <%# string.IsNullOrWhiteSpace(Item.formaDePago) ? (Item.idFormaDePago == 2 ? "Crédito" : "Contado") : Item.formaDePago %>
+                                            </span>
+                                        </td>
                                         <td><span class="hv-badge info"><i class="bi bi-cash-coin"></i><%# Item.medioDePago %></span></td>
                                         <td class="text-end hv-money"><%# Item.total_A_Pagar.ToString("C0") %></td>
-                                        <td><span class="hv-badge success"><i class="bi bi-check2-circle"></i><%# Item.estadoVenta %></span></td>
+                                        <td>
+                                            <span class='hv-badge <%# EsVentaAnulada(Item) ? "danger" : "success" %>'>
+                                                <i class='bi <%# EsVentaAnulada(Item) ? "bi-x-circle" : "bi-check2-circle" %>'></i>
+                                                <%# Item.estadoVenta %>
+                                            </span>
+                                        </td>
                                         <td>
                                             <asp:Literal runat="server" Text='<%# ObtenerEstadoBadge(Item.cufe, Item.tipoFactura) %>' />
                                         </td>
@@ -197,7 +228,7 @@
                             </asp:Repeater>
 
                             <tr id="hvSinResultados" style="display: none;">
-                                <td colspan="12" class="text-center hv-empty">
+                                <td colspan="11" class="text-center hv-empty">
                                     <div class="hv-muted">
                                         <i class="bi bi-search d-block mb-2"></i>
                                         No hay coincidencias con los filtros aplicados.

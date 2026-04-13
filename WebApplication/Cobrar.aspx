@@ -10,6 +10,8 @@
     <!-- ✅ HiddenField con Static para JS -->
     <asp:HiddenField ID="hfRelMediosInternos" runat="server" ClientIDMode="Static" />
     <asp:HiddenField ID="hfIdVentaActual" runat="server" ClientIDMode="Static" />
+    <asp:HiddenField ID="hfTipoVenta" runat="server" ClientIDMode="Static" />
+    <asp:HiddenField ID="hfFacturaElectronica" runat="server" ClientIDMode="Static" />
 
     <div id="pageBusyOverlay" class="page-busy-overlay" aria-hidden="true">
         <div class="page-busy-card">
@@ -49,11 +51,11 @@
                 <div class="cobrar-top-band">
                     <div class="cobrar-mode-row cobrar-mode-stack">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="chkContado" checked />
+                            <input class="form-check-input" type="radio" name="tipoVenta" id="chkContado" />
                             <label class="form-check-label fw-bold" for="chkContado">Venta de Contado</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="chkCredito" />
+                            <input class="form-check-input" type="radio" name="tipoVenta" id="chkCredito" />
                             <label class="form-check-label fw-bold" for="chkCredito">Venta Crédito</label>
                         </div>
                     </div>
@@ -164,7 +166,8 @@
                                 </div>
                                 <div class="form-check form-switch m-0">
                                     <%
-                                        if (Session["cliente_seleccionado_nit"] != null)
+                                        var facturaElectronicaActiva = Convert.ToBoolean(Session["fe"] ?? false);
+                                        if (facturaElectronicaActiva)
                                         {
                                     %>
                                         <input class="form-check-input" type="checkbox" id="swFE" checked="checked" />

@@ -218,7 +218,7 @@
                         <i class="bi bi-cash-coin me-2"></i>Caja
                     </a>
 
-                            <%if (ajustes.MostrarCierreCaja == true)
+                            <%if (MostrarCierreCajaHabilitado)
                                 {%>
                                         <button type="button" class="btn btn-outline-warning shadow-sm" id="btnAperturarCajon">
                         <i class="bi bi-safe me-2"></i>Aperturar Cajón
@@ -243,7 +243,7 @@
             </div>
 
 
-            <% if(ajustes.MostrarCierreCaja==true)
+            <% if(MostrarCierreCajaHabilitado)
             {%>
 
                         <!-- ✅ KPIs principales -->
@@ -308,7 +308,7 @@
 
         </div>
 
-        <%if (ajustes.MostrarCierreCaja == true)
+        <%if (MostrarCierreCajaHabilitado)
             {%>
 
 
@@ -625,9 +625,10 @@
         </div>
     </div>
 
-
-
-    <script src="Scripts/js/cerrar-caja.js?v=20260325-1"></script>
+    <script>
+        window.ccMostrarCierreCaja = <%= MostrarCierreCajaHabilitado ? "true" : "false" %>;
+    </script>
+    <script src="Scripts/js/cerrar-caja.js?v=20260408-1"></script>
 
 
 <script>

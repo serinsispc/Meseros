@@ -1,0 +1,85 @@
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: end;
+    margin-bottom: 1rem;
+}
+
+.page-header h1 {
+    margin: 0.4rem 0 0;
+}
+
+.eyebrow {
+    color: #c4622d;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+}
+
+.zone-strip {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.zone-chip {
+    padding: 0.8rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #334155;
+    box-shadow: 0 10px 24px rgba(20, 31, 43, 0.06);
+}
+
+.zone-chip.active {
+    background: linear-gradient(135deg, #f3a35c, #ef6f4a);
+    color: #fff;
+}
+
+.mesas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.mesa-card {
+    padding: 1.2rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 16px 40px rgba(20, 31, 43, 0.07);
+}
+
+.mesa-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.mesa-badge {
+    font-weight: 700;
+}
+
+.mesa-card strong {
+    display: block;
+    margin: 0.75rem 0 0.35rem;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+.mesa-card p {
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.mesa-card.ocupada {
+    border-top: 4px solid #ef6f4a;
+}
+
+.mesa-card.libre {
+    border-top: 4px solid #22a06b;
+}

@@ -119,15 +119,16 @@ namespace DAL.Funciones
                 facturaNacional.allowance_charges = new List<AllowanceCharge>();
                 if (v_TablaVentas.propina > 0)
                 {
-                        AllowanceCharge listaDescuentos = new AllowanceCharge();
+                    var porcentajePropina = Math.Round(v_TablaVentas.por_propina * 100m, 2);
+                    AllowanceCharge listaDescuentos = new AllowanceCharge();
                     listaDescuentos.charge_indicator = true;
                     listaDescuentos.discount_id = 3;
-                    listaDescuentos.allowance_charge_reason = "Propina voluntaria por el cliente";
+                    listaDescuentos.allowance_charge_reason = porcentajePropina > 0
+                        ? $"Propina voluntaria por el cliente ({porcentajePropina:0.##}%)"
+                        : "Propina voluntaria por el cliente";
                     listaDescuentos.amount = $"{v_TablaVentas.propina}".Replace(",", ".");
                     listaDescuentos.base_amount = $"{v_TablaVentas.subtotalVenta}".Replace(",", ".");
                     facturaNacional.allowance_charges.Add(listaDescuentos);
-
-
                 }
                 if (v_TablaVentas.descuentoVenta > 0)
                 {

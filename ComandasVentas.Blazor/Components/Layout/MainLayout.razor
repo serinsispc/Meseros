@@ -1,0 +1,82 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager NavigationManager
+
+<div class="page">
+    @if (IsCajaRoute())
+    {
+        <aside class="quick-drawer @(SidebarOpen ? "is-open" : string.Empty)">
+            <button type="button" class="quick-drawer-handle" @onclick="ToggleSidebar" aria-label="Mostrar menu">
+                <i class="bi @(SidebarOpen ? "bi-chevron-left" : "bi-chevron-right")"></i>
+            </button>
+
+            @if (SidebarOpen)
+            {
+                <div class="quick-drawer-panel">
+                    <NavMenu SidebarOpen="true" InPageCajaMenu="true" OnItemSelected="CloseSidebar" />
+                </div>
+            }
+        </aside>
+    }
+
+    <main class="main-shell">
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrio un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">x</span>
+</div>
+
+@code {
+    private bool SidebarOpen;
+
+    protected override void OnInitialized()
+    {
+        SidebarOpen = false;
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+
+    private void ToggleSidebar()
+    {
+        if (!IsCajaRoute())
+        {
+            return;
+        }
+
+        SidebarOpen = !SidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        SidebarOpen = false;
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (!IsCajaRoute())
+        {
+            SidebarOpen = false;
+            StateHasChanged();
+            return;
+        }
+
+        SidebarOpen = false;
+        StateHasChanged();
+    }
+
+    private bool IsCajaRoute()
+    {
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        return uri.AbsolutePath.Equals("/caja", StringComparison.OrdinalIgnoreCase);
+    }
+}

@@ -18,6 +18,7 @@ namespace WebApplication.ViewModels
         public BaseCaja BaseCaja { get; set; } = new BaseCaja();
         public Sede Sede { get; set; } = new Sede();
         public List<V_CuentasVenta> cuentas { get; set; } = new List<V_CuentasVenta>();
+        public List<V_CuentasVenta> cuentasMesasVista { get; set; } = new List<V_CuentasVenta>();
         public List<Zonas> zonas { get; set; }=new List<Zonas>();
         public List<Mesas> Mesas { get; set; } = new List<Mesas>();
         public List<Mesas> MesasLista { get; set; } = new List<Mesas>();

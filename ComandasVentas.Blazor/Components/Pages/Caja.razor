@@ -1,0 +1,1184 @@
+@page "/caja"
+@using System.Globalization
+@using ComandasVentas.Blazor.Models.Caja
+@using ComandasVentas.Blazor.Services.Auth
+@using ComandasVentas.Blazor.Services.Caja
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+@inject LoginDataService LoginDataService
+@inject CajaDataService CajaDataService
+
+<PageTitle>Caja</PageTitle>
+
+<main class="container-fluid app-shell caja-blazor-page">
+    @if (IsLoading)
+    {
+        <div class="caja-loading-overlay" role="status" aria-live="polite">
+            <div class="caja-loading-card">
+                <div class="caja-loading-icon-wrap">
+                    <div class="caja-loading-spinner"></div>
+                    <div class="caja-loading-icon">
+                        <i class="bi bi-database-check"></i>
+                    </div>
+                </div>
+                <div class="caja-loading-kicker">@LoadingKicker</div>
+                <div class="caja-loading-title">@LoadingTitle</div>
+                <div class="caja-loading-copy">@LoadingCopy</div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(LoadError))
+    {
+        <div class="caja-status-banner is-error m-3" role="alert">
+            <div class="caja-status-icon">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div class="caja-status-copy">
+                <div class="caja-status-title">No fue posible cargar la caja</div>
+                <div class="caja-status-text">@LoadError</div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(PageMessage))
+    {
+        <div class="caja-status-banner @(PageMessageHasError ? "is-error" : "is-success") m-3" role="alert">
+            <div class="caja-status-icon">
+                <i class="bi @(PageMessageHasError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill")"></i>
+            </div>
+            <div class="caja-status-copy">
+                <div class="caja-status-title">@(PageMessageHasError ? "Atencion" : "Listo")</div>
+                <div class="caja-status-text">@PageMessage</div>
+            </div>
+            <button type="button" class="caja-status-close" @onclick="LimpiarMensajePagina">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    }
+
+    <div class="row g-1 h-100">
+        <section class="col-12 col-xl-8 d-flex flex-column">
+            <div class="panel panel-alto-auto b-orange mb-1 py-2 border-0">
+                <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-2">
+                    <div class="fw-bold text-dark ps-2">
+                        <span class="fw-semibold">@NombreVendedor</span>
+                        <span class="ms-2 text-muted small">DB: @DbVisual</span>
+                    </div>
+
+                    <div class="acciones-top d-flex flex-wrap gap-2">
+                        <button type="button" class="btn-top btn-actualizar" @onclick="RecargarCajaAsync"><i class="bi bi-arrow-clockwise"></i>Actualizar</button>
+                        <button type="button" class="btn-top btn-nuevo" @onclick="NuevoServicioAsync"><i class="bi bi-plus-circle-fill"></i>Nuevo Servicio</button>
+                        <button type="button" class="btn-top btn-domicilio" @onclick="DomicilioPendiente"><i class="bi bi-house-door-fill"></i>Domicilio</button>
+                        <button type="button" class="btn-top btn-logout" @onclick="EliminarServicioPendiente"><i class="bi bi-trash3-fill"></i>Eliminar servicio</button>
+                        <button type="button" class="btn-top btn-ventas" @onclick="VentasPendiente"><i class="bi bi-graph-up-arrow"></i>Ventas</button>
+                        <button type="button" class="btn-top btn-domicilio" @onclick="GastosPendiente"><i class="bi bi-wallet2"></i>Gastos</button>
+                        <button type="button" class="btn-top btn-cerrar-caja" @onclick="AbrirModalCierreCaja"><i class="bi bi-lock-fill"></i>Cerrar caja</button>
+                        <button type="button" class="btn-top btn-logout" @onclick="CerrarSesion"><i class="bi bi-box-arrow-right"></i>Cerrar sesion</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bloqueServicios" class="panel panel-alto-auto b-orange mb-1 border-0">
+                <div class="row g-1">
+                    <div class="col-12 col-lg-12">
+                        <div class="box h-cuentas p-1 cuentas-box bg-white">
+                            <div class="cuentas-grid">
+                                @foreach (var cuenta in Cuentas)
+                                {
+                                    <button type="button" class="cuenta-card @(cuenta.Activa ? "cuenta-activa" : string.Empty)" @onclick="@(() => SeleccionarCuentaAsync(cuenta.Id))">
+                                        <span class="cuenta-edit"><i class="bi bi-pencil-fill"></i></span>
+                                        <div class="cuenta-body">
+                                            <div class="cuenta-num">@cuenta.Alias</div>
+                                            <div class="cuenta-name">@cuenta.Mesa</div>
+                                            <div class="cuenta-vendedor" title="@cuenta.Vendedor">@cuenta.Vendedor</div>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-1 flex-grow-1">
+                <div class="col-12 col-lg-5 d-flex">
+                    <div id="bloqueZonas" class="panel bg-light w-100 border-1">
+                        <div class="row">
+                            <div class="col-12 panel-zona">
+                                <div class="box p-0 h-zonas zonas-box">
+                                    <div class="zonas-grid">
+                                        @foreach (var zona in Zonas)
+                                        {
+                                            <button type="button" class="zona-btn @(zona.Activa ? "zona-activa" : string.Empty)" @onclick="@(() => SeleccionarZona(zona.Id))">@zona.Nombre</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="box h-mesas p-1 mesas-box panel-alto-auto">
+                                    <div class="mesas-grid panel-alto-auto">
+                                        @foreach (var mesa in Mesas)
+                                        {
+                                            <button type="button"
+                                                    class="mesa-btn @(mesa.Ocupada ? "mesa-activa" : string.Empty) @(mesa.Seleccionada ? "mesa-seleccionada" : string.Empty)"
+                                                    @onclick="@(() => AbrirMesaAsync(mesa.Id))">
+                                                <span class="mesa-titulo">@mesa.Nombre</span>
+                                                @if (!string.IsNullOrWhiteSpace(mesa.Vendedor))
+                                                {
+                                                    <span class="mesa-vendedor">@mesa.Vendedor</span>
+                                                }
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-7 d-flex">
+                    <div class="panel b-purple w-100">
+                        <div class="row g-0">
+                            <div id="bloqueBuscarProducto" class="col-12" style="height: 50px">
+                                <div class="buscar-wrapper w-100">
+                                    <i class="bi bi-search buscar-icon"></i>
+                                    <input type="text" class="buscar-input" placeholder="Buscar producto..." autocomplete="off" @bind="BusquedaProducto" @bind:event="oninput" />
+                                    <button type="button" class="buscar-clear" @onclick="LimpiarBusquedaProducto"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            </div>
+
+                            <div id="bloqueCategorias" class="col-12 panel-alto-auto">
+                                <div class="box h-categorias p-1 categorias-box">
+                                    <div class="categorias-grid">
+                                        @foreach (var categoria in Categorias)
+                                        {
+                                            <button type="button" class="categoria-btn @(categoria.Activa ? "categoria-activa" : string.Empty)" @onclick="@(() => SeleccionarCategoria(categoria.Id))">@categoria.Nombre</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="bloqueProductos" class="col-12">
+                                <div class="box h-productos p-0 productos-box">
+                                    <div class="productos-list">
+                                        @foreach (var producto in Productos)
+                                        {
+                                            <div class="producto-item">
+                                                <div class="row g-0 align-items-center">
+                                                    <div class="col-12"><div class="producto-nombre">@producto.Nombre</div></div>
+                                                    <div class="col-12 col-md-6">
+                                                        <div class="producto-sub">
+                                                            <span class="producto-precio">@producto.Precio</span>
+                                                            <a href="#" class="producto-detalle">Ver detalle</a>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <div class="producto-acciones">
+                                                            <button type="button" class="prod-btn prod-minus" @onclick="@(() => CambiarCantidadProducto(producto.Id, -1m))"><i class="bi bi-dash-lg"></i></button>
+                                                            <input type="text"
+                                                                   class="prod-cant"
+                                                                   value="@ObtenerCantidadProducto(producto.Id).ToString("0.##", CultureInfo.InvariantCulture)"
+                                                                   inputmode="decimal"
+                                                                   @oninput="@((ChangeEventArgs e) => CambiarCantidadProductoInput(producto.Id, e))" />
+                                                            <button type="button" class="prod-btn prod-plus" @onclick="@(() => CambiarCantidadProducto(producto.Id, 1m))"><i class="bi bi-plus-lg"></i></button>
+                                                            <button type="button" class="prod-btn prod-cart" @onclick="@(() => AgregarProductoAsync(producto.Id))"><i class="bi bi-cart"></i></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <aside class="col-12 col-xl-4 d-flex">
+            <div class="panel w-100">
+                <div class="row g-0 h-100 aside-stack">
+                    <div id="bloqueResumen" class="col-12">
+                        <div class="box h-precios p-0 precios-box">
+                            <div class="precios-resumen">
+                                <div class="precio-row"><div class="precio-label">SUBTOTAL:</div><div class="precio-value">@ResumenSubtotal</div></div>
+                                <div class="precio-row"><div class="precio-label">IMPUESTOS</div><div class="precio-value">@ResumenImpuestos</div></div>
+                                <div class="precio-row precio-total"><div class="precio-label">TOTAL 1:</div><div class="precio-value">@ResumenTotal1</div></div>
+                                <div class="precio-row precio-servicio">
+                                    <div class="precio-label">SERVICIO (@ResumenPorcentajePropina)</div>
+                                    <div class="precio-servicio-acciones">
+                                        <button type="button" class="btn-servicio-editar" @onclick="AbrirModalPropina">Editar</button>
+                                        <div class="precio-value">@ResumenPropina</div>
+                                    </div>
+                                </div>
+                                <div class="precio-row precio-total2"><div class="precio-label">TOTAL 2:</div><div class="precio-value">@ResumenTotal2</div></div>
+                            </div>
+                            <div class="precios-acciones">
+                                <button type="button" class="accion-btn accion-comandar" @onclick="ComandarAsync"><i class="bi bi-send-fill me-1"></i>Comandar</button>
+                                <button type="button" class="accion-btn accion-cuenta" @onclick="SolicitarCuentaAsync"><i class="bi bi-chat-square-text-fill me-1"></i>Solicitar<br />Cuenta</button>
+                                <button type="button" class="accion-btn accion-cobrar" @onclick="CobrarPendiente"><i class="bi bi-cash-coin me-1"></i>Cobrar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bloqueCuentasDetalle" class="col-12">
+                        <div class="box h-nueva-cuenta">
+                            <div class="cuentas-header col-12">
+                                <button type="button" class="btn-nueva-cuenta" @onclick="AbrirModalNuevaCuenta"><i class="bi bi-plus-lg me-2"></i>Nueva cuenta</button>
+                                <button type="button" class="btn-cuenta-general @(SelectedCuentaClienteId == 0 ? "cuenta-item-activa" : string.Empty)" @onclick="@(() => SeleccionarCuentaCliente(0))">
+                                    <span>Cuenta General</span>
+                                    <span class="cuenta-total">@ResumenTotal2</span>
+                                </button>
+                            </div>
+
+                            <div class="cuentas-lista">
+                                @foreach (var cuentaCliente in CuentasCliente)
+                                {
+                                    <button type="button" class="cuenta-item @(cuentaCliente.Activa ? "cuenta-item-activa" : string.Empty)" @onclick="@(() => SeleccionarCuentaCliente(cuentaCliente.Id))">
+                                        @cuentaCliente.Nombre
+                                        <small>@cuentaCliente.Total</small>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bloqueDetalleProductos" class="col-12">
+                        <div class="box h-lista">
+                            <div class="row lista-productos">
+                                @foreach (var detalle in Detalles)
+                                {
+                                    <div class="col-6 col-xl-12 item-col">
+                                        <div class="producto-item-detalle">
+                                            <div class="prod-top-detalle"><div class="prod-nombre">@detalle.Nombre</div><div class="prod-precio">@detalle.Precio</div></div>
+                                            <div class="prod-mid-detalle">
+                                                <div class="prod-cantidad">
+                                                    <button type="button" class="qty-btn" @onclick="@(() => CambiarCantidadDetalle(detalle.Id, -1m))">-</button>
+                                                    <input type="text"
+                                                           class="qty-input"
+                                                           value="@ObtenerCantidadDetalle(detalle.Id).ToString("0.##", CultureInfo.InvariantCulture)"
+                                                           inputmode="decimal"
+                                                           @oninput="@((ChangeEventArgs e) => CambiarCantidadDetalleInput(detalle.Id, e))" />
+                                                    <button type="button" class="qty-btn" @onclick="@(() => CambiarCantidadDetalle(detalle.Id, 1m))">+</button>
+                                                </div>
+                                                <button type="button" class="save-btn" @onclick="@(() => GuardarCantidadDetalleAsync(detalle.Id))"><i class="bi bi-floppy2-fill"></i></button>
+                                            </div>
+                                            <div class="prod-actions-detalle">
+                                                <button type="button" class="act-btn" @onclick="@(() => AbrirModalNota(detalle.Id))"><i class="bi bi-chat"></i></button>
+                                                <button type="button" class="act-btn" @onclick="DetallePendiente"><i class="bi bi-link-45deg"></i></button>
+                                                <button type="button" class="act-btn act-danger" @onclick="@(() => EliminarDetalleAsync(detalle.Id))"><i class="bi bi-trash"></i></button>
+                                                <button type="button" class="act-btn" @onclick="DetallePendiente"><i class="bi bi-scissors"></i></button>
+                                                <button type="button" class="act-btn" @onclick="DetallePendiente"><i class="bi bi-cash-coin"></i></button>
+                                                <button type="button" class="act-btn" @onclick="DetallePendiente"><i class="bi bi-pencil-square"></i></button>
+                                            </div>
+                                            <div class="cuenta-detalle-chip"><i class="bi bi-person-badge"></i><span>@detalle.Cuenta</span></div>
+                                            <div class="prod-bottom">
+                                                <button type="button" class="nota-btn" @onclick="@(() => AbrirModalNota(detalle.Id))"><i class="bi bi-journal-text me-2"></i><span>@detalle.Nota</span></button>
+                                                <div class="prod-total">@detalle.Total</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+@if (ShowMesaModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" aria-hidden="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Acciones de mesa</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModalMesa"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="fw-semibold mb-2">@(MesaSeleccionadaModal?.NombreMesa ?? "Mesa")</div>
+                    @if (!string.IsNullOrWhiteSpace(MesaStatusModal))
+                    {
+                        <div class="alert @(MesaStatusHasError ? "alert-danger" : "alert-success") mb-3">@MesaStatusModal</div>
+                    }
+                    @if (CuentaMesaModal is null)
+                    {
+                        <div class="text-muted mb-3">La mesa esta libre. Puedes crear un nuevo servicio y dejarlo relacionado inmediatamente.</div>
+                    }
+                    else
+                    {
+                        <div class="text-muted mb-3">Esta mesa ya esta relacionada con el servicio <strong>#@CuentaMesaModal.AliasVenta</strong>.</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalMesa" disabled="@IsMesaActionRunning">Cancelar</button>
+                    @if (CuentaMesaModal is null)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="CrearServicioEnMesaAsync" disabled="@IsMesaActionRunning">Crear servicio</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-outline-primary" @onclick="IrAServicioMesaAsync" disabled="@IsMesaActionRunning">Ir al servicio</button>
+                        <button type="button" class="btn btn-danger" @onclick="LiberarMesaAsync" disabled="@IsMesaActionRunning">Liberar mesa</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (ShowNuevaCuentaModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" aria-hidden="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva cuenta</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModalNuevaCuenta"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Nombre de la cuenta</label>
+                    <input type="text" class="form-control" @bind="NuevaCuentaNombre" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalNuevaCuenta" disabled="@IsCuentaActionRunning">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="CrearCuentaClienteAsync" disabled="@IsCuentaActionRunning">Crear cuenta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (ShowNotaModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" aria-hidden="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nota del producto</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModalNota"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea class="form-control" rows="4" @bind="NotaDetalleTexto"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalNota" disabled="@IsDetalleActionRunning">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="GuardarNotaDetalleAsync" disabled="@IsDetalleActionRunning">Guardar nota</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (ShowPropinaModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" aria-hidden="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar servicio</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModalPropina"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Porcentaje de servicio</label>
+                    <input type="text" class="form-control" inputmode="decimal" @bind="PropinaPorcentajeInput" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CerrarModalPropina" disabled="@IsPropinaActionRunning">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="GuardarPropinaAsync" disabled="@IsPropinaActionRunning">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@if (ShowCerrarCajaModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" aria-hidden="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cerrar caja</h5>
+                    <button type="button" class="btn-close" @onclick="CancelarCierreCaja"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">Se va a cerrar la base activa <strong>#@BaseCajaIdVisual</strong>.</div>
+                    <div class="text-muted small mb-3">Valor base actual: @ValorBaseVisual</div>
+                    <div class="mb-3"><label class="form-label">Observacion</label><textarea class="form-control" rows="3" @bind="ObservacionCierre"></textarea></div>
+                    @if (!string.IsNullOrWhiteSpace(CajaStatusMessage))
+                    {
+                        <div class="alert @(CajaStatusHasError ? "alert-danger" : "alert-success") mb-0">@CajaStatusMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CancelarCierreCaja" disabled="@IsClosingCaja">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmarCierreCajaAsync" disabled="@IsClosingCaja">Confirmar cierre</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [SupplyParameterFromQuery] private string? Db { get; set; }
+
+    private CajaPageData? CajaData;
+    private bool IsLoading = true;
+    private string? LoadError;
+    private string BusquedaProducto = string.Empty;
+    private int SelectedCuentaId;
+    private int SelectedZonaId;
+    private int SelectedMesaId;
+    private int SelectedCategoriaId;
+    private int SelectedCuentaClienteId;
+    private string LoadingKicker = "Procesando";
+    private string LoadingTitle = "Cargando caja";
+    private string LoadingCopy = "Estamos consultando la informacion real desde SQL Server.";
+    private string? PageMessage;
+    private bool PageMessageHasError;
+
+    private bool ShowCerrarCajaModal;
+    private bool IsClosingCaja;
+    private bool CajaStatusHasError;
+    private string ObservacionCierre = string.Empty;
+    private string? CajaStatusMessage;
+
+    private readonly Dictionary<int, decimal> ProductoCantidades = [];
+    private readonly Dictionary<int, decimal> DetalleCantidades = [];
+
+    private bool ShowMesaModal;
+    private bool IsMesaActionRunning;
+    private string? MesaStatusModal;
+    private bool MesaStatusHasError;
+    private MesaCajaData? MesaSeleccionadaModal;
+    private CuentaCajaData? CuentaMesaModal;
+
+    private bool ShowNuevaCuentaModal;
+    private bool IsCuentaActionRunning;
+    private string NuevaCuentaNombre = string.Empty;
+
+    private bool ShowNotaModal;
+    private bool IsDetalleActionRunning;
+    private int NotaDetalleId;
+    private string NotaDetalleTexto = string.Empty;
+
+    private bool ShowPropinaModal;
+    private bool IsPropinaActionRunning;
+    private string PropinaPorcentajeInput = string.Empty;
+
+    private string NombreVendedor => SessionState.Vendedor?.NombreVendedor ?? "Usuario";
+    private string DbVisual => !string.IsNullOrWhiteSpace(Db) ? Db! : SessionState.Database;
+    private string BaseCajaIdVisual => SessionState.BaseCaja?.Id.ToString() ?? "-";
+    private string ValorBaseVisual => SessionState.BaseCaja is null ? "$ 0" : FormatearMoneda(SessionState.BaseCaja.ValorBase);
+
+    private IEnumerable<CuentaCard> Cuentas => (CajaData?.Cuentas ?? []).Select(x => new CuentaCard(
+        x.Id,
+        string.IsNullOrWhiteSpace(x.AliasVenta) ? x.Id.ToString() : x.AliasVenta,
+        !string.IsNullOrWhiteSpace(x.NombreClienteDomicilio) ? x.NombreClienteDomicilio : x.NombreMesa,
+        NombreVendedorCorto(x.NombreVendedor),
+        x.Id == SelectedCuentaId));
+
+    private IEnumerable<ZonaItem> Zonas => (CajaData?.Zonas ?? []).Select(x => new ZonaItem(x.Id, x.NombreZona, x.Id == SelectedZonaId));
+
+    private IEnumerable<MesaItem> Mesas => (CajaData?.Mesas ?? [])
+        .Where(x => SelectedZonaId <= 0 || x.IdZona == SelectedZonaId)
+        .Select(x => new MesaItem(
+            x.Id,
+            x.NombreMesa,
+            x.EstadoMesa == 1,
+            x.Id == SelectedMesaId,
+            NombreVendedorMesa(x.NombreMesa)));
+
+    private IEnumerable<CategoriaItem> Categorias => (CajaData?.Categorias ?? [])
+        .Where(x => x.Visible == 1 || x.Visible == 0)
+        .Select(x => new CategoriaItem(x.Id, x.NombreCategoria, x.Id == SelectedCategoriaId));
+
+    private IEnumerable<ProductoItem> Productos => (CajaData?.Productos ?? [])
+        .Where(x => x.EstadoProducto == 1 && x.EstadoPresentacion == 1)
+        .Where(x => SelectedCategoriaId <= 0 || x.IdCategoria == SelectedCategoriaId)
+        .Where(x => string.IsNullOrWhiteSpace(BusquedaProducto) ||
+                    x.NombreProducto.Contains(BusquedaProducto, StringComparison.OrdinalIgnoreCase) ||
+                    x.CodigoProducto.Contains(BusquedaProducto, StringComparison.OrdinalIgnoreCase))
+        .Select(x => new ProductoItem(x.IdPresentacion, x.IdCategoria, x.NombreProducto, FormatearMoneda(x.PrecioVenta)));
+
+    private IEnumerable<CuentaClienteItem> CuentasCliente => (CajaData?.CuentasCliente ?? [])
+        .Where(x => !x.Eliminada)
+        .Select(x => new CuentaClienteItem(x.Id, x.NombreCuenta, FormatearMoneda(x.TotalAPagar), x.Id == SelectedCuentaClienteId));
+
+    private IEnumerable<DetalleItem> Detalles => (CajaData?.Detalles ?? [])
+        .Where(x => x.EstadoDetalle == 1)
+        .Where(x => SelectedCuentaClienteId <= 0 || x.IdCuentaCliente == SelectedCuentaClienteId)
+        .Select(x => new DetalleItem(
+            x.Id,
+            x.NombreProducto,
+            FormatearMoneda(x.PrecioVenta),
+            x.Unidad.ToString("0.###", CultureInfo.InvariantCulture),
+            string.IsNullOrWhiteSpace(x.Adiciones) || x.Adiciones == "--" ? "Sin observacion" : x.Adiciones,
+            FormatearMoneda(x.TotalDetalle),
+            string.IsNullOrWhiteSpace(x.NombreCuenta) ? "Cuenta General" : x.NombreCuenta,
+            x.ItemComandado == 0));
+
+    private VentaCajaData? VentaActual => SelectedCuentaClienteId <= 0 ? CajaData?.VentaActiva : null;
+    private CuentaClienteCajaData? CuentaClienteActual => SelectedCuentaClienteId > 0 ? CajaData?.CuentasCliente.FirstOrDefault(x => x.Id == SelectedCuentaClienteId) : null;
+
+    private string ResumenSubtotal => FormatearMoneda(CuentaClienteActual?.SubtotalVenta ?? VentaActual?.SubtotalVenta ?? 0m);
+    private string ResumenImpuestos => FormatearMoneda(CuentaClienteActual?.IvaVenta ?? VentaActual?.IvaVenta ?? 0m);
+    private string ResumenTotal1 => FormatearMoneda(CuentaClienteActual?.TotalVenta ?? VentaActual?.TotalVenta ?? 0m);
+    private string ResumenPropina => FormatearMoneda(CuentaClienteActual?.Propina ?? VentaActual?.Propina ?? 0m);
+    private string ResumenTotal2 => FormatearMoneda(CuentaClienteActual?.TotalAPagar ?? VentaActual?.TotalAPagar ?? 0m);
+    private string ResumenPorcentajePropina => $"{((CuentaClienteActual?.PorcentajePropina ?? VentaActual?.PorcentajePropina ?? 0m) * 100m):0.#}%";
+
+    protected override async Task OnInitializedAsync() => await RecargarCajaAsync();
+
+    private async Task RecargarCajaAsync()
+    {
+        if (SessionState.Vendedor is null)
+        {
+            LoadError = "La sesion no tiene un vendedor activo.";
+            IsLoading = false;
+            return;
+        }
+
+        try
+        {
+            SetLoadingState("Sincronizando", "Actualizando caja", "Estamos consultando la informacion real desde SQL Server.");
+            LoadError = null;
+
+            CajaData = await CajaDataService.LoadCajaAsync(DbVisual, SessionState.Vendedor, SessionState.DbConexion, SelectedCuentaId);
+            SelectedCuentaId = CajaData.Cuentas.FirstOrDefault(x => x.Id == SelectedCuentaId)?.Id ?? CajaData.Cuentas.FirstOrDefault()?.Id ?? 0;
+
+            var relacionMesaActiva = CajaData.RelacionesVentaMesa.FirstOrDefault(x => x.IdVenta == SelectedCuentaId);
+            SelectedMesaId = relacionMesaActiva?.IdMesa ?? 0;
+
+            if (relacionMesaActiva is not null)
+            {
+                var mesaActiva = CajaData.Mesas.FirstOrDefault(x => x.Id == relacionMesaActiva.IdMesa);
+                SelectedZonaId = mesaActiva?.IdZona ?? CajaData.Zonas.FirstOrDefault(x => x.Id == SelectedZonaId)?.Id ?? CajaData.Zonas.FirstOrDefault()?.Id ?? 0;
+            }
+            else
+            {
+                SelectedZonaId = CajaData.Zonas.FirstOrDefault(x => x.Id == SelectedZonaId)?.Id ?? CajaData.Zonas.FirstOrDefault()?.Id ?? 0;
+            }
+
+            SelectedCategoriaId = CajaData.Categorias.FirstOrDefault(x => x.Id == SelectedCategoriaId)?.Id ?? CajaData.Categorias.FirstOrDefault()?.Id ?? 0;
+            if (SelectedCuentaClienteId > 0 && !CajaData.CuentasCliente.Any(x => x.Id == SelectedCuentaClienteId))
+            {
+                SelectedCuentaClienteId = 0;
+            }
+
+            SincronizarCantidadesDetalle();
+        }
+        catch (Exception ex)
+        {
+            LoadError = $"No fue posible cargar la caja con informacion real. {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SeleccionarCuentaAsync(int cuentaId)
+    {
+        SelectedCuentaId = cuentaId;
+        SelectedCuentaClienteId = 0;
+        await RecargarCajaAsync();
+    }
+
+    private void SeleccionarZona(int zonaId) => SelectedZonaId = zonaId;
+    private void SeleccionarCategoria(int categoriaId) => SelectedCategoriaId = categoriaId;
+    private void SeleccionarCuentaCliente(int cuentaClienteId) => SelectedCuentaClienteId = cuentaClienteId;
+    private void LimpiarBusquedaProducto() => BusquedaProducto = string.Empty;
+
+    private async Task NuevoServicioAsync()
+    {
+        if (SessionState.Vendedor is null)
+        {
+            MostrarMensaje("No hay un vendedor activo en la sesion.", true);
+            return;
+        }
+
+        try
+        {
+            SetLoadingState("Creando", "Nuevo servicio", "Estamos creando un servicio real en la base de datos.");
+            var idVenta = await CajaDataService.CrearNuevoServicioAsync(DbVisual, SessionState.Vendedor, SessionState.Sede, SessionState.BaseCaja);
+            SelectedCuentaId = idVenta;
+            SelectedCuentaClienteId = 0;
+            await RecargarCajaAsync();
+            MostrarMensaje($"Servicio #{idVenta} creado con exito.", false);
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            MostrarMensaje(ex.Message, true);
+        }
+    }
+
+    private async Task AbrirMesaAsync(int mesaId)
+    {
+        var mesa = CajaData?.Mesas.FirstOrDefault(x => x.Id == mesaId);
+        if (mesa is null)
+        {
+            MostrarMensaje("No se encontro la mesa seleccionada.", true);
+            return;
+        }
+
+        var cuentaMesa = ObtenerCuentaPorMesa(mesaId);
+        if (!PuedeGestionarMesa(cuentaMesa))
+        {
+            var nombreVendedor = string.IsNullOrWhiteSpace(cuentaMesa?.NombreVendedor) ? "otro mesero" : cuentaMesa!.NombreVendedor;
+            MostrarMensaje($"La {mesa.NombreMesa} pertenece a {nombreVendedor}. Con meseros compartidos desactivado solo puedes verla, no gestionarla.", true);
+            return;
+        }
+
+        SelectedMesaId = mesaId;
+        MesaSeleccionadaModal = mesa;
+        CuentaMesaModal = cuentaMesa;
+        MesaStatusHasError = false;
+        MesaStatusModal = null;
+        ShowMesaModal = true;
+        await Task.CompletedTask;
+    }
+
+    private async Task CrearServicioEnMesaAsync()
+    {
+        if (SessionState.Vendedor is null || MesaSeleccionadaModal is null)
+        {
+            MostrarMensaje("No hay contexto suficiente para crear el servicio.", true);
+            return;
+        }
+
+        try
+        {
+            IsMesaActionRunning = true;
+            SetLoadingState("Preparando", "Creando servicio", $"Estamos creando un servicio para {MesaSeleccionadaModal.NombreMesa}.");
+            var idVenta = await CajaDataService.CrearServicioEnMesaAsync(DbVisual, MesaSeleccionadaModal.Id, SessionState.Vendedor, SessionState.Sede, SessionState.BaseCaja);
+            ShowMesaModal = false;
+            SelectedCuentaId = idVenta;
+            SelectedCuentaClienteId = 0;
+            await RecargarCajaAsync();
+            MostrarMensaje($"La mesa {MesaSeleccionadaModal.NombreMesa} quedo relacionada con la cuenta {idVenta}.", false);
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            MesaStatusHasError = true;
+            MesaStatusModal = ex.Message;
+        }
+        finally
+        {
+            IsMesaActionRunning = false;
+        }
+    }
+
+    private async Task IrAServicioMesaAsync()
+    {
+        if (CuentaMesaModal is null)
+        {
+            return;
+        }
+
+        ShowMesaModal = false;
+        SelectedCuentaId = CuentaMesaModal.Id;
+        SelectedCuentaClienteId = 0;
+        await RecargarCajaAsync();
+    }
+
+    private async Task LiberarMesaAsync()
+    {
+        if (MesaSeleccionadaModal is null)
+        {
+            return;
+        }
+
+        IsMesaActionRunning = true;
+        var resultado = await CajaDataService.LiberarMesaAsync(DbVisual, MesaSeleccionadaModal.Id);
+        IsMesaActionRunning = false;
+
+        if (!resultado.Success)
+        {
+            MesaStatusHasError = true;
+            MesaStatusModal = resultado.Message;
+            return;
+        }
+
+        ShowMesaModal = false;
+        await RecargarCajaAsync();
+        MostrarMensaje(resultado.Message, false);
+    }
+
+    private async Task AgregarProductoAsync(int idPresentacion)
+    {
+        if (SelectedCuentaId <= 0)
+        {
+            MostrarMensaje("No hay un servicio activo para agregar productos.", true);
+            return;
+        }
+
+        var producto = CajaData?.Productos.FirstOrDefault(x => x.IdPresentacion == idPresentacion);
+        var cantidad = ObtenerCantidadProducto(idPresentacion);
+        if (producto is null || cantidad <= 0)
+        {
+            MostrarMensaje("No fue posible interpretar el producto a agregar.", true);
+            return;
+        }
+
+        SetLoadingState("Agregando", "Guardando producto", $"Estamos agregando {producto.NombreProducto} a la cuenta activa.");
+        var resultado = await CajaDataService.AgregarProductoAsync(DbVisual, SelectedCuentaId, idPresentacion, cantidad, SelectedCuentaClienteId);
+        if (!resultado.Success)
+        {
+            IsLoading = false;
+            MostrarMensaje(resultado.Message, true);
+            return;
+        }
+
+        ProductoCantidades[idPresentacion] = 1m;
+        SelectedCategoriaId = producto.IdCategoria;
+        await RecargarCajaAsync();
+        MostrarMensaje(resultado.Message, false);
+    }
+
+    private void AbrirModalNuevaCuenta()
+    {
+        NuevaCuentaNombre = string.Empty;
+        ShowNuevaCuentaModal = true;
+    }
+
+    private void CerrarModalNuevaCuenta()
+    {
+        if (!IsCuentaActionRunning)
+        {
+            ShowNuevaCuentaModal = false;
+        }
+    }
+
+    private async Task CrearCuentaClienteAsync()
+    {
+        if (SelectedCuentaId <= 0)
+        {
+            MostrarMensaje("No hay un servicio activo para crear la cuenta.", true);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NuevaCuentaNombre) || NuevaCuentaNombre.Trim().Length < 2)
+        {
+            MostrarMensaje("El nombre de la cuenta debe tener minimo 2 caracteres.", true);
+            return;
+        }
+
+        try
+        {
+            IsCuentaActionRunning = true;
+            SetLoadingState("Organizando", "Creando cuenta", "Estamos creando una cuenta cliente dentro del servicio activo.");
+            var idCuenta = await CajaDataService.CrearCuentaClienteAsync(DbVisual, SelectedCuentaId, NuevaCuentaNombre.Trim(), SessionState.Sede);
+            SelectedCuentaClienteId = idCuenta;
+            ShowNuevaCuentaModal = false;
+            await RecargarCajaAsync();
+            MostrarMensaje("Cuenta creada correctamente.", false);
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            MostrarMensaje(ex.Message, true);
+        }
+        finally
+        {
+            IsCuentaActionRunning = false;
+        }
+    }
+
+    private void AbrirModalNota(int idDetalle)
+    {
+        NotaDetalleId = idDetalle;
+        NotaDetalleTexto = CajaData?.Detalles.FirstOrDefault(x => x.Id == idDetalle)?.Adiciones is { Length: > 0 } nota && nota != "--"
+            ? nota
+            : string.Empty;
+        ShowNotaModal = true;
+    }
+
+    private void CerrarModalNota()
+    {
+        if (!IsDetalleActionRunning)
+        {
+            ShowNotaModal = false;
+            NotaDetalleId = 0;
+            NotaDetalleTexto = string.Empty;
+        }
+    }
+
+    private async Task GuardarNotaDetalleAsync()
+    {
+        if (NotaDetalleId <= 0)
+        {
+            MostrarMensaje("No se encontro el detalle a actualizar.", true);
+            return;
+        }
+
+        IsDetalleActionRunning = true;
+        var resultado = await CajaDataService.ActualizarNotaDetalleAsync(DbVisual, NotaDetalleId, NotaDetalleTexto);
+        IsDetalleActionRunning = false;
+
+        if (!resultado.Success)
+        {
+            MostrarMensaje(resultado.Message, true);
+            return;
+        }
+
+        ShowNotaModal = false;
+        await RecargarCajaAsync();
+        MostrarMensaje(resultado.Message, false);
+    }
+
+    private async Task GuardarCantidadDetalleAsync(int idDetalle)
+    {
+        var cantidad = ObtenerCantidadDetalle(idDetalle);
+        if (cantidad <= 0)
+        {
+            MostrarMensaje("La cantidad debe ser mayor a cero.", true);
+            return;
+        }
+
+        var resultado = await CajaDataService.ActualizarCantidadDetalleAsync(DbVisual, idDetalle, cantidad);
+        if (!resultado.Success)
+        {
+            MostrarMensaje(resultado.Message, true);
+            return;
+        }
+
+        await RecargarCajaAsync();
+        MostrarMensaje(resultado.Message, false);
+    }
+
+    private async Task EliminarDetalleAsync(int idDetalle)
+    {
+        var resultado = await CajaDataService.EliminarDetalleAsync(DbVisual, idDetalle, "Producto eliminado");
+        if (!resultado.Success)
+        {
+            MostrarMensaje(resultado.Message, true);
+            return;
+        }
+
+        await RecargarCajaAsync();
+        MostrarMensaje(resultado.Message, false);
+    }
+
+    private void AbrirModalPropina()
+    {
+        var porcentaje = (CuentaClienteActual?.PorcentajePropina ?? VentaActual?.PorcentajePropina ?? 0m) * 100m;
+        PropinaPorcentajeInput = porcentaje.ToString("0.##", CultureInfo.InvariantCulture);
+        ShowPropinaModal = true;
+    }
+
+    private void CerrarModalPropina()
+    {
+        if (!IsPropinaActionRunning)
+        {
+            ShowPropinaModal = false;
+        }
+    }
+
+    private async Task GuardarPropinaAsync()
+    {
+        if (!decimal.TryParse(PropinaPorcentajeInput.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var porcentaje) || porcentaje < 0)
+        {
+            MostrarMensaje("Ingresa un porcentaje valido para el servicio.", true);
+            return;
+        }
+
+        var subtotal = CuentaClienteActual?.SubtotalVenta ?? VentaActual?.SubtotalVenta ?? 0m;
+        var propina = Math.Round(subtotal * (porcentaje / 100m), 0, MidpointRounding.AwayFromZero);
+
+        IsPropinaActionRunning = true;
+        var resultado = await CajaDataService.EditarPropinaAsync(DbVisual, SelectedCuentaId, SelectedCuentaClienteId, porcentaje, propina);
+        IsPropinaActionRunning = false;
+
+        if (!resultado.Success)
+        {
+            MostrarMensaje(resultado.Message, true);
+            return;
+        }
+
+        ShowPropinaModal = false;
+        await RecargarCajaAsync();
+        MostrarMensaje(resultado.Message, false);
+    }
+
+    private async Task ComandarAsync()
+    {
+        var detallesPendientes = (CajaData?.Detalles ?? []).Where(x => x.EstadoDetalle == 1 && x.ItemComandado == 0).ToList();
+        if (!detallesPendientes.Any())
+        {
+            MostrarMensaje("No hay items pendientes por comandar.", true);
+            return;
+        }
+
+        if (SelectedMesaId <= 0)
+        {
+            MostrarMensaje("La cuenta activa no tiene una mesa asociada para comandar.", true);
+            return;
+        }
+
+        SetLoadingState("Enviando", "Comanda en proceso", "Estamos enviando la comanda al flujo real de impresion.");
+        var resultado = await CajaDataService.EnviarComandaAsync(DbVisual, SelectedCuentaId, SelectedMesaId, SessionState.Vendedor?.Id ?? 0);
+        IsLoading = false;
+        MostrarMensaje(resultado.Message, !resultado.Success);
+    }
+
+    private async Task SolicitarCuentaAsync()
+    {
+        if (SelectedCuentaId <= 0)
+        {
+            MostrarMensaje("No hay un servicio activo para imprimir la cuenta.", true);
+            return;
+        }
+
+        SetLoadingState("Enviando", "Solicitando cuenta", "Estamos enviando la cuenta a impresion.");
+        var resultado = await CajaDataService.SolicitarCuentaAsync(DbVisual, SelectedCuentaId);
+        IsLoading = false;
+        MostrarMensaje(resultado.Message, !resultado.Success);
+    }
+
+    private Task CobrarPendiente()
+    {
+        MostrarMensaje("La pagina de cobro todavia no esta migrada en Blazor. Ya dejamos lista la caja para conectarla con ese siguiente modulo.", false);
+        return Task.CompletedTask;
+    }
+
+    private Task DomicilioPendiente()
+    {
+        MostrarMensaje("La logica de domicilio sera la siguiente fase de migracion de caja.", false);
+        return Task.CompletedTask;
+    }
+
+    private Task EliminarServicioPendiente()
+    {
+        MostrarMensaje("La eliminacion completa del servicio sigue pendiente de migrar para no correr riesgos.", false);
+        return Task.CompletedTask;
+    }
+
+    private Task VentasPendiente()
+    {
+        MostrarMensaje("La vista de ventas historicas todavia no esta migrada en Blazor.", false);
+        return Task.CompletedTask;
+    }
+
+    private Task GastosPendiente()
+    {
+        MostrarMensaje("La vista de gastos todavia no esta migrada en Blazor.", false);
+        return Task.CompletedTask;
+    }
+
+    private Task DetallePendiente()
+    {
+        MostrarMensaje("Esta accion detallada sigue pendiente de migracion en esta fase.", false);
+        return Task.CompletedTask;
+    }
+
+    private string NombreVendedorMesa(string nombreMesa)
+    {
+        var cuentaMesa = (CajaData?.CuentasMesasVista ?? []).FirstOrDefault(x => string.Equals(x.NombreMesa?.Trim(), nombreMesa?.Trim(), StringComparison.OrdinalIgnoreCase));
+        return cuentaMesa is null ? string.Empty : NombreVendedorCorto(cuentaMesa.NombreVendedor);
+    }
+
+    private CuentaCajaData? ObtenerCuentaPorMesa(int idMesa)
+    {
+        var relacion = CajaData?.RelacionesVentaMesa.FirstOrDefault(x => x.IdMesa == idMesa);
+        if (relacion is null)
+        {
+            return null;
+        }
+
+        return (CajaData?.CuentasMesasVista ?? []).FirstOrDefault(x => x.Id == relacion.IdVenta)
+               ?? (CajaData?.Cuentas ?? []).FirstOrDefault(x => x.Id == relacion.IdVenta);
+    }
+
+    private bool PuedeGestionarMesa(CuentaCajaData? cuentaMesa)
+    {
+        if (SessionState.Vendedor?.CajaMovil == 1)
+        {
+            return true;
+        }
+
+        if (SessionState.DbConexion?.MeserosCompartidos == true)
+        {
+            return true;
+        }
+
+        if (cuentaMesa is null)
+        {
+            return true;
+        }
+
+        return cuentaMesa.IdVendedor == SessionState.Vendedor?.Id;
+    }
+
+    private decimal ObtenerCantidadProducto(int idPresentacion)
+    {
+        if (!ProductoCantidades.TryGetValue(idPresentacion, out var cantidad) || cantidad <= 0)
+        {
+            ProductoCantidades[idPresentacion] = 1m;
+            return 1m;
+        }
+
+        return cantidad;
+    }
+
+    private void CambiarCantidadProducto(int idPresentacion, decimal delta)
+    {
+        var valor = ObtenerCantidadProducto(idPresentacion);
+        ProductoCantidades[idPresentacion] = Math.Max(1m, valor + delta);
+    }
+
+    private void CambiarCantidadProductoInput(int idPresentacion, ChangeEventArgs e)
+    {
+        if (decimal.TryParse((Convert.ToString(e.Value) ?? "1").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var cantidad))
+        {
+            ProductoCantidades[idPresentacion] = Math.Max(1m, cantidad);
+        }
+    }
+
+    private decimal ObtenerCantidadDetalle(int idDetalle)
+    {
+        if (!DetalleCantidades.TryGetValue(idDetalle, out var cantidad) || cantidad <= 0)
+        {
+            var valor = CajaData?.Detalles.FirstOrDefault(x => x.Id == idDetalle)?.Unidad ?? 1m;
+            DetalleCantidades[idDetalle] = Math.Max(1m, valor);
+            return DetalleCantidades[idDetalle];
+        }
+
+        return cantidad;
+    }
+
+    private void CambiarCantidadDetalle(int idDetalle, decimal delta)
+    {
+        var valor = ObtenerCantidadDetalle(idDetalle);
+        DetalleCantidades[idDetalle] = Math.Max(1m, valor + delta);
+    }
+
+    private void CambiarCantidadDetalleInput(int idDetalle, ChangeEventArgs e)
+    {
+        if (decimal.TryParse((Convert.ToString(e.Value) ?? "1").Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var cantidad))
+        {
+            DetalleCantidades[idDetalle] = Math.Max(1m, cantidad);
+        }
+    }
+
+    private void SincronizarCantidadesDetalle()
+    {
+        DetalleCantidades.Clear();
+        foreach (var detalle in CajaData?.Detalles ?? [])
+        {
+            DetalleCantidades[detalle.Id] = Math.Max(1m, detalle.Unidad);
+        }
+    }
+
+    private void SetLoadingState(string kicker, string title, string copy)
+    {
+        LoadingKicker = kicker;
+        LoadingTitle = title;
+        LoadingCopy = copy;
+        IsLoading = true;
+    }
+
+    private void MostrarMensaje(string mensaje, bool esError)
+    {
+        PageMessage = mensaje;
+        PageMessageHasError = esError;
+    }
+
+    private void LimpiarMensajePagina()
+    {
+        PageMessage = null;
+        PageMessageHasError = false;
+    }
+
+    private static string NombreVendedorCorto(string? nombre)
+    {
+        if (string.IsNullOrWhiteSpace(nombre)) return string.Empty;
+        var partes = nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (partes.Length < 2) return partes[0];
+        var dos = $"{partes[0]} {partes[1]}";
+        return dos.Length <= 18 ? dos : $"{partes[0]} {partes[1][0]}.";
+    }
+
+    private static string FormatearMoneda(decimal valor) => valor.ToString("C0", CultureInfo.GetCultureInfo("es-CO"));
+
+    private void CerrarModalMesa()
+    {
+        if (IsMesaActionRunning)
+        {
+            return;
+        }
+
+        ShowMesaModal = false;
+        MesaStatusModal = null;
+        MesaStatusHasError = false;
+    }
+
+    private void AbrirModalCierreCaja()
+    {
+        CajaStatusHasError = false;
+        CajaStatusMessage = null;
+        ObservacionCierre = string.Empty;
+        ShowCerrarCajaModal = true;
+    }
+
+    private void CancelarCierreCaja()
+    {
+        if (IsClosingCaja) return;
+        ShowCerrarCajaModal = false;
+        CajaStatusMessage = null;
+        CajaStatusHasError = false;
+    }
+
+    private async Task ConfirmarCierreCajaAsync()
+    {
+        if (SessionState.BaseCaja is null)
+        {
+            CajaStatusHasError = true;
+            CajaStatusMessage = "No se encontro una caja activa para cerrar.";
+            return;
+        }
+
+        IsClosingCaja = true;
+        CajaStatusHasError = false;
+        CajaStatusMessage = "Cerrando caja...";
+        var response = await LoginDataService.CerrarBaseCajaAsync(DbVisual, SessionState.BaseCaja, SessionState.Vendedor);
+        IsClosingCaja = false;
+
+        if (!response.Success)
+        {
+            CajaStatusHasError = true;
+            CajaStatusMessage = response.Message;
+            return;
+        }
+
+        SessionState.SetBaseCaja(response.BaseCaja);
+        ShowCerrarCajaModal = false;
+        SessionState.Clear();
+        NavigationManager.NavigateTo($"/login?db={Uri.EscapeDataString(DbVisual)}", forceLoad: false);
+    }
+
+    private void CerrarSesion()
+    {
+        SessionState.Clear();
+        NavigationManager.NavigateTo($"/login?db={Uri.EscapeDataString(DbVisual)}", forceLoad: false);
+    }
+
+    private sealed record CuentaCard(int Id, string Alias, string Mesa, string Vendedor, bool Activa);
+    private sealed record ZonaItem(int Id, string Nombre, bool Activa);
+    private sealed record MesaItem(int Id, string Nombre, bool Ocupada, bool Seleccionada, string Vendedor);
+    private sealed record CategoriaItem(int Id, string Nombre, bool Activa);
+    private sealed record ProductoItem(int Id, int IdCategoria, string Nombre, string Precio);
+    private sealed record CuentaClienteItem(int Id, string Nombre, string Total, bool Activa);
+    private sealed record DetalleItem(int Id, string Nombre, string Precio, string Cantidad, string Nota, string Total, string Cuenta, bool PendienteComanda);
+}

@@ -1,0 +1,33 @@
+@page "/mesas"
+
+<PageTitle>Mesas</PageTitle>
+
+<section class="page-header">
+    <div>
+        <div class="eyebrow">Operacion</div>
+        <h1>Vista base de mesas</h1>
+    </div>
+    <button class="btn btn-outline-dark">Actualizar estado</button>
+</section>
+
+<section class="zone-strip">
+    <button class="zone-chip active">Salon principal</button>
+    <button class="zone-chip">Terraza</button>
+    <button class="zone-chip">VIP</button>
+    <button class="zone-chip">Domicilios</button>
+</section>
+
+<section class="mesas-grid">
+    @for (var i = 1; i <= 12; i++)
+    {
+        var ocupada = i % 3 == 0 || i % 4 == 0;
+        <article class="mesa-card @(ocupada ? "ocupada" : "libre")">
+            <div class="mesa-top">
+                <span>Mesa @i</span>
+                <span class="mesa-badge">@(ocupada ? "Ocupada" : "Libre")</span>
+            </div>
+            <strong>@(ocupada ? "Servicio activo" : "Disponible")</strong>
+            <p>@(ocupada ? "2 cuentas abiertas · Mesero asignado" : "Lista para crear un nuevo servicio")</p>
+        </article>
+    }
+</section>

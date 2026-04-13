@@ -31,7 +31,10 @@ namespace WebApplication
             {
                 //Session["db"] = ClassConexionDinamica.db;
                 Response.Redirect("Salir.aspx");
+                return;
             }
+
+            Page.RegisterAsyncTask(new PageAsyncTask(() => AdminControlAccessHelper.AplicarControlAsync(Page)));
         }
 
         protected override void OnPreRender(EventArgs e)

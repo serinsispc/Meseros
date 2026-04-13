@@ -22,6 +22,10 @@
     }
 
     function ccPrepareTicketWindow() {
+        if (window.ccMostrarCierreCaja !== true) {
+            return;
+        }
+
         try {
             sessionStorage.setItem('cc_print_after_close', '1');
         } catch (e) {

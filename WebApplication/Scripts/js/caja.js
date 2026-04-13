@@ -203,6 +203,15 @@ window.CajaConfig = window.CajaConfig || {};
         hidAccion.value = accion || "";
         hidArgumento.value = argumento || "";
 
+        const buscador = document.getElementById("btnbuscar");
+        if (buscador) {
+            buscador.value = "";
+
+            if (window.CajaBuscador && typeof window.CajaBuscador.apply === "function") {
+                window.CajaBuscador.apply("");
+            }
+        }
+
         const mostrarLoader = accion !== "SeleccionarCategoria";
 
         if (mostrarLoader && window.SerinsisLoading && typeof window.SerinsisLoading.show === "function") {

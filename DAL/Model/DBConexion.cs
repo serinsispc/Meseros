@@ -70,6 +70,7 @@ namespace DAL.Model
         public bool BuscarProductoPategoria { get; set; }
         public bool CuentaSinImpusto { get; set; }
         public bool MostrarCantidadProductoEnCaja { get; set; }
+        public bool meserosCompartidos { get; set; }
         public bool RutaImg { get; set; }
         public bool ListadoItenVentasUnico { get; set; }
         public bool PermisoAdmin { get; set; }
