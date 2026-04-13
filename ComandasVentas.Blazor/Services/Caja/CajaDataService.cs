@@ -25,6 +25,7 @@ public sealed class CajaDataService(IConfiguration configuration)
         var cuentas = await LoadCuentasAsync(connection, vendedor, dbConexion, cancellationToken);
         var cuentasMesasVista = await LoadCuentasMesasVistaAsync(connection, cancellationToken);
         var relacionesVentaMesa = await LoadRelacionesVentaMesaAsync(connection, cancellationToken);
+        var adiciones = await LoadAdicionesAsync(connection, cancellationToken);
         var zonas = await LoadZonasAsync(connection, cancellationToken);
         var mesas = await LoadMesasAsync(connection, cancellationToken);
         var categorias = await LoadCategoriasAsync(connection, cancellationToken);
@@ -49,6 +50,7 @@ public sealed class CajaDataService(IConfiguration configuration)
             Cuentas = cuentas,
             CuentasMesasVista = cuentasMesasVista,
             RelacionesVentaMesa = relacionesVentaMesa,
+            Adiciones = adiciones,
             Zonas = zonas,
             Mesas = mesas,
             Categorias = categorias,
@@ -149,6 +151,27 @@ public sealed class CajaDataService(IConfiguration configuration)
         {
             Id = GetInt(reader, "id"),
             NombreZona = GetString(reader, "nombreZona")
+        }, cancellationToken);
+    }
+
+    private async Task<List<CategoriaAdicionCajaData>> LoadAdicionesAsync(SqlConnection connection, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT id, idCategoria, idAdicion, nombreCategoria, nombreAdicion, estado
+            FROM V_CatagoriaAdicion
+            WHERE estado = 1
+            ORDER BY idCategoria, nombreAdicion
+            """;
+
+        await using var command = new SqlCommand(sql, connection);
+        return await ReadListAsync(command, reader => new CategoriaAdicionCajaData
+        {
+            Id = GetInt(reader, "id"),
+            IdCategoria = GetInt(reader, "idCategoria"),
+            IdAdicion = GetInt(reader, "idAdicion"),
+            NombreCategoria = GetString(reader, "nombreCategoria"),
+            NombreAdicion = GetString(reader, "nombreAdicion"),
+            Estado = GetInt(reader, "estado")
         }, cancellationToken);
     }
 

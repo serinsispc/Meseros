@@ -41,22 +41,6 @@
         </div>
     }
 
-    @if (!string.IsNullOrWhiteSpace(PageMessage))
-    {
-        <div class="caja-status-banner @(PageMessageHasError ? "is-error" : "is-success") m-3" role="alert">
-            <div class="caja-status-icon">
-                <i class="bi @(PageMessageHasError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill")"></i>
-            </div>
-            <div class="caja-status-copy">
-                <div class="caja-status-title">@(PageMessageHasError ? "Atencion" : "Listo")</div>
-                <div class="caja-status-text">@PageMessage</div>
-            </div>
-            <button type="button" class="caja-status-close" @onclick="LimpiarMensajePagina">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    }
-
     <div class="row g-1 h-100">
         <section class="col-12 col-xl-8 d-flex flex-column">
             <div class="panel panel-alto-auto b-orange mb-1 py-2 border-0">
@@ -67,7 +51,7 @@
                     </div>
 
                     <div class="acciones-top d-flex flex-wrap gap-2">
-                        <button type="button" class="btn-top btn-actualizar" @onclick="RecargarCajaAsync"><i class="bi bi-arrow-clockwise"></i>Actualizar</button>
+                        <button type="button" class="btn-top btn-actualizar" @onclick="@(async () => await RecargarCajaAsync())"><i class="bi bi-arrow-clockwise"></i>Actualizar</button>
                         <button type="button" class="btn-top btn-nuevo" @onclick="NuevoServicioAsync"><i class="bi bi-plus-circle-fill"></i>Nuevo Servicio</button>
                         <button type="button" class="btn-top btn-domicilio" @onclick="DomicilioPendiente"><i class="bi bi-house-door-fill"></i>Domicilio</button>
                         <button type="button" class="btn-top btn-logout" @onclick="EliminarServicioPendiente"><i class="bi bi-trash3-fill"></i>Eliminar servicio</button>
@@ -365,6 +349,31 @@
                     <button type="button" class="btn-close" @onclick="CerrarModalNota"></button>
                 </div>
                 <div class="modal-body">
+                    @if (NotasRapidas.Any())
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                <label class="form-label mb-0">Notas rapidas</label>
+                                <button type="button" class="caja-nota-clear" @onclick="LimpiarNotaCompleta">Borrar todo</button>
+                            </div>
+                            <div class="caja-notas-rapidas">
+                                @foreach (var notaRapida in NotasRapidas)
+                                {
+                                    <button type="button"
+                                            class="caja-nota-chip @(NotaRapidaActiva(notaRapida) ? "is-active" : string.Empty)"
+                                            @onclick="@(() => ToggleNotaRapida(notaRapida))">
+                                        @notaRapida
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="caja-nota-clear" @onclick="LimpiarNotaCompleta">Borrar todo</button>
+                        </div>
+                    }
                     <textarea class="form-control" rows="4" @bind="NotaDetalleTexto"></textarea>
                 </div>
                 <div class="modal-footer">
@@ -428,6 +437,23 @@
     <div class="modal-backdrop fade show"></div>
 }
 
+@if (ShowAlertModerno)
+{
+    <div class="caja-alertmoderno-backdrop" @onclick="CerrarAlertModerno">
+        <div class="caja-alertmoderno @(AlertModernoEsError ? "is-error" : "is-success")" @onclick:stopPropagation="true" role="alert" aria-live="assertive">
+            <button type="button" class="caja-alertmoderno-close" @onclick="CerrarAlertModerno">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <div class="caja-alertmoderno-icon">
+                <i class="bi @(AlertModernoEsError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill")"></i>
+            </div>
+            <div class="caja-alertmoderno-title">@(AlertModernoEsError ? "Atencion" : "Listo")</div>
+            <div class="caja-alertmoderno-text">@AlertModernoMensaje</div>
+            <button type="button" class="caja-alertmoderno-accept" @onclick="CerrarAlertModerno">Aceptar</button>
+        </div>
+    </div>
+}
+
 @code {
     [SupplyParameterFromQuery] private string? Db { get; set; }
 
@@ -443,8 +469,10 @@
     private string LoadingKicker = "Procesando";
     private string LoadingTitle = "Cargando caja";
     private string LoadingCopy = "Estamos consultando la informacion real desde SQL Server.";
-    private string? PageMessage;
-    private bool PageMessageHasError;
+    private bool ShowAlertModerno;
+    private string AlertModernoMensaje = string.Empty;
+    private bool AlertModernoEsError;
+    private CancellationTokenSource? AlertModernoCts;
 
     private bool ShowCerrarCajaModal;
     private bool IsClosingCaja;
@@ -469,6 +497,7 @@
     private bool ShowNotaModal;
     private bool IsDetalleActionRunning;
     private int NotaDetalleId;
+    private int NotaDetalleCategoriaId;
     private string NotaDetalleTexto = string.Empty;
 
     private bool ShowPropinaModal;
@@ -527,6 +556,11 @@
             string.IsNullOrWhiteSpace(x.NombreCuenta) ? "Cuenta General" : x.NombreCuenta,
             x.ItemComandado == 0));
 
+    private IEnumerable<string> NotasRapidas => (CajaData?.Adiciones ?? [])
+        .Where(x => x.IdCategoria == NotaDetalleCategoriaId && !string.IsNullOrWhiteSpace(x.NombreAdicion))
+        .Select(x => x.NombreAdicion.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase);
+
     private VentaCajaData? VentaActual => SelectedCuentaClienteId <= 0 ? CajaData?.VentaActiva : null;
     private CuentaClienteCajaData? CuentaClienteActual => SelectedCuentaClienteId > 0 ? CajaData?.CuentasCliente.FirstOrDefault(x => x.Id == SelectedCuentaClienteId) : null;
 
@@ -539,7 +573,7 @@
 
     protected override async Task OnInitializedAsync() => await RecargarCajaAsync();
 
-    private async Task RecargarCajaAsync()
+    private async Task RecargarCajaAsync(bool showLoader = true)
     {
         if (SessionState.Vendedor is null)
         {
@@ -550,7 +584,10 @@
 
         try
         {
-            SetLoadingState("Sincronizando", "Actualizando caja", "Estamos consultando la informacion real desde SQL Server.");
+            if (showLoader)
+            {
+                SetLoadingState("Sincronizando", "Actualizando caja", "Estamos consultando la informacion real desde SQL Server.");
+            }
             LoadError = null;
 
             CajaData = await CajaDataService.LoadCajaAsync(DbVisual, SessionState.Vendedor, SessionState.DbConexion, SelectedCuentaId);
@@ -583,7 +620,10 @@
         }
         finally
         {
-            IsLoading = false;
+            if (showLoader)
+            {
+                IsLoading = false;
+            }
         }
     }
 
@@ -591,7 +631,7 @@
     {
         SelectedCuentaId = cuentaId;
         SelectedCuentaClienteId = 0;
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
     }
 
     private void SeleccionarZona(int zonaId) => SelectedZonaId = zonaId;
@@ -613,7 +653,7 @@
             var idVenta = await CajaDataService.CrearNuevoServicioAsync(DbVisual, SessionState.Vendedor, SessionState.Sede, SessionState.BaseCaja);
             SelectedCuentaId = idVenta;
             SelectedCuentaClienteId = 0;
-            await RecargarCajaAsync();
+            await RecargarCajaAsync(false);
             MostrarMensaje($"Servicio #{idVenta} creado con exito.", false);
         }
         catch (Exception ex)
@@ -665,7 +705,7 @@
             ShowMesaModal = false;
             SelectedCuentaId = idVenta;
             SelectedCuentaClienteId = 0;
-            await RecargarCajaAsync();
+            await RecargarCajaAsync(false);
             MostrarMensaje($"La mesa {MesaSeleccionadaModal.NombreMesa} quedo relacionada con la cuenta {idVenta}.", false);
         }
         catch (Exception ex)
@@ -690,7 +730,7 @@
         ShowMesaModal = false;
         SelectedCuentaId = CuentaMesaModal.Id;
         SelectedCuentaClienteId = 0;
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
     }
 
     private async Task LiberarMesaAsync()
@@ -712,7 +752,7 @@
         }
 
         ShowMesaModal = false;
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
         MostrarMensaje(resultado.Message, false);
     }
 
@@ -732,18 +772,16 @@
             return;
         }
 
-        SetLoadingState("Agregando", "Guardando producto", $"Estamos agregando {producto.NombreProducto} a la cuenta activa.");
         var resultado = await CajaDataService.AgregarProductoAsync(DbVisual, SelectedCuentaId, idPresentacion, cantidad, SelectedCuentaClienteId);
         if (!resultado.Success)
         {
-            IsLoading = false;
             MostrarMensaje(resultado.Message, true);
             return;
         }
 
         ProductoCantidades[idPresentacion] = 1m;
         SelectedCategoriaId = producto.IdCategoria;
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
         MostrarMensaje(resultado.Message, false);
     }
 
@@ -782,7 +820,7 @@
             var idCuenta = await CajaDataService.CrearCuentaClienteAsync(DbVisual, SelectedCuentaId, NuevaCuentaNombre.Trim(), SessionState.Sede);
             SelectedCuentaClienteId = idCuenta;
             ShowNuevaCuentaModal = false;
-            await RecargarCajaAsync();
+            await RecargarCajaAsync(false);
             MostrarMensaje("Cuenta creada correctamente.", false);
         }
         catch (Exception ex)
@@ -798,8 +836,10 @@
 
     private void AbrirModalNota(int idDetalle)
     {
+        var detalle = CajaData?.Detalles.FirstOrDefault(x => x.Id == idDetalle);
         NotaDetalleId = idDetalle;
-        NotaDetalleTexto = CajaData?.Detalles.FirstOrDefault(x => x.Id == idDetalle)?.Adiciones is { Length: > 0 } nota && nota != "--"
+        NotaDetalleCategoriaId = detalle?.IdCategoria ?? 0;
+        NotaDetalleTexto = detalle?.Adiciones is { Length: > 0 } nota && nota != "--"
             ? nota
             : string.Empty;
         ShowNotaModal = true;
@@ -811,8 +851,50 @@
         {
             ShowNotaModal = false;
             NotaDetalleId = 0;
+            NotaDetalleCategoriaId = 0;
             NotaDetalleTexto = string.Empty;
         }
+    }
+
+    private bool NotaRapidaActiva(string nota)
+    {
+        var tokens = TokenizarNotas(NotaDetalleTexto);
+        return tokens.Contains(nota, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ToggleNotaRapida(string nota)
+    {
+        var tokens = TokenizarNotas(NotaDetalleTexto);
+        var index = tokens.FindIndex(x => string.Equals(x, nota, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0)
+        {
+            tokens.RemoveAt(index);
+        }
+        else
+        {
+            tokens.Add(nota.Trim());
+        }
+
+        NotaDetalleTexto = UnirNotas(tokens);
+    }
+
+    private void LimpiarNotaCompleta()
+    {
+        NotaDetalleTexto = string.Empty;
+    }
+
+    private static List<string> TokenizarNotas(string? texto) =>
+        (texto ?? string.Empty)
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static string UnirNotas(IEnumerable<string> tokens)
+    {
+        var lista = tokens.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList();
+        return lista.Count == 0 ? string.Empty : string.Join("; ", lista) + ";";
     }
 
     private async Task GuardarNotaDetalleAsync()
@@ -834,7 +916,7 @@
         }
 
         ShowNotaModal = false;
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
         MostrarMensaje(resultado.Message, false);
     }
 
@@ -854,7 +936,7 @@
             return;
         }
 
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
         MostrarMensaje(resultado.Message, false);
     }
 
@@ -867,7 +949,7 @@
             return;
         }
 
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
         MostrarMensaje(resultado.Message, false);
     }
 
@@ -908,7 +990,7 @@
         }
 
         ShowPropinaModal = false;
-        await RecargarCajaAsync();
+        await RecargarCajaAsync(false);
         MostrarMensaje(resultado.Message, false);
     }
 
@@ -1091,14 +1173,46 @@
 
     private void MostrarMensaje(string mensaje, bool esError)
     {
-        PageMessage = mensaje;
-        PageMessageHasError = esError;
+        AlertModernoCts?.Cancel();
+        AlertModernoCts?.Dispose();
+        AlertModernoCts = new CancellationTokenSource();
+        AlertModernoMensaje = mensaje;
+        AlertModernoEsError = esError;
+        ShowAlertModerno = true;
+        _ = AutoCerrarAlertModernoAsync(AlertModernoCts.Token);
     }
 
-    private void LimpiarMensajePagina()
+    private void CerrarAlertModerno()
     {
-        PageMessage = null;
-        PageMessageHasError = false;
+        AlertModernoCts?.Cancel();
+        AlertModernoCts?.Dispose();
+        AlertModernoCts = null;
+        ShowAlertModerno = false;
+        AlertModernoMensaje = string.Empty;
+        AlertModernoEsError = false;
+    }
+
+    private async Task AutoCerrarAlertModernoAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(AlertModernoEsError ? 1600 : 1100, cancellationToken);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await InvokeAsync(() =>
+            {
+                ShowAlertModerno = false;
+                AlertModernoMensaje = string.Empty;
+                AlertModernoEsError = false;
+                StateHasChanged();
+            });
+        }
+        catch (TaskCanceledException)
+        {
+        }
     }
 
     private static string NombreVendedorCorto(string? nombre)

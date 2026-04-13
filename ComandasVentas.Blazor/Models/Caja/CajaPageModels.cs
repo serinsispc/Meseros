@@ -5,6 +5,7 @@ public sealed class CajaPageData
     public List<CuentaCajaData> Cuentas { get; init; } = [];
     public List<CuentaCajaData> CuentasMesasVista { get; init; } = [];
     public List<VentaMesaRelacionData> RelacionesVentaMesa { get; init; } = [];
+    public List<CategoriaAdicionCajaData> Adiciones { get; init; } = [];
     public List<ZonaCajaData> Zonas { get; init; } = [];
     public List<MesaCajaData> Mesas { get; init; } = [];
     public List<CategoriaCajaData> Categorias { get; init; } = [];
@@ -109,4 +110,14 @@ public sealed class VentaMesaRelacionData
     public int Id { get; init; }
     public int IdVenta { get; init; }
     public int IdMesa { get; init; }
+}
+
+public sealed class CategoriaAdicionCajaData
+{
+    public int Id { get; init; }
+    public int IdCategoria { get; init; }
+    public int IdAdicion { get; init; }
+    public string NombreCategoria { get; init; } = string.Empty;
+    public string NombreAdicion { get; init; } = string.Empty;
+    public int Estado { get; init; }
 }
