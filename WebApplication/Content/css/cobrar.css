@@ -896,3 +896,28 @@ body {
         gap: 14px;
     }
 }
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .cobrar-top-band {
+        grid-template-columns: 1fr;
+    }
+
+    .cobrar-mode-stack {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+
+    .cobrar-main-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .cobrar-summary-panel {
+        position: static;
+    }
+
+    .save-bar {
+        position: static;
+    }
+}

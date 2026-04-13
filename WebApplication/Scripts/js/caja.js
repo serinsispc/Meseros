@@ -441,8 +441,30 @@ function configurarMenuFlotanteMovil() {
         return;
     }
 
-    function esMobileMenu() {
-        return window.innerWidth < 992;
+    function contenidoSuperaPantalla() {
+        const altoDocumento = Math.max(
+            document.body ? document.body.scrollHeight : 0,
+            document.documentElement ? document.documentElement.scrollHeight : 0
+        );
+
+        return altoDocumento > (window.innerHeight + 40);
+    }
+
+    function debeMostrarMenuLateral() {
+        return window.innerWidth < 1200 || contenidoSuperaPantalla();
+    }
+
+    function esMenuLateralActivo() {
+        return nav.classList.contains("is-enabled");
+    }
+
+    function actualizarEstadoMenu() {
+        const visible = debeMostrarMenuLateral();
+        nav.classList.toggle("is-enabled", visible);
+
+        if (!visible) {
+            cerrar();
+        }
     }
 
     function abrir() {
@@ -456,7 +478,7 @@ function configurarMenuFlotanteMovil() {
     }
 
     toggle.addEventListener("click", function () {
-        if (!esMobileMenu()) return;
+        if (!esMenuLateralActivo()) return;
 
         if (nav.classList.contains("is-open")) {
             cerrar();
@@ -493,10 +515,16 @@ function configurarMenuFlotanteMovil() {
     });
 
     window.addEventListener("resize", function () {
-        if (!esMobileMenu()) {
-            cerrar();
-        }
+        actualizarEstadoMenu();
     });
+
+    window.addEventListener("load", actualizarEstadoMenu);
+    window.addEventListener("pageshow", actualizarEstadoMenu);
+    document.addEventListener("DOMContentLoaded", actualizarEstadoMenu);
+    setTimeout(actualizarEstadoMenu, 200);
+    setTimeout(actualizarEstadoMenu, 800);
+
+    actualizarEstadoMenu();
 }
 
 

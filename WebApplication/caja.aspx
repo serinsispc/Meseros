@@ -624,7 +624,7 @@
 
 
 
-    <nav id="mobileQuickNav" class="mobile-quick-nav d-lg-none" aria-label="Navegación rápida móvil">
+    <nav id="mobileQuickNav" class="mobile-quick-nav" aria-label="Navegación rápida móvil">
     <button type="button" id="mobileQuickNavToggle" class="mobile-quick-nav__toggle" aria-expanded="false" aria-controls="mobileQuickNavPanel">
         <i class="bi bi-chevron-right"></i>
     </button>

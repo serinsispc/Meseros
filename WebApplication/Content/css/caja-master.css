@@ -1733,6 +1733,10 @@ body {
     pointer-events: none;
 }
 
+.mobile-quick-nav.is-enabled {
+    display: flex;
+}
+
 .mobile-quick-nav__toggle,
 .mobile-quick-nav__panel {
     pointer-events: auto;
@@ -1818,8 +1822,3 @@ body {
         white-space: nowrap;
     }
 
-@media (max-width: 991.98px) {
-    .mobile-quick-nav {
-        display: flex;
-    }
-}
