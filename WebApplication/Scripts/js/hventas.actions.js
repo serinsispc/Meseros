@@ -60,6 +60,14 @@
             postback('btnEnviarDIAN', String(idVenta || 0));
         },
 
+        reenviarCorreoFE: function (idVenta) {
+            postback('btnReenviarCorreoFE', String(idVenta || 0));
+        },
+
+        confirmarEnvioCorreoFE: function (payload) {
+            postback('btnConfirmarEnvioCorreoFE', payload);
+        },
+
         descargarPDF: function (idVenta) {
             postback('btnDescargarPDF', String(idVenta || 0));
         }

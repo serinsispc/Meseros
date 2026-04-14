@@ -37,6 +37,23 @@
         }
     }
 
+    function crearFilaCorreoFactura(valor) {
+        var wrapper = document.createElement('div');
+        wrapper.className = 'input-group hv-correo-fila';
+        wrapper.innerHTML =
+            '<input type="email" class="form-control hv-correo-adicional" placeholder="correo.adicional@dominio.com" />' +
+            '<button type="button" class="btn btn-outline-danger hv-btn-eliminar-correo">' +
+            '<i class="bi bi-trash"></i>' +
+            '</button>';
+
+        var input = wrapper.querySelector('.hv-correo-adicional');
+        if (input && valor) {
+            input.value = valor;
+        }
+
+        return wrapper;
+    }
+
     function aplicarFiltrosVentas() {
         var txtBuscar = byId('fBuscar');
         var selMedio = byId('fMedioPago');
@@ -382,6 +399,24 @@
                 return;
             }
 
+            var btnReenviarCorreoFe = e.target.closest('.btn-reenviar-correo-fe');
+            if (btnReenviarCorreoFe) {
+                if (btnReenviarCorreoFe.classList.contains('disabled') || btnReenviarCorreoFe.disabled) return;
+                if (btnReenviarCorreoFe.dataset.loading === '1') return;
+
+                btnReenviarCorreoFe.dataset.loading = '1';
+                btnReenviarCorreoFe.disabled = true;
+
+                var idVentaCorreoFe = btnReenviarCorreoFe.dataset.id;
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Consultando correos para el envío...');
+                }
+
+                hvReenviarCorreoFE(idVentaCorreoFe);
+                return;
+            }
+
             var btnDescargarPDF = e.target.closest('.btn-descargar-pdf');
             if (btnDescargarPDF) {
                 if (btnDescargarPDF.dataset.loading === '1') return;
@@ -424,6 +459,56 @@
             if (btnImprimirActual) {
                 var idImprimir = btnImprimirActual.dataset.id || '';
                 hvImprimirVenta(idImprimir);
+                return;
+            }
+
+            var btnAgregarCorreo = e.target.closest('#hvBtnAgregarCorreoFactura');
+            if (btnAgregarCorreo) {
+                var listaCorreos = byId('hvCorreosFacturaLista');
+                if (listaCorreos) {
+                    listaCorreos.appendChild(crearFilaCorreoFactura(''));
+                }
+                return;
+            }
+
+            var btnEliminarCorreo = e.target.closest('.hv-btn-eliminar-correo');
+            if (btnEliminarCorreo) {
+                var fila = btnEliminarCorreo.closest('.hv-correo-fila');
+                var lista = byId('hvCorreosFacturaLista');
+                if (!fila || !lista) return;
+
+                var filas = lista.querySelectorAll('.hv-correo-fila');
+                if (filas.length <= 1) {
+                    var input = fila.querySelector('.hv-correo-adicional');
+                    if (input) input.value = '';
+                } else {
+                    fila.remove();
+                }
+                return;
+            }
+
+            var btnConfirmarCorreo = e.target.closest('#hvBtnConfirmarEnvioCorreoFactura');
+            if (btnConfirmarCorreo) {
+                var ventaId = byId('hvCorreoFacturaVentaId') ? byId('hvCorreoFacturaVentaId').value : '';
+                var correoPrincipal = byId('hvCorreoPrincipalFactura') ? byId('hvCorreoPrincipalFactura').value : '';
+                var correos = Array.prototype.slice.call(document.querySelectorAll('#hvCorreosFacturaLista .hv-correo-adicional'))
+                    .map(function (input) { return (input.value || '').trim(); })
+                    .filter(function (value) { return !!value; });
+
+                if (!correoPrincipal.trim()) {
+                    showInfo('Atención', 'Debes indicar el correo principal del cliente.', 'warning');
+                    return;
+                }
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Enviando factura electrónica por correo...');
+                }
+
+                hvConfirmarEnvioCorreoFE({
+                    ventaId: parseInt(ventaId || '0', 10) || 0,
+                    correoPrincipal: correoPrincipal.trim(),
+                    correos: correos
+                });
             }
         });
     }
@@ -496,6 +581,24 @@
         }
 
         showInfo('Error', 'No se encontró la acción enviar factura.', 'error');
+    };
+
+    window.hvReenviarCorreoFE = function (idVenta) {
+        if (window.hvAction && typeof window.hvAction.reenviarCorreoFE === 'function') {
+            window.hvAction.reenviarCorreoFE(idVenta);
+            return;
+        }
+
+        showInfo('Error', 'No se encontró la acción reenviar correo FE.', 'error');
+    };
+
+    window.hvConfirmarEnvioCorreoFE = function (payload) {
+        if (window.hvAction && typeof window.hvAction.confirmarEnvioCorreoFE === 'function') {
+            window.hvAction.confirmarEnvioCorreoFE(payload);
+            return;
+        }
+
+        showInfo('Error', 'No se encontró la acción confirmar envío de correo FE.', 'error');
     };
 
     window.hvDescargarPDF = function (idVenta) {

@@ -15,6 +15,7 @@ using System.Web.Script.Serialization;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Web;
+using System.Net.Mail;
 using WebApplication.Helpers;
 using WebApplication.ViewModels;
 using System.Text.RegularExpressions;
@@ -33,15 +34,36 @@ namespace WebApplication
             public int ventasCreditoCantidad { get; set; }
             public decimal ventasCreditoValor { get; set; }
         }
+
+        public class CorreoFacturaPreview
+        {
+            public int VentaId { get; set; }
+            public int ClienteId { get; set; }
+            public string Cufe { get; set; }
+            public string NumeroFactura { get; set; }
+            public string ClienteNombre { get; set; }
+            public string CorreoPrincipal { get; set; }
+            public List<string> CorreosAdicionales { get; set; } = new List<string>();
+        }
+
+        private class ConfirmarCorreoFacturaPayload
+        {
+            public int ventaId { get; set; }
+            public string correoPrincipal { get; set; }
+            public List<string> correos { get; set; }
+        }
+
         protected Valores valores { get; set; } = new Valores();
         protected V_TablaVentas venta { get; set; } = new V_TablaVentas();
         protected List<V_DetalleCaja> detalleCaja { get; set; } = new List<V_DetalleCaja>();
         protected List<V_Resoluciones> listaResoluciones { get; set; } = new List<V_Resoluciones>();
         protected List<Clientes> listaClientes { get; set; } = new List<Clientes>();
+        protected CorreoFacturaPreview correoFacturaPreview { get; set; } = new CorreoFacturaPreview();
 
         protected bool _mdlVenta = false;
         protected bool _mdlResolucionVenta = false;
         protected bool _mdlClienteVenta = false;
+        protected bool _mdlCorreoFactura = false;
 
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private readonly CultureInfo _co = new CultureInfo("es-CO");
@@ -142,6 +164,14 @@ namespace WebApplication
 
                 case "btnEnviarDIAN":
                     await btnEnviarDIAN(eventArgument);
+                    break;
+
+                case "btnReenviarCorreoFE":
+                    await btnReenviarCorreoFE(eventArgument);
+                    break;
+
+                case "btnConfirmarEnvioCorreoFE":
+                    await btnConfirmarEnvioCorreoFE(eventArgument);
                     break;
 
                 case "btnDescargarPDF":
@@ -662,6 +692,146 @@ namespace WebApplication
 
             await MostrarMensaje(TipoMensaje.Success, "DIAN", "Factura enviada con éxito.");
         }
+
+        private async Task btnReenviarCorreoFE(string id)
+        {
+            if (!int.TryParse(id, out var idVenta) || idVenta <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "No se recibió una venta válida.");
+                return;
+            }
+
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "La sesión de base de datos no está disponible.");
+                return;
+            }
+
+            var ventaCorreo = await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            if (ventaCorreo == null)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "No fue posible encontrar la venta.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(ventaCorreo.cufe) || ventaCorreo.cufe == "--")
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "La venta aún no tiene factura electrónica emitida.");
+                return;
+            }
+
+            var cliente = ventaCorreo.idCliente > 0
+                ? await ClientesControler.Consultar_id(db, ventaCorreo.idCliente)
+                : null;
+
+            var correosCliente = ventaCorreo.idCliente > 0
+                ? await V_CorreosClienteControler.Lista(db, ventaCorreo.idCliente)
+                : new List<V_CorreosCliente>();
+
+            correoFacturaPreview = new CorreoFacturaPreview
+            {
+                VentaId = ventaCorreo.id,
+                ClienteId = ventaCorreo.idCliente,
+                Cufe = ventaCorreo.cufe,
+                NumeroFactura = $"{ventaCorreo.prefijo}-{ventaCorreo.numeroVenta}",
+                ClienteNombre = !string.IsNullOrWhiteSpace(cliente?.nameCliente) ? cliente.nameCliente : ventaCorreo.nombreCliente,
+                CorreoPrincipal = cliente?.email ?? string.Empty,
+                CorreosAdicionales = (correosCliente ?? new List<V_CorreosCliente>())
+                    .Select(x => (x?.email ?? string.Empty).Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList()
+            };
+
+            if (string.IsNullOrWhiteSpace(correoFacturaPreview.CorreoPrincipal) && correoFacturaPreview.CorreosAdicionales.Count == 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "El cliente no tiene correos configurados para el envío.");
+                return;
+            }
+
+            _mdlCorreoFactura = true;
+        }
+
+        private async Task btnConfirmarEnvioCorreoFE(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "No se recibieron los correos para el envío.");
+                return;
+            }
+
+            var payload = JsonConvert.DeserializeObject<ConfirmarCorreoFacturaPayload>(raw);
+            if (payload == null || payload.ventaId <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "No se recibió una venta válida para el envío.");
+                return;
+            }
+
+            var db = Session["db"]?.ToString();
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "La sesión de base de datos no está disponible.");
+                return;
+            }
+
+            var ventaCorreo = await V_TablaVentasControler.Consultar_Id(db, payload.ventaId);
+            if (ventaCorreo == null || string.IsNullOrWhiteSpace(ventaCorreo.cufe) || ventaCorreo.cufe == "--")
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "La venta ya no tiene una factura electrónica válida para reenviar.");
+                return;
+            }
+
+            var correoPrincipal = (payload.correoPrincipal ?? string.Empty).Trim();
+            var correosAdicionales = (payload.correos ?? new List<string>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (string.IsNullOrWhiteSpace(correoPrincipal))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "Debes indicar el correo principal del cliente.");
+                _mdlCorreoFactura = true;
+                correoFacturaPreview = ConstruirPreviewCorreo(payload.ventaId, ventaCorreo, correoPrincipal, correosAdicionales);
+                return;
+            }
+
+            if (!EsCorreoValido(correoPrincipal) || correosAdicionales.Any(x => !EsCorreoValido(x)))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "Hay correos con formato inválido. Corrígelos antes de enviar.");
+                _mdlCorreoFactura = true;
+                correoFacturaPreview = ConstruirPreviewCorreo(payload.ventaId, ventaCorreo, correoPrincipal, correosAdicionales);
+                return;
+            }
+
+            var model = SessionContextHelper.LoadModels(Session);
+            var tokenFe = model?.TokenEmpresa ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(tokenFe))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "No fue posible obtener el token de facturación electrónica.");
+                return;
+            }
+
+            var correoEnviado = await ClassFE.EnviarFacturaElectronicaCorreo(
+                db,
+                ventaCorreo.idCliente,
+                ventaCorreo.cufe,
+                tokenFe,
+                correoPrincipal,
+                correosAdicionales);
+
+            if (!correoEnviado)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Correo FE", "No fue posible reenviar la factura electrónica al correo del cliente.");
+                correoFacturaPreview = ConstruirPreviewCorreo(payload.ventaId, ventaCorreo, correoPrincipal, correosAdicionales);
+                _mdlCorreoFactura = true;
+                return;
+            }
+
+            await MostrarMensaje(TipoMensaje.Success, "Correo FE", "Factura electrónica reenviada correctamente al correo del cliente.");
+        }
+
         private async Task btnDescargarPDF(string idVentaRaw)
         {
             if (!int.TryParse(idVentaRaw, out var idVenta) || idVenta <= 0)
@@ -995,6 +1165,38 @@ namespace WebApplication
             }
 
             return dataQr.Trim();
+        }
+
+        private CorreoFacturaPreview ConstruirPreviewCorreo(int ventaId, V_TablaVentas ventaCorreo, string correoPrincipal, List<string> correosAdicionales)
+        {
+            return new CorreoFacturaPreview
+            {
+                VentaId = ventaId,
+                ClienteId = ventaCorreo?.idCliente ?? 0,
+                Cufe = ventaCorreo?.cufe ?? string.Empty,
+                NumeroFactura = ventaCorreo == null ? string.Empty : $"{ventaCorreo.prefijo}-{ventaCorreo.numeroVenta}",
+                ClienteNombre = ventaCorreo?.nombreCliente ?? string.Empty,
+                CorreoPrincipal = correoPrincipal ?? string.Empty,
+                CorreosAdicionales = correosAdicionales ?? new List<string>()
+            };
+        }
+
+        private bool EsCorreoValido(string correo)
+        {
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                return false;
+            }
+
+            try
+            {
+                var address = new MailAddress(correo.Trim());
+                return string.Equals(address.Address, correo.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         #endregion

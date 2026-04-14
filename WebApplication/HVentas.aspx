@@ -211,6 +211,13 @@
                                                 <i class="bi bi-cloud-upload me-1"></i>Transmitir a DIAN
                                             </button>
 
+                                            <button type="button"
+                                                class='btn btn-outline-info btn-sm hv-linkbtn me-2 btn-reenviar-correo-fe <%# Item.cufe == "--" ? "disabled" : "" %>'
+                                                data-id="<%# Item.id %>"
+                                                <%# Item.cufe == "--" ? "disabled=\"disabled\"" : "" %>>
+                                                <i class="bi bi-envelope-arrow-up me-1"></i>Reenviar correo FE
+                                            </button>
+
                                             <button type="button" class="btn btn-outline-secondary btn-sm hv-linkbtn btn-imprimir-venta" data-id="<%# Item.id %>">
                                                 <i class="bi bi-printer me-1"></i>Imprimir
                                             </button>
@@ -639,6 +646,69 @@
         </div>
     </div>
 
+    <div class="modal fade" id="mdlCorreoFacturaFe" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content hv-card">
+                <div class="hv-card-header">
+                    <h3 class="hv-card-title">
+                        <i class="bi bi-envelope-paper"></i>
+                        Confirmar envío de factura electrónica
+                    </h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="hv-card-body">
+                    <input type="hidden" id="hvCorreoFacturaVentaId" value="<%: correoFacturaPreview.VentaId %>" />
+
+                    <div class="alert alert-light border">
+                        <div><strong>Factura:</strong> <%: correoFacturaPreview.NumeroFactura %></div>
+                        <div><strong>Cliente:</strong> <%: correoFacturaPreview.ClienteNombre %></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Correo principal del cliente</label>
+                        <input type="email" class="form-control" id="hvCorreoPrincipalFactura" value="<%: correoFacturaPreview.CorreoPrincipal %>" placeholder="cliente@correo.com" />
+                    </div>
+
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <label class="form-label mb-0">Correos adicionales</label>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="hvBtnAgregarCorreoFactura">
+                            <i class="bi bi-plus-lg me-1"></i>Agregar correo
+                        </button>
+                    </div>
+
+                    <div id="hvCorreosFacturaLista" class="d-grid gap-2">
+                        <% if (correoFacturaPreview.CorreosAdicionales == null || correoFacturaPreview.CorreosAdicionales.Count == 0) { %>
+                        <div class="input-group hv-correo-fila">
+                            <input type="email" class="form-control hv-correo-adicional" placeholder="correo.adicional@dominio.com" />
+                            <button type="button" class="btn btn-outline-danger hv-btn-eliminar-correo">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <% } else { %>
+                        <% foreach (var correoItem in correoFacturaPreview.CorreosAdicionales) { %>
+                        <div class="input-group hv-correo-fila">
+                            <input type="email" class="form-control hv-correo-adicional" value="<%: correoItem %>" placeholder="correo.adicional@dominio.com" />
+                            <button type="button" class="btn btn-outline-danger hv-btn-eliminar-correo">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <% } %>
+                        <% } %>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-2"></i>Cancelar
+                        </button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4" id="hvBtnConfirmarEnvioCorreoFactura">
+                            <i class="bi bi-send me-2"></i>Enviar factura
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="Scripts/js/hventas.actions.js"></script>
@@ -681,6 +751,22 @@
     <script>
         window.addEventListener('load', function () {
             var modalEl = document.getElementById('mdlClienteVenta');
+            if (!modalEl || !window.bootstrap) return;
+
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+
+            modal.show();
+        });
+    </script>
+    <% } %>
+
+    <% if (_mdlCorreoFactura) { %>
+    <script>
+        window.addEventListener('load', function () {
+            var modalEl = document.getElementById('mdlCorreoFacturaFe');
             if (!modalEl || !window.bootstrap) return;
 
             var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {

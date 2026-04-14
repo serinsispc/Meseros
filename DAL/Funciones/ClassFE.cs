@@ -300,48 +300,8 @@ namespace DAL.Funciones
                         /* guardamos los catos de la factura */
                         var respg=await GestionarFacturaElectronica(db,uuid, numeroFactura, fechaEmisian, fechaVencimiento, dataCode, rqfe, numeroFacturaElectronica, resolucione,v_TablaVentas);
 
-                        string nombreCliente = string.Empty;
-                        string correo = string.Empty;
-
-                        /* en esta parte consultamos los datos del cliente */
-                        nombreCliente = clientes.nameCliente;
-                        correo = clientes.email;
-
-                        //enviamos el correo
-                        CorreoRequest correoRequest = new CorreoRequest();
-
-                        correoRequest.to = new List<To>();
-                        To toCorreo = new To();
-                        toCorreo.email = correo;
-                        correoRequest.to.Add(toCorreo);
-
-                        correoRequest.cc = new List<Cc>();
-                        List<V_CorreosCliente> v_CorreosCliente = new List<V_CorreosCliente>();
-                        v_CorreosCliente = await V_CorreosClienteControler.Lista(db,IdCliente_frm);
-                        if (v_CorreosCliente != null && v_CorreosCliente.Count > 0)
-                        {
-                            foreach (V_CorreosCliente correos in v_CorreosCliente)
-                            {
-                                Cc CcCorreo = new Cc();
-                                CcCorreo.email = correos.email;
-                                correoRequest.cc.Add(CcCorreo);
-                            }
-                        }
-
-                        correoRequest.bcc = new List<Bcc>();
-
-                        //RFacturacionElectronicaDIAN.Entities.Request.Bcc bccCorreo2 = new RFacturacionElectronicaDIAN.Entities.Request.Bcc();
-                        //bccCorreo2.email = "facturacion@serinsispc.com";
-                        //correoRequest.bcc.Add(bccCorreo2);
-
-                        //Bcc bccCorreo = new Bcc();
-                        //bccCorreo.email = await CorreoInterno();
-                        //correoRequest.bcc.Add(bccCorreo);
-
-
-                        correoRequest.token = TokenFE;
-                        CorreoResponse correoResponse = await facturacionElectronica.FacturaMail(correoRequest, uuid);
-                        if (correoResponse != null)
+                        var correoEnviado = await EnviarFacturaElectronicaCorreo(db, IdCliente_frm, uuid, TokenFE, clientes?.email);
+                        if (correoEnviado)
                         {
                             return true;
                         }
@@ -363,6 +323,119 @@ namespace DAL.Funciones
             {
                 return false;
             }
+        }
+        public static async Task<bool> EnviarFacturaElectronicaCorreo(string db, int idCliente, string uuid, string tokenFE, string correoPrincipal = null, IEnumerable<string> correosCopia = null)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(uuid) || uuid == "--" || string.IsNullOrWhiteSpace(tokenFE))
+                {
+                    return false;
+                }
+
+                FacturacionElectronicaDIANFactory.urlJSON = "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/";
+                FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
+
+                string correo = string.IsNullOrWhiteSpace(correoPrincipal) ? string.Empty : correoPrincipal.Trim();
+                if (string.IsNullOrWhiteSpace(correo) && idCliente > 0)
+                {
+                    var cliente = await ClientesControler.Consultar_id(db, idCliente);
+                    correo = cliente?.email?.Trim() ?? string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(correo))
+                {
+                    return false;
+                }
+
+                CorreoRequest correoRequest = new CorreoRequest();
+                correoRequest.to = new List<To>();
+                correoRequest.cc = new List<Cc>();
+                correoRequest.bcc = new List<Bcc>();
+
+                To toCorreo = new To();
+                toCorreo.email = correo;
+                correoRequest.to.Add(toCorreo);
+
+                IEnumerable<string> correosAdicionales = correosCopia;
+                if (correosAdicionales == null && idCliente > 0)
+                {
+                    List<V_CorreosCliente> v_CorreosCliente = await V_CorreosClienteControler.Lista(db, idCliente);
+                    if (v_CorreosCliente != null && v_CorreosCliente.Count > 0)
+                    {
+                        correosAdicionales = v_CorreosCliente.Select(x => x?.email);
+                    }
+                }
+
+                if (correosAdicionales != null)
+                {
+                    var correosNormalizados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var correoCc in correosAdicionales)
+                    {
+                        if (string.IsNullOrWhiteSpace(correoCc))
+                        {
+                            continue;
+                        }
+
+                        var correoCcNormalizado = correoCc.Trim();
+                        if (string.Equals(correoCcNormalizado, correo, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        if (!correosNormalizados.Add(correoCcNormalizado))
+                        {
+                            continue;
+                        }
+
+                        Cc ccCorreo = new Cc();
+                        ccCorreo.email = correoCcNormalizado;
+                        correoRequest.cc.Add(ccCorreo);
+                    }
+                }
+
+                string correoCopiaOculta = await ObtenerCorreoCopiaOcultaDian(db);
+                if (!string.IsNullOrWhiteSpace(correoCopiaOculta))
+                {
+                    Bcc bccCorreo = new Bcc();
+                    bccCorreo.email = correoCopiaOculta.Trim();
+                    correoRequest.bcc.Add(bccCorreo);
+                }
+
+                correoRequest.token = tokenFE;
+                CorreoResponse correoResponse = await facturacionElectronica.FacturaMail(correoRequest, uuid);
+                return correoResponse != null;
+            }
+            catch (Exception ex)
+            {
+                string error = ex.Message;
+                return false;
+            }
+        }
+        private static async Task<string> ObtenerCorreoCopiaOcultaDian(string db)
+        {
+            try
+            {
+                string query = @"
+                    SELECT TOP 1 correo
+                    FROM ConfiguracionDian
+                    WHERE correo IS NOT NULL
+                      AND LTRIM(RTRIM(correo)) <> ''";
+
+                var cn = new SqlAutoDAL();
+                var resultado = await cn.EjecutarSQLObjeto<ConfiguracionDianCorreoItem>(db, query);
+                return resultado?.correo;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return string.Empty;
+            }
+        }
+
+        private class ConfiguracionDianCorreoItem
+        {
+            public string correo { get; set; }
         }
         public static async Task<int> HallarNumeroFE(string db, int idresolucion)
         {
