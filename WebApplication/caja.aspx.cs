@@ -283,9 +283,7 @@ namespace WebApplication
         }
         protected async void Page_Load(object sender, EventArgs e)
         {
-            // cargarmos el DBConexion
-            string dbJson = Session["DBConexion"]?.ToString();
-            ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson);
+            await CargarAjustesDbEnContextoAsync();
 
             if (!IsPostBack)
             {
@@ -306,6 +304,40 @@ namespace WebApplication
                 await IniciarPagina();
             }
         }
+
+        private async Task CargarAjustesDbEnContextoAsync()
+        {
+            var dbJson = Session["DBConexion"] as string;
+            if (!string.IsNullOrWhiteSpace(dbJson))
+            {
+                try
+                {
+                    ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson) ?? new DBConexion();
+                    return;
+                }
+                catch
+                {
+                    ajustes = new DBConexion();
+                }
+            }
+
+            var modelEnSesion = SessionContextHelper.LoadModels(Session);
+            var db = modelEnSesion?.db ?? Convert.ToString(Session[SessionContextHelper.DbKey]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                return;
+            }
+
+            var ajustesDb = await DBConexionControler.DAsync(db);
+            if (ajustesDb == null)
+            {
+                return;
+            }
+
+            ajustes = ajustesDb;
+            Session["DBConexion"] = JsonConvert.SerializeObject(ajustesDb);
+        }
+
         private async Task<bool> DeserializarModels()
         {
             var modelJson = Session[SessionModelsJson]?.ToString();
@@ -673,17 +705,6 @@ namespace WebApplication
                 AlertModerno.Error(this, "Error", "No se cre\u00f3 el servicio.", true, 2000);
                 return;
             }
-            else
-            {
-                // procedemos a modificar el alias
-                var resp = await TablaVentasControler.Consultar_Id(models.db, idVenta);
-                if (resp.estado)
-                {
-                    var venta = resp.data as TablaVentas;
-                    venta.aliasVenta = Convert.ToString(idVenta);
-                    var crud = await TablaVentasControler.CRUD(models.db, venta, 1);
-                }
-            }
 
 
             // amarro venta con vendedor (uso session idvendedor si existe)
@@ -920,17 +941,6 @@ namespace WebApplication
             {
                 AlertModerno.Error(this, "Error", "No se cre\u00f3 el servicio.", true, 2000);
                 return;
-            }
-            else
-            {
-                // procedemos a modificar el alias
-                var resp_ = await TablaVentasControler.Consultar_Id(models.db, idVenta);
-                if (resp_.estado)
-                {
-                    var venta = JsonConvert.DeserializeObject<TablaVentas>(resp_.data);
-                    venta.aliasVenta = Convert.ToString(idVenta);
-                    var crud = await TablaVentasControler.CRUD(models.db, venta, 1);
-                }
             }
 
 
