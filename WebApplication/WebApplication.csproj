@@ -279,6 +279,7 @@
     <Compile Include="Helpers\BrandingImageHelper.cs" />
     <Compile Include="Helpers\AdminControlAccessHelper.cs" />
     <Compile Include="Helpers\EventArgumentParser.cs" />
+    <Compile Include="Helpers\PuntoDePagoPrinterHelper.cs" />
     <Compile Include="Helpers\SessionContextHelper.cs" />
     <Compile Include="Helpers\WhatsAppMetaAperturaHelper.cs" />
     <Compile Include="Helpers\WhatsAppMetaHelper.cs" />

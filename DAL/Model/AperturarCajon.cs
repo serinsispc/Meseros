@@ -10,5 +10,6 @@ namespace DAL.Model
     {
         public int id {  get; set; }
         public bool estado { get; set; }
+        public string nameprinter { get; set; }
     }
 }

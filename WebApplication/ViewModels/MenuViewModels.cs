@@ -36,5 +36,7 @@ namespace WebApplication.ViewModels
         public Vendedor vendedor { get; set; }= new Vendedor();
         public List<CargoDescuentoVentas> cargoDescuentoVentas { get; set; } = new List<CargoDescuentoVentas>();
         public List<Clientes> clientes { get; set; } = new List<Clientes>();
+        public List<PuntosDePago> puntosDePago { get; set; } = new List<PuntosDePago>();
+        public PuntosDePago PuntoDePagoSeleccionado { get; set; } = new PuntosDePago();
     }
 }

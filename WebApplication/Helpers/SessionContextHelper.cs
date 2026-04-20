@@ -18,6 +18,8 @@ namespace WebApplication.Helpers
         public const string BaseCajaKey = "base_caja";
         public const string IdBaseKey = "idBase";
         public const string UsuarioCajaKey = "usuario_caja";
+        public const string PuntoDePagoKey = "punto_de_pago";
+        public const string IdPuntoDePagoKey = "id_punto_de_pago";
         public const string AdminControlReminderAtKey = "admincontrol_reminder_at";
 
         public static MenuViewModels LoadModels(HttpSessionState session)
@@ -85,6 +87,17 @@ namespace WebApplication.Helpers
             session[IdVendedorKey] = model.vendedor?.id ?? 0;
             session[VendedorKey] = model.vendedor == null ? null : JsonConvert.SerializeObject(model.vendedor);
             session[TokenFeKey] = model.TokenEmpresa ?? string.Empty;
+            session[PuntoDePagoKey] = model.PuntoDePagoSeleccionado == null ? null : JsonConvert.SerializeObject(model.PuntoDePagoSeleccionado);
+
+            if (model.PuntoDePagoSeleccionado != null && model.PuntoDePagoSeleccionado.id > 0)
+            {
+                session[IdPuntoDePagoKey] = model.PuntoDePagoSeleccionado.id;
+            }
+            else
+            {
+                session.Remove(PuntoDePagoKey);
+                session.Remove(IdPuntoDePagoKey);
+            }
 
             if (model.BaseCaja != null && model.BaseCaja.id > 0)
             {
@@ -154,6 +167,8 @@ namespace WebApplication.Helpers
             session.Remove(BaseCajaKey);
             session.Remove(IdBaseKey);
             session.Remove(UsuarioCajaKey);
+            session.Remove(PuntoDePagoKey);
+            session.Remove(IdPuntoDePagoKey);
             session.Remove(AdminControlReminderAtKey);
         }
     }

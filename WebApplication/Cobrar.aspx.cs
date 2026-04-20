@@ -563,6 +563,7 @@ namespace WebApplication
                 if (respuestaDialogo)
                 {
                     var printer = new ImprimirFactura { id = 0, idventa = venta.id };
+                    PuntoDePagoPrinterHelper.Apply(printer, Session, ModelSesion);
                     var ordenPrinter = await ImprimirFacturaControler.CRUD(db, printer, 0);
 
                     if (!ordenPrinter.estado)
@@ -576,6 +577,7 @@ namespace WebApplication
 
                 //cargamos orden para abrir el cajon
                 var cajon=new AperturarCajon() { estado = true };
+                PuntoDePagoPrinterHelper.Apply(cajon, Session, ModelSesion);
                 var respCajon = await AperturarCajonControler.CRUD(Session["db"].ToString(),cajon,0);
 
                 //antes de terminar liberamos las mesas que est\u00e1n ancladas a esta cuenta

@@ -281,6 +281,16 @@ namespace WebApplication
             var lista = models?.adiciones ?? new List<V_CatagoriaAdicion>();
             return JsonConvert.SerializeObject(lista).Replace("</", "<\\/");
         }
+
+        protected string NombrePuntoDePagoActual()
+        {
+            if (!string.IsNullOrWhiteSpace(models?.PuntoDePagoSeleccionado?.nombrePunto))
+            {
+                return models.PuntoDePagoSeleccionado.nombrePunto;
+            }
+
+            return "Sin punto seleccionado";
+        }
         protected async void Page_Load(object sender, EventArgs e)
         {
             await CargarAjustesDbEnContextoAsync();
@@ -1668,6 +1678,7 @@ namespace WebApplication
                 id = 0,
                 idVenta = models.IdCuentaActiva
             };
+            PuntoDePagoPrinterHelper.Apply(cuenta, Session, models);
 
             var resp = await ImprimirCuentaControler.CRUD(models.db, cuenta, 0);
             if (resp.estado)

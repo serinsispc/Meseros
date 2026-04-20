@@ -22,6 +22,7 @@ using System.Web.Services.Description;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using WebApplication.Class;
+using WebApplication.Helpers;
 using WebApplication.ViewModels;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -47,14 +48,14 @@ namespace WebApplication
             try
             {
                 // 1) Recuperar modelo desde sesión
-                Models = Session[SessionModelsKey] as MenuViewModels;
+                Models = SessionContextHelper.LoadModels(Session);
 
                 // 2) Si no existe, crear uno nuevo y guardarlo en sesión
                 if (Models == null)
                 {
                     Models = new MenuViewModels();
                     Models.v_CuentaClientes = new List<V_CuentaCliente>();
-                    Session[SessionModelsKey] = Models;
+                    SessionContextHelper.SaveModels(Session, Models);
                 }
 
                 if (!IsPostBack)
@@ -176,7 +177,17 @@ namespace WebApplication
             var listacc = await V_CuentaClienteCotroler.Lista(db, false);
 
             // Construir ViewModel
-            Models = new MenuViewModels();
+            var contextoActual = SessionContextHelper.LoadModels(Session) ?? Models ?? new MenuViewModels();
+            Models = new MenuViewModels
+            {
+                db = db,
+                TokenEmpresa = contextoActual.TokenEmpresa,
+                BaseCaja = contextoActual.BaseCaja,
+                Sede = contextoActual.Sede,
+                vendedor = vendedor ?? contextoActual.vendedor,
+                puntosDePago = contextoActual.puntosDePago ?? new List<PuntosDePago>(),
+                PuntoDePagoSeleccionado = contextoActual.PuntoDePagoSeleccionado
+            };
 
             Models.IdCuentaActiva = idVenta;
             Models.IdZonaActiva = idZonaActiva;
@@ -938,7 +949,7 @@ namespace WebApplication
         {
             try
             {
-                Models = Session[SessionModelsKey] as MenuViewModels;
+                Models = SessionContextHelper.LoadModels(Session);
                 if (Models == null)
                 {
                     // Reconstruir mínimamente si no hay sesión
@@ -960,9 +971,17 @@ namespace WebApplication
             int vendedorId = vendedor?.id ?? (Session[SessionIdVendedorKey] != null ? Convert.ToInt32(Session[SessionIdVendedorKey]) : 0);
             var cuentas = await V_CuentasVentaControler.Lista_IdVendedor(Session["db"].ToString(), vendedorId) ?? new List<V_CuentasVenta>();
             int idCuenta = cuentas.FirstOrDefault()?.id ?? 0;
+            var contextoActual = SessionContextHelper.LoadModels(Session) ?? new MenuViewModels();
 
             Models = new MenuViewModels
             {
+                db = Convert.ToString(Session["db"]),
+                TokenEmpresa = contextoActual.TokenEmpresa,
+                BaseCaja = contextoActual.BaseCaja,
+                Sede = contextoActual.Sede,
+                vendedor = vendedor ?? contextoActual.vendedor,
+                puntosDePago = contextoActual.puntosDePago ?? new List<PuntosDePago>(),
+                PuntoDePagoSeleccionado = contextoActual.PuntoDePagoSeleccionado,
                 IdCuentaActiva = idCuenta,
                 cuentas = cuentas,
                 zonas = await ZonasControler.Lista(Session["db"].ToString()) ?? new List<Zonas>(),
@@ -996,6 +1015,7 @@ namespace WebApplication
         }
         private void GuardarModelsEnSesion()
         {
+            SessionContextHelper.ApplyOperationalContext(Session, Models);
             Session[SessionModelsKey] = Models;
         }
 
@@ -1645,6 +1665,7 @@ namespace WebApplication
                 id = 0,
                 idVenta = Models.IdCuentaActiva
             };
+            PuntoDePagoPrinterHelper.Apply(cuenta, Session, Models);
             var resp = await ImprimirCuentaControler.CRUD(Session["db"].ToString(), cuenta, 0);
             if (resp.estado)
             {

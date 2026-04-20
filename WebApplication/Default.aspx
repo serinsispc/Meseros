@@ -55,6 +55,8 @@
         .login-loading-spinner { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; border: 5px solid rgba(0, 80, 184, .15); border-top-color: #0050b8; animation: loginSpin .9s linear infinite; }
         @keyframes loginSpin { to { transform: rotate(360deg); } }
         .btn-login.is-busy, #btnAperturarBase.is-busy { opacity: .75; pointer-events: none; }
+        .inicio-turno-base { display: block; }
+        .inicio-turno-base.oculto { display: none; }
         .users-grid-title { font-size: .9rem; font-weight: 600; margin-bottom: .5rem; color: #0050b8; }
         .login-card { width: 100%; max-width: 420px; }
         @media (min-width: 768px) { .login-card { max-width: 720px; } }
@@ -201,16 +203,25 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4">
                 <div class="modal-header">
-                    <h5 class="modal-title">Aperturar caja</h5>
+                    <h5 class="modal-title">Inicio de sesión</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
 
                 <div class="modal-body">
                     <div class="mb-2 text-muted">
-                        No hay una base activa. Ingresa el valor de la base del día para aperturar.
+                        Antes de continuar, selecciona el punto de pago en el que vas a trabajar.
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Punto de pago</label>
+                        <asp:DropDownList ID="ddlPuntoDePago" runat="server" CssClass="form-select" />
+                        <small class="text-muted">Selecciona el punto y su impresora predeterminada.</small>
+                    </div>
+
+                    <div id="panelBaseApertura" runat="server" class="mb-3 inicio-turno-base">
+                        <div class="mb-2 text-muted">
+                            No hay una base activa. Ingresa el valor de la base del día para aperturar.
+                        </div>
                         <label class="form-label">Valor base (COP)</label>
                         <asp:TextBox ID="txtValorBaseModal" runat="server" CssClass="form-control"
                             placeholder="Ej: 200000" />
@@ -223,7 +234,7 @@
 
                     <asp:Button ID="btnAperturarBase" runat="server"
                         CssClass="btn btn-primary"
-                        Text="Aperturar caja"
+                        Text="Continuar"
                         OnClientClick="return prepararAperturaCaja(this);"
                         OnClick="btnAperturarBase_Click" />
                 </div>

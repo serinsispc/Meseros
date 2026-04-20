@@ -110,6 +110,7 @@ namespace WebApplication
             }
 
             var cajon = new AperturarCajon() { estado = true };
+            PuntoDePagoPrinterHelper.Apply(cajon, Session, models);
             var respCajon = await AperturarCajonControler.CRUD(db, cajon, 0);
 
             LimpiarFormularioGasto();

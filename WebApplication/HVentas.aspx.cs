@@ -369,6 +369,7 @@ namespace WebApplication
         {
 
             var imprimir = new ImprimirFactura() { id = 0, idventa = Convert.ToInt32(idventa) };
+            PuntoDePagoPrinterHelper.Apply(imprimir, Session);
             var resp = await ImprimirFacturaControler.CRUD(Session["db"].ToString(), imprimir, 0);
             if (!resp.estado)
             {

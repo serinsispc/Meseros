@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web.UI.WebControls;
 using System.Web.UI;
 using WebApplication.Class;
 using WebApplication.Helpers;
@@ -18,6 +19,11 @@ namespace WebApplication
     public partial class _Default : Page
     {
         protected MenuViewModels models = new MenuViewModels();
+        private bool RequiereBaseApertura
+        {
+            get { return (bool?)ViewState["RequiereBaseApertura"] ?? false; }
+            set { ViewState["RequiereBaseApertura"] = value; }
+        }
 
         protected async void Page_Load(object sender, EventArgs e)
         {
@@ -61,12 +67,15 @@ namespace WebApplication
 
             var vendedoresTask = VendedorControler.ListaVendedor(db);
             var imagenTask = ImagenesControler.Consultar(db, sede.guidSede);
-            await Task.WhenAll(vendedoresTask, imagenTask);
+            var puntosDePagoTask = PuntosDePagoControler.Lista(db);
+            await Task.WhenAll(vendedoresTask, imagenTask, puntosDePagoTask);
 
             var vendedores = vendedoresTask.Result ?? new List<Vendedor>();
             var imagenes = imagenTask.Result;
+            models.puntosDePago = puntosDePagoTask.Result ?? new List<PuntosDePago>();
 
             ConfigurarLogoLogin(db, imagenes?.imagenBytes);
+            BindPuntosDePago(models.puntosDePago, models.PuntoDePagoSeleccionado?.id);
 
             rptUsuarios.DataSource = vendedores;
             rptUsuarios.DataBind();
@@ -134,6 +143,12 @@ namespace WebApplication
             {
                 models = model;
             }
+
+            var selectedId = ObtenerPuntoDePagoSeleccionadoDesdeRequest()
+                ?? models?.PuntoDePagoSeleccionado?.id;
+
+            BindPuntosDePago(models?.puntosDePago, selectedId);
+            ConfigurarModalInicioTurno();
         }
 
         protected async void btnIngresar_Click(object sender, EventArgs e)
@@ -190,12 +205,12 @@ namespace WebApplication
                     models.BaseCaja = baseActiva;
                     SessionContextHelper.ApplyOperationalContext(Session, models);
 
-                    if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, "~/caja.aspx"))
+                    if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, onCloseScript: "openBaseModal();"))
                     {
                         return;
                     }
 
-                    AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {vendedor.nombreVendedor}", "~/caja.aspx", false, 1200);
+                    AbrirModalBase(false);
                     return;
                 }
 
@@ -206,28 +221,45 @@ namespace WebApplication
                     return;
                 }
 
-                AbrirModalBase();
+                AbrirModalBase(true);
                 return;
             }
 
             SessionContextHelper.ApplyOperationalContext(Session, models);
 
-            if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, "~/caja.aspx"))
+            if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, onCloseScript: "openBaseModal();"))
             {
                 return;
             }
 
-            AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {vendedor.nombreVendedor}", "~/caja.aspx", false, 1200);
+            AbrirModalBase(false);
         }
 
         protected async void btnAperturarBase_Click(object sender, EventArgs e)
         {
             DeserializarModels();
+            ConfigurarModalInicioTurno();
 
             string db = SanitizarDb(models.db);
             if (string.IsNullOrEmpty(db))
             {
                 AlertModerno.Error(this, "Error", "No se encuentra la base de datos en sesión.", true);
+                return;
+            }
+
+            if (!TryResolvePuntoDePagoSeleccionado(out var puntoDePago, out var mensajePuntoDePago))
+            {
+                AlertModerno.Error(this, "Error", mensajePuntoDePago, true);
+                AbrirModalBase(RequiereBaseApertura);
+                return;
+            }
+
+            models.PuntoDePagoSeleccionado = puntoDePago;
+
+            if (!RequiereBaseApertura)
+            {
+                SessionContextHelper.ApplyOperationalContext(Session, models);
+                AlertModerno.SuccessGoTo(this, "Ok", $"Bienvenido {models.vendedor?.nombreVendedor}", "~/caja.aspx", false, 1200);
                 return;
             }
 
@@ -309,9 +341,96 @@ namespace WebApplication
 
             //cargamos orden para abrir el cajon
             var cajon = new AperturarCajon() { estado = true };
+            PuntoDePagoPrinterHelper.Apply(cajon, Session, models);
             var respCajon = await AperturarCajonControler.CRUD(Session["db"].ToString(), cajon, 0);
 
             AlertModerno.SuccessGoTo(this, "Ok", mensaje, "~/caja.aspx", false, 1800);
+        }
+
+        private void ConfigurarModalInicioTurno()
+        {
+            panelBaseApertura.Attributes["class"] = RequiereBaseApertura
+                ? "mb-3 inicio-turno-base"
+                : "mb-3 inicio-turno-base oculto";
+
+            btnAperturarBase.Text = RequiereBaseApertura ? "Aperturar caja" : "Ingresar";
+        }
+
+        private void BindPuntosDePago(List<PuntosDePago> puntosDePago, int? selectedId = null)
+        {
+            ddlPuntoDePago.Items.Clear();
+
+            var puntos = puntosDePago ?? new List<PuntosDePago>();
+            if (puntos.Count == 0)
+            {
+                ddlPuntoDePago.Items.Add(new ListItem("Sin puntos de pago configurados", string.Empty));
+                return;
+            }
+
+            ddlPuntoDePago.Items.Add(new ListItem("Selecciona un punto de pago", string.Empty));
+
+            foreach (var punto in puntos)
+            {
+                var texto = string.IsNullOrWhiteSpace(punto.impresoraPredeterminada)
+                    ? punto.nombrePunto
+                    : string.Format("{0} - {1}", punto.nombrePunto, punto.impresoraPredeterminada);
+
+                ddlPuntoDePago.Items.Add(new ListItem(texto, punto.id.ToString()));
+            }
+
+            if (selectedId.HasValue && selectedId.Value > 0)
+            {
+                var item = ddlPuntoDePago.Items.FindByValue(selectedId.Value.ToString());
+                if (item != null)
+                {
+                    ddlPuntoDePago.ClearSelection();
+                    item.Selected = true;
+                }
+            }
+        }
+
+        private int? ObtenerPuntoDePagoSeleccionadoDesdeRequest()
+        {
+            var rawValue = Request?.Form[ddlPuntoDePago.UniqueID]
+                ?? Request?.Form[ddlPuntoDePago.ClientID]
+                ?? Request?.Form["ddlPuntoDePago"];
+
+            if (int.TryParse(rawValue, out var id) && id > 0)
+            {
+                return id;
+            }
+
+            return null;
+        }
+
+        private bool TryResolvePuntoDePagoSeleccionado(out PuntosDePago puntoDePago, out string mensaje)
+        {
+            puntoDePago = null;
+            mensaje = string.Empty;
+
+            var puntos = models?.puntosDePago ?? new List<PuntosDePago>();
+            if (puntos.Count == 0)
+            {
+                return true;
+            }
+
+            var idPuntoDePago = ObtenerPuntoDePagoSeleccionadoDesdeRequest()
+                ?? (int.TryParse(ddlPuntoDePago.SelectedValue, out var selectedId) ? selectedId : 0);
+
+            if (idPuntoDePago <= 0)
+            {
+                mensaje = "Selecciona un punto de pago para aperturar la caja.";
+                return false;
+            }
+
+            puntoDePago = puntos.FirstOrDefault(x => x.id == idPuntoDePago);
+            if (puntoDePago == null)
+            {
+                mensaje = "El punto de pago seleccionado no es válido.";
+                return false;
+            }
+
+            return true;
         }
 
         private AperturaCajaWhatsAppData ConstruirDatosApertura(BaseCaja baseNueva, R_VendedorUsuario usuarioCaja)
@@ -341,8 +460,10 @@ namespace WebApplication
             };
         }
 
-        private void AbrirModalBase()
+        private void AbrirModalBase(bool requiereBase = false)
         {
+            RequiereBaseApertura = requiereBase;
+            ConfigurarModalInicioTurno();
             ScriptManager.RegisterStartupScript(this, GetType(), "openBaseModal", "openBaseModal();", true);
         }
     }

@@ -43,8 +43,13 @@
                     <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-2">
 
                         <!-- IZQUIERDA -->
-                        <div class="fw-bold text-dark ps-2">
+                        <div class="fw-bold text-dark ps-2 d-flex flex-column gap-1">
                             <span class="fw-semibold"><%: models.vendedor.nombreVendedor %></span>
+                            <span class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill"
+                                style="width: fit-content; background: rgba(11, 58, 126, .08); color: #0b3a7e; font-size: .92rem; font-weight: 700; border: 1px solid rgba(11, 58, 126, .14);">
+                                <i class="bi bi-shop"></i>
+                                Punto: <%: NombrePuntoDePagoActual() %>
+                            </span>
                         </div>
 
                         <!-- DERECHA: Botones -->

@@ -117,6 +117,7 @@
     <Compile Include="Controler\MesasControler.cs" />
     <Compile Include="Controler\PagosVenta_controler.cs" />
     <Compile Include="Controler\payment_methodsControler.cs" />
+    <Compile Include="Controler\PuntosDePagoControler.cs" />
     <Compile Include="Controler\R_CuentaCliente_DetalleVentaControler.cs" />
     <Compile Include="Controler\R_VendedorUsuarioControler.cs" />
     <Compile Include="Controler\R_VentaCliente_Controler.cs" />
@@ -178,6 +179,7 @@
     <Compile Include="Model\PagosVenta.cs" />
     <Compile Include="Model\payment_forms.cs" />
     <Compile Include="Model\payment_methods.cs" />
+    <Compile Include="Model\PuntosDePago.cs" />
     <Compile Include="Model\R_CuentaCliente_DetalleVenta.cs" />
     <Compile Include="Model\R_VendedorUsuario.cs" />
     <Compile Include="Model\R_VentaCliente.cs" />
