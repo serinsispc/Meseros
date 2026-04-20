@@ -349,6 +349,12 @@ namespace WebApplication
 
         private void ConfigurarModalInicioTurno()
         {
+            var requiereSeleccionPunto = RequiereSeleccionManualPuntoDePago();
+            panelPuntoDePago.Visible = requiereSeleccionPunto;
+            textoPuntoDePago.InnerText = requiereSeleccionPunto
+                ? "Antes de continuar, selecciona el punto de pago en el que vas a trabajar."
+                : "Se usará automáticamente el punto de pago predeterminado para este cliente.";
+
             panelBaseApertura.Attributes["class"] = RequiereBaseApertura
                 ? "mb-3 inicio-turno-base"
                 : "mb-3 inicio-turno-base oculto";
@@ -367,7 +373,10 @@ namespace WebApplication
                 return;
             }
 
-            ddlPuntoDePago.Items.Add(new ListItem("Selecciona un punto de pago", string.Empty));
+            if (puntos.Count > 1)
+            {
+                ddlPuntoDePago.Items.Add(new ListItem("Selecciona un punto de pago", string.Empty));
+            }
 
             foreach (var punto in puntos)
             {
@@ -386,6 +395,11 @@ namespace WebApplication
                     ddlPuntoDePago.ClearSelection();
                     item.Selected = true;
                 }
+            }
+            else if (puntos.Count == 1)
+            {
+                ddlPuntoDePago.ClearSelection();
+                ddlPuntoDePago.Items[0].Selected = true;
             }
         }
 
@@ -414,6 +428,12 @@ namespace WebApplication
                 return true;
             }
 
+            if (puntos.Count == 1)
+            {
+                puntoDePago = puntos[0];
+                return true;
+            }
+
             var idPuntoDePago = ObtenerPuntoDePagoSeleccionadoDesdeRequest()
                 ?? (int.TryParse(ddlPuntoDePago.SelectedValue, out var selectedId) ? selectedId : 0);
 
@@ -431,6 +451,11 @@ namespace WebApplication
             }
 
             return true;
+        }
+
+        private bool RequiereSeleccionManualPuntoDePago()
+        {
+            return (models?.puntosDePago?.Count ?? 0) > 1;
         }
 
         private AperturaCajaWhatsAppData ConstruirDatosApertura(BaseCaja baseNueva, R_VendedorUsuario usuarioCaja)

@@ -11,5 +11,6 @@ namespace DAL.Model
         public int id {  get; set; }
         public int idventa { get; set; }
         public string nameprinter { get; set; }
+        public int ancho { get; set; }
     }
 }

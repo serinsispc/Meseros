@@ -13,5 +13,6 @@ namespace DAL.Model
         public int idVenta { get; set; }
         [JsonProperty("nameprinter")]
         public string namePrinter { get; set; }
+        public int ancho { get; set; }
     }
 }

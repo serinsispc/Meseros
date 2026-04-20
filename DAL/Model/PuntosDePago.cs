@@ -7,5 +7,6 @@ namespace DAL.Model
         public int id { get; set; }
         public string nombrePunto { get; set; }
         public string impresoraPredeterminada { get; set; }
+        public int ancho { get; set; }
     }
 }

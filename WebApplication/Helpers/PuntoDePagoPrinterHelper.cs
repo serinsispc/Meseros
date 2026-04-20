@@ -9,6 +9,8 @@ namespace WebApplication.Helpers
 {
     public static class PuntoDePagoPrinterHelper
     {
+        private const int DefaultPrinterWidth = 58;
+
         public static string ResolvePrinterName(HttpSessionState session, MenuViewModels model = null)
         {
             var resolvedModel = model ?? SessionContextHelper.LoadModels(session) ?? session?[SessionContextHelper.ModelsKey] as MenuViewModels;
@@ -73,6 +75,37 @@ namespace WebApplication.Helpers
             return string.Empty;
         }
 
+        public static int ResolvePrinterWidth(HttpSessionState session, MenuViewModels model = null)
+        {
+            var resolvedModel = model ?? SessionContextHelper.LoadModels(session) ?? session?[SessionContextHelper.ModelsKey] as MenuViewModels;
+            if (resolvedModel == null)
+            {
+                resolvedModel = new MenuViewModels();
+            }
+
+            var idPuntoDePago = resolvedModel.PuntoDePagoSeleccionado?.id ?? 0;
+            if (idPuntoDePago <= 0 && session?[SessionContextHelper.IdPuntoDePagoKey] != null)
+            {
+                int.TryParse(Convert.ToString(session[SessionContextHelper.IdPuntoDePagoKey]), out idPuntoDePago);
+            }
+
+            if ((resolvedModel.PuntoDePagoSeleccionado == null || resolvedModel.PuntoDePagoSeleccionado.id <= 0) && idPuntoDePago > 0)
+            {
+                var puntoDesdeLista = resolvedModel.puntosDePago?.FirstOrDefault(x => x != null && x.id == idPuntoDePago);
+                if (puntoDesdeLista != null)
+                {
+                    resolvedModel.PuntoDePagoSeleccionado = puntoDesdeLista;
+                }
+            }
+
+            if (resolvedModel.PuntoDePagoSeleccionado != null && resolvedModel.PuntoDePagoSeleccionado.ancho > 0)
+            {
+                return resolvedModel.PuntoDePagoSeleccionado.ancho;
+            }
+
+            return DefaultPrinterWidth;
+        }
+
         public static void Apply(ImprimirCuenta solicitud, HttpSessionState session, MenuViewModels model = null)
         {
             if (solicitud == null)
@@ -81,6 +114,7 @@ namespace WebApplication.Helpers
             }
 
             solicitud.namePrinter = ResolvePrinterName(session, model);
+            solicitud.ancho = ResolvePrinterWidth(session, model);
         }
 
         public static void Apply(ImprimirFactura solicitud, HttpSessionState session, MenuViewModels model = null)
@@ -91,6 +125,7 @@ namespace WebApplication.Helpers
             }
 
             solicitud.nameprinter = ResolvePrinterName(session, model);
+            solicitud.ancho = ResolvePrinterWidth(session, model);
         }
 
         public static void Apply(AperturarCajon solicitud, HttpSessionState session, MenuViewModels model = null)
@@ -101,6 +136,7 @@ namespace WebApplication.Helpers
             }
 
             solicitud.nameprinter = ResolvePrinterName(session, model);
+            solicitud.ancho = ResolvePrinterWidth(session, model);
         }
     }
 }

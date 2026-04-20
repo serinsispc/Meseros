@@ -208,11 +208,11 @@
                 </div>
 
                 <div class="modal-body">
-                    <div class="mb-2 text-muted">
+                    <div class="mb-2 text-muted" id="textoPuntoDePago" runat="server">
                         Antes de continuar, selecciona el punto de pago en el que vas a trabajar.
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3" id="panelPuntoDePago" runat="server">
                         <label class="form-label">Punto de pago</label>
                         <asp:DropDownList ID="ddlPuntoDePago" runat="server" CssClass="form-select" />
                         <small class="text-muted">Selecciona el punto y su impresora predeterminada.</small>

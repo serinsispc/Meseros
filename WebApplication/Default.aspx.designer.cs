@@ -60,6 +60,24 @@ namespace WebApplication
         protected global::System.Web.UI.WebControls.Button btnIngresar;
 
         /// <summary>
+        /// Control textoPuntoDePago.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl textoPuntoDePago;
+
+        /// <summary>
+        /// Control panelPuntoDePago.
+        /// </summary>
+        /// <remarks>
+        /// Campo generado automáticamente.
+        /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl panelPuntoDePago;
+
+        /// <summary>
         /// Control ddlPuntoDePago.
         /// </summary>
         /// <remarks>
