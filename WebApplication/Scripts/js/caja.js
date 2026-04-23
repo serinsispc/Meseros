@@ -1192,6 +1192,22 @@ function editarNombreDetalle(btn) {
         return false;
     };
 
+    window.eliminarPropinaResumen = function (btn) {
+        if (!btn) return false;
+
+        const idVentaEliminar = parseInt(btn.dataset.idventa || '0', 10) || 0;
+        const idCuentaEliminar = parseInt(btn.dataset.idcuenta || '0', 10) || 0;
+
+        EjecutarAccion('EditarPropina', JSON.stringify({
+            porcentaje: 0,
+            propina: 0,
+            idventa: idVentaEliminar,
+            idcuenta: idCuentaEliminar
+        }), btn);
+
+        return false;
+    };
+
     document.addEventListener('DOMContentLoaded', function () {
         const txtPorcentaje = byId('txtPorcentajePropina');
         const txtPropina = byId('txtValorPropina');

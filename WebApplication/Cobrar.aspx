@@ -87,31 +87,11 @@
                             </div>
                         </div>
 
-                        <div class="cobrar-mini-card cobrar-stack-card">
-                            <label class="form-label fw-bold mb-1">Propina</label>
-                            <div class="row g-2">
-                                <div class="col-5">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="txtPropinaPorcentaje" value="0" />
-                                        <span class="input-group-text">%</span>
-                                    </div>
-                                    <div class="hint mt-1">% sobre SubTotal</div>
-                                </div>
-                                <div class="col-7">
-                                    <input type="text" class="form-control" id="txtPropina" runat="server" ClientIDMode="Static" value="0" />
-                                    <div class="hint mt-1">Valor propina</div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="d-flex gap-2 mt-2 flex-wrap flex-sm-nowrap">
-                                        <button type="button" class="btn btnx btn-blue flex-fill" id="btnGuardarPropina">
-                                            <i class="bi bi-check2-circle"></i> Guardar propina
-                                        </button>
-                                        <button type="button" class="btn btnx flex-fill" id="btnEliminarPropina">
-                                            <i class="bi bi-trash3"></i> Eliminar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="d-none" aria-hidden="true">
+                            <input type="text" id="txtPropinaPorcentaje" value="0" />
+                            <input type="text" id="txtPropina" runat="server" ClientIDMode="Static" value="0" />
+                            <button type="button" id="btnGuardarPropina">Guardar propina</button>
+                            <button type="button" id="btnEliminarPropina">Eliminar propina</button>
                         </div>
 
 

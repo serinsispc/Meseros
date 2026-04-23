@@ -481,7 +481,14 @@
                                                 data-idventa="<%: models.IdCuentaActiva %>"
                                                 data-idcuenta="<%: models.IdCuenteClienteActiva %>"
                                                 data-subtotal="<%: Convert.ToInt32(ResumenSubtotal()) %>"
-                                                onclick="return abrirModalPropina(this);">Editar</button>
+                                                onclick="return abrirModalPropina(this);"><i class="bi bi-pencil-square me-1"></i>Editar</button>
+                                            <button type="button"
+                                                id="btnEliminarPropinaResumen"
+                                                class="btn-servicio-editar btn-servicio-eliminar"
+                                                title="Eliminar propina"
+                                                data-idventa="<%: models.IdCuentaActiva %>"
+                                                data-idcuenta="<%: models.IdCuenteClienteActiva %>"
+                                                onclick="return eliminarPropinaResumen(this);"><i class="bi bi-trash me-1"></i>Eliminar</button>
                                             <div class="precio-value"><%: FormatearMoneda(ResumenPropina()) %></div>
                                         </div>
                                     </div>
@@ -676,6 +683,21 @@
         </button>
     </div>
 </nav>
+
+    <style>
+        .btn-servicio-eliminar {
+            background: #dc2626;
+            border-color: #dc2626;
+            color: #fff;
+        }
+
+        .btn-servicio-eliminar:hover,
+        .btn-servicio-eliminar:focus {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            color: #fff;
+        }
+    </style>
 
 
     <div class="modal fade" id="modalDomicilio" tabindex="-1" aria-hidden="true">
