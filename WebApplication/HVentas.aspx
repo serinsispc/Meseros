@@ -223,10 +223,10 @@
                                             </button>
 
                                             <button type="button"
-                                                class='btn btn-outline-danger btn-sm hv-linkbtn me-2 btn-anular-venta <%# EsVentaAnulada(Item) ? "disabled" : "" %>'
+                                                class='btn btn-outline-danger btn-sm hv-linkbtn me-2 btn-anular-venta <%# !PuedeAnularVenta(Item) ? "disabled" : "" %>'
                                                 data-id="<%# Item.id %>"
                                                 data-factura="<%# Item.prefijo %>-<%# Item.numeroVenta %>"
-                                                <%# EsVentaAnulada(Item) ? "disabled=\"disabled\"" : "" %>>
+                                                <%# !PuedeAnularVenta(Item) ? "disabled=\"disabled\"" : "" %>>
                                                 <i class="bi bi-x-octagon me-1"></i>Anular
                                             </button>
 
@@ -237,6 +237,14 @@
                                                 <%# !PuedeHacerDevolucion(Item) ? "disabled=\"disabled\"" : "" %>>
                                                 <i class="bi bi-arrow-counterclockwise me-1"></i>Devolución
                                             </button>
+
+                                            <a href="#"
+                                                class='btn btn-outline-danger btn-sm hv-linkbtn me-2 btn-descargar-nota-credito <%# !PuedeDescargarNotaCredito(Item) ? "disabled" : "" %>'
+                                                data-id="<%# Item.id %>"
+                                                data-factura="<%# Item.prefijo %>-<%# Item.numeroVenta %>"
+                                                <%# !PuedeDescargarNotaCredito(Item) ? "onclick=\"return false;\"" : "" %>>
+                                                <i class="bi bi-file-earmark-break me-1"></i>Descargar nota crédito
+                                            </a>
 
                                             <a href="#"
                                                 class='btn btn-outline-secondary btn-sm hv-linkbtn btn-descargar-pdf <%# Item.cufe == "--" ? "disabled" : "" %>'

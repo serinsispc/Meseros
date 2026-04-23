@@ -229,6 +229,10 @@
                     <button type="button" class="btn btn-outline-primary shadow-sm" id="btnImprimir">
                         <i class="bi bi-printer me-2"></i>Imprimir
                     </button>
+
+                    <button type="button" class="btn btn-outline-info shadow-sm" id="btnVerProductosTurno">
+                        <i class="bi bi-basket me-2"></i>Categorías y productos
+                    </button>
                     
                     <%  }%>
 
@@ -248,7 +252,7 @@
 
                         <!-- ✅ KPIs principales -->
             <div class="row g-3 mt-2">
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="cc-kpi">
                         <div class="top">
                             <div class="label">Base Inicial</div>
@@ -261,7 +265,7 @@
                     </div>
                 </div>
 
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="cc-kpi success">
                         <div class="top">
                             <div class="label">Total Ingresos</div>
@@ -274,7 +278,7 @@
                     </div>
                 </div>
 
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
                     <div class="cc-kpi danger">
                         <div class="top">
                             <div class="label">Total Egresos</div>
@@ -287,7 +291,20 @@
                     </div>
                 </div>
 
-                <div class="col-12 col-md-6 col-xl-3">
+                <div class="col-12 col-md-6 col-xl">
+                    <div class="cc-kpi">
+                        <div class="top">
+                            <div class="label">Propinas del Turno</div>
+                            <div class="ico"><i class="bi bi-cup-hot"></i></div>
+                        </div>
+                        <div class="value">
+                            <span id="lblPropinasTurno" runat="server" ClientIDMode="Static">$ 0</span>
+                        </div>
+                        <div class="text-muted small fw-semibold">propinasTurno</div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl">
                     <div class="cc-kpi warning">
                         <div class="top">
                             <div class="label">Producido</div>
@@ -590,6 +607,26 @@
         </div>
     </div>
 
+    <div class="modal fade" id="mdlProductosTurno" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content cc-card">
+                <div class="cc-card-h">
+                    <h3 class="cc-card-t"><i class="bi bi-basket"></i>Categorías y productos vendidos del turno</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="cc-card-b">
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Revisa este consolidado antes de confirmar el cierre de caja.
+                    </div>
+
+                    <div id="ccResumenProductosTurno" class="row g-3 mb-3"></div>
+                    <div id="ccDetalleProductosTurno"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- ✅ Modal confirmar cierre -->
     <div class="modal fade" id="mdlConfirmarCierre" tabindex="-1" aria-hidden="true">
@@ -760,6 +797,7 @@
             ccTicketLineInline('Ventas efectivo', ccGetTextInline('lblVentasEfectivo', '$ 0')) +
             ccTicketLineInline('Ventas tarjeta', ccGetTextInline('lblVentasTargeta2', '$ 0')) +
             ccTicketLineInline('Ventas credito', ccGetTextInline('lblVentasCredito', '$ 0')) +
+            ccTicketLineInline('Propinas turno', ccGetTextInline('lblPropinasTurno', '$ 0')) +
             '<div class="row tot"><span>Total ingresos</span><strong>' + ccEscapeHtmlInline(ccGetTextInline('lblTotalIngresos2', '$ 0')) + '</strong></div>' +
             '</div><div class="sep"></div><div class="section"><h4>Egresos</h4>' +
             ccTicketLineInline('Gastos efectivo', ccGetTextInline('lblGastosEfectivo', '$ 0')) +

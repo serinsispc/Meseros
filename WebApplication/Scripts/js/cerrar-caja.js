@@ -108,6 +108,106 @@
         }
     };
 
+    function ccGetProductosTurno() {
+        var field = document.getElementById('hidProductosVendidosJson');
+        if (!field || !field.value) {
+            return [];
+        }
+
+        try {
+            var data = JSON.parse(field.value);
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function ccFormatCantidad(value) {
+        var number = Number(value || 0);
+        if (!isFinite(number)) return '0';
+        if (Math.floor(number) === number) return number.toLocaleString('es-CO');
+        return number.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function ccRenderProductosTurno() {
+        var resumen = document.getElementById('ccResumenProductosTurno');
+        var detalle = document.getElementById('ccDetalleProductosTurno');
+        if (!resumen || !detalle) {
+            return;
+        }
+
+        var items = ccGetProductosTurno();
+        if (!items.length) {
+            resumen.innerHTML = '';
+            detalle.innerHTML = '<div class="cc-note"><i class="bi bi-info-circle me-2"></i>No hay productos vendidos registrados para este turno.</div>';
+            return;
+        }
+
+        var categorias = {};
+        items.forEach(function (item) {
+            var nombreCategoria = (item.nombreCategoria || 'Sin categoría').trim() || 'Sin categoría';
+            if (!categorias[nombreCategoria]) {
+                categorias[nombreCategoria] = {
+                    nombre: nombreCategoria,
+                    cantidad: 0,
+                    valor: 0,
+                    items: []
+                };
+            }
+
+            categorias[nombreCategoria].cantidad += Number(item.cantidad || 0);
+            categorias[nombreCategoria].valor += Number(item.valor || 0);
+            categorias[nombreCategoria].items.push(item);
+        });
+
+        var listaCategorias = Object.keys(categorias).sort().map(function (key) { return categorias[key]; });
+        var totalCantidad = items.reduce(function (acc, item) { return acc + Number(item.cantidad || 0); }, 0);
+        var totalValor = items.reduce(function (acc, item) { return acc + Number(item.valor || 0); }, 0);
+
+        resumen.innerHTML = [
+            '<div class="col-12 col-md-4"><div class="cc-kpi"><div class="top"><div class="label">Categorías</div><div class="ico"><i class="bi bi-tags"></i></div></div><div class="value">' + listaCategorias.length + '</div><div class="text-muted small fw-semibold">grupos del turno</div></div></div>',
+            '<div class="col-12 col-md-4"><div class="cc-kpi success"><div class="top"><div class="label">Cantidad vendida</div><div class="ico"><i class="bi bi-123"></i></div></div><div class="value">' + ccFormatCantidad(totalCantidad) + '</div><div class="text-muted small fw-semibold">unidades del turno</div></div></div>',
+            '<div class="col-12 col-md-4"><div class="cc-kpi warning"><div class="top"><div class="label">Valor vendido</div><div class="ico"><i class="bi bi-currency-dollar"></i></div></div><div class="value">' + ccFormatMoney(totalValor) + '</div><div class="text-muted small fw-semibold">total productos</div></div></div>'
+        ].join('');
+
+        detalle.innerHTML = listaCategorias.map(function (categoria) {
+            var filas = categoria.items.map(function (item) {
+                return '<tr>' +
+                    '<td>' + (item.codigoProducto || 'ITEM') + '</td>' +
+                    '<td>' + (item.nombreProducto || 'Producto') + '</td>' +
+                    '<td class="money">' + ccFormatCantidad(item.cantidad || 0) + '</td>' +
+                    '<td class="money">' + ccFormatMoney(item.valor || 0) + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            return '<div class="cc-card mb-3">' +
+                '<div class="cc-card-h">' +
+                '<h4 class="cc-card-t"><i class="bi bi-tag"></i>' + categoria.nombre + '</h4>' +
+                '<span class="cc-pill"><i class="bi bi-bar-chart"></i>' + ccFormatCantidad(categoria.cantidad) + ' und · ' + ccFormatMoney(categoria.valor) + '</span>' +
+                '</div>' +
+                '<div class="cc-card-b">' +
+                '<div class="cc-report-wrap">' +
+                '<table class="cc-report-table">' +
+                '<thead><tr><th>Código</th><th>Producto</th><th>Cantidad</th><th>Valor</th></tr></thead>' +
+                '<tbody>' + filas + '</tbody>' +
+                '</table>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    function ccAbrirProductosTurno() {
+        ccRenderProductosTurno();
+        var modalEl = document.getElementById('mdlProductosTurno');
+        if (!modalEl || !window.bootstrap || !bootstrap.Modal) {
+            return;
+        }
+
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+
     window.ccActualizarDiferencia = function () {
         var input = document.getElementById('txtEfectivoFisico');
         var totalEl = document.getElementById('lblEfectivoMasBase');
@@ -152,6 +252,7 @@
         var btnAperturarCajon = document.getElementById('btnAperturarCajon');
         var btnGuardarBase = document.getElementById('btnGuardarBase');
         var btnEditarBase = document.getElementById('btnEditarBase');
+        var btnVerProductosTurno = document.getElementById('btnVerProductosTurno');
         var txtEfectivoFisico = document.getElementById('txtEfectivoFisico');
         var txtValorBaseEditar = document.getElementById('txtValorBaseEditar');
 
@@ -203,6 +304,13 @@
                 EjecutarAccion('AperturarCajon', '', btnAperturarCajon);
             });
             btnAperturarCajon.dataset.ccBound = '1';
+        }
+
+        if (btnVerProductosTurno && !btnVerProductosTurno.dataset.ccBound) {
+            btnVerProductosTurno.addEventListener('click', function () {
+                ccAbrirProductosTurno();
+            });
+            btnVerProductosTurno.dataset.ccBound = '1';
         }
 
         ccActualizarDiferencia();

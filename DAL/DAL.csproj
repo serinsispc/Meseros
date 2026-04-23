@@ -107,6 +107,7 @@
     <Compile Include="Controler\DBConexionControler.cs" />
     <Compile Include="Controler\DetalleVentaControler.cs" />
     <Compile Include="Controler\FacturaElectronicaControler.cs" />
+    <Compile Include="Controler\NotasCreditoControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
     <Compile Include="Controler\InformePagoInternoTurnoControler.cs" />
     <Compile Include="Controler\InformeProductoVendidoTurnoControler.cs" />
@@ -132,6 +133,7 @@
     <Compile Include="Controler\type_regimesControler.cs" />
     <Compile Include="Controler\tax_detailsControler.cs" />
     <Compile Include="Controler\V_CorreosClienteControler.cs" />
+    <Compile Include="Controler\V_R_PermisoCajeroControler.cs" />
     <Compile Include="Controler\V_MunicipiosControler.cs" />
     <Compile Include="Controler\VendedorControler.cs" />
     <Compile Include="Controler\V_CatagoriaAdicionControler.cs" />
@@ -177,6 +179,7 @@
     <Compile Include="Model\ImprimirFactura.cs" />
     <Compile Include="Model\MediosDePagoInternos.cs" />
     <Compile Include="Model\Mesas.cs" />
+    <Compile Include="Model\NotasCredito.cs" />
     <Compile Include="Model\PagosVenta.cs" />
     <Compile Include="Model\payment_forms.cs" />
     <Compile Include="Model\payment_methods.cs" />
@@ -207,6 +210,7 @@
     <Compile Include="Model\V_DetalleCaja.cs" />
     <Compile Include="Model\v_productoVenta.cs" />
     <Compile Include="Model\V_Resoluciones.cs" />
+    <Compile Include="Model\V_R_PermisoCajero.cs" />
     <Compile Include="Model\V_R_MediosDePago_MediosDePagoInternos.cs" />
     <Compile Include="Model\V_ServicioMesa.cs" />
     <Compile Include="Model\V_TablaVentas.cs" />

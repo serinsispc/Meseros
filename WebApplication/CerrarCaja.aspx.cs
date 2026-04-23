@@ -68,6 +68,8 @@ namespace WebApplication
         {
             var dal = new SqlAutoDAL();
             turnoCaja = await dal.ConsultarUno<V_TurnosCaja>(db, x => x.id == baseCaja.id);
+            ventas = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == baseCaja.id && x.eliminada == false);
+            ventas = ventas.OrderByDescending(x => x.fechaVenta).ToList();
             pagosInternosTurno = await ConsultarPagosInternosTurno();
             gastosTurno = await ConsultarGastosTurno();
             productosVendidosTurno = await ConsultarProductosVendidosTurno();
@@ -81,14 +83,12 @@ namespace WebApplication
                 return;
             }
 
-            ventas = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == baseCaja.id && x.eliminada == false);
-            ventas = ventas.OrderByDescending(x => x.fechaVenta).ToList();
-
             var ventasValidas = ventas.Where(x => !EsVentaAnulada(x)).ToList();
             var totalIngresos = ventasValidas.Sum(x => x.total_A_Pagar);
             var totalEfectivo = ventasValidas.Sum(x => x.abonoEfectivo);
             var ventasTarjeta = ObtenerTotalPagosNoEfectivo(ventasValidas.Sum(x => x.abonoTarjeta));
             var ventasCredito = ventasValidas.Sum(x => x.totalPendienteVenta);
+            var propinasTurno = ventasValidas.Sum(x => x.propina);
             var totalEgresos = 0m;
             var producido = totalIngresos - totalEgresos;
 
@@ -108,6 +108,7 @@ namespace WebApplication
             lblVentasEfectivo.InnerText = FormatearMoneda(totalEfectivo);
             lblVentasTargeta2.InnerText = FormatearMoneda(ventasTarjeta);
             lblVentasCredito.InnerText = FormatearMoneda(ventasCredito);
+            lblPropinasTurno.InnerText = FormatearMoneda(propinasTurno);
             lblTotalIngresos2.InnerText = FormatearMoneda(totalIngresos);
             lblGastosEfectivo.InnerText = FormatearMoneda(totalEgresos);
             lblPagoCC_Efectivo.InnerText = FormatearMoneda(0);
@@ -119,6 +120,8 @@ namespace WebApplication
 
         private void PintarTurnoDesdeVista(V_TurnosCaja turno)
         {
+            var ventasValidas = (ventas ?? new List<V_TablaVentas>()).Where(x => !EsVentaAnulada(x)).ToList();
+            var propinasTurno = ventasValidas.Sum(x => x.propina);
             var totalEfectivo = turno.totalEfectivo;
             var ventasEfectivo = turno.ventasEfectivo;
             var ventasTarjeta = turno.ventasTargeta;
@@ -142,6 +145,7 @@ namespace WebApplication
             lblVentasEfectivo.InnerText = FormatearMoneda(ventasEfectivo);
             lblVentasTargeta2.InnerText = FormatearMoneda(ventasTarjeta);
             lblVentasCredito.InnerText = FormatearMoneda(turno.ventasCredito);
+            lblPropinasTurno.InnerText = FormatearMoneda(propinasTurno);
             lblTotalIngresos2.InnerText = FormatearMoneda(totalIngresos);
             lblGastosEfectivo.InnerText = FormatearMoneda(turno.gastos_Efectivo);
             lblPagoCC_Efectivo.InnerText = FormatearMoneda(turno.pagoCC_Efectivo);

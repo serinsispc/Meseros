@@ -64,6 +64,7 @@ namespace WebApplication
         protected bool _mdlResolucionVenta = false;
         protected bool _mdlClienteVenta = false;
         protected bool _mdlCorreoFactura = false;
+        protected bool _puedeGestionarAnulacionDevolucion = false;
 
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private readonly CultureInfo _co = new CultureInfo("es-CO");
@@ -185,6 +186,10 @@ namespace WebApplication
                 case "btnDescargarPDF":
                     await btnDescargarPDF(eventArgument);
                     break;
+
+                case "btnDescargarNotaCreditoPDF":
+                    await btnDescargarNotaCreditoPDF(eventArgument);
+                    break;
             }
         }
 
@@ -194,7 +199,27 @@ namespace WebApplication
 
         private async Task RefrescarVista()
         {
+            await CargarPermisosAcciones();
             await CargarVentas();
+        }
+
+        private async Task CargarPermisosAcciones()
+        {
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                _puedeGestionarAnulacionDevolucion = false;
+                return;
+            }
+
+            var idVendedor = ObtenerIdVendedorSesion();
+            if (idVendedor <= 0)
+            {
+                _puedeGestionarAnulacionDevolucion = false;
+                return;
+            }
+
+            _puedeGestionarAnulacionDevolucion = await V_R_PermisoCajeroControler.TienePermiso(db, idVendedor, 1);
         }
 
         private async Task CargarVentas()
@@ -238,12 +263,25 @@ namespace WebApplication
             return string.Equals(item.tipoFactura, "FACTURA ELECTRÓNICA DE VENTA", StringComparison.OrdinalIgnoreCase);
         }
 
+        protected bool PuedeDescargarNotaCredito(V_TablaVentas item)
+        {
+            return item != null && EsVentaElectronica(item) && EsVentaAnulada(item);
+        }
+
         protected bool PuedeHacerDevolucion(V_TablaVentas item)
         {
-            return item != null
+            return _puedeGestionarAnulacionDevolucion
+                && item != null
                 && !EsVentaAnulada(item)
                 && !EsVentaElectronica(item)
                 && item.numeroVenta > 0;
+        }
+
+        protected bool PuedeAnularVenta(V_TablaVentas item)
+        {
+            return _puedeGestionarAnulacionDevolucion
+                && item != null
+                && !EsVentaAnulada(item);
         }
 
         protected bool EsVentaValida(V_TablaVentas item)
@@ -428,6 +466,12 @@ namespace WebApplication
                 return;
             }
 
+            if (!await UsuarioTienePermisoAnulacionDevolucion(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "El vendedor actual no tiene permiso para anular ventas.");
+                return;
+            }
+
             var ventaVista = await V_TablaVentasControler.Consultar_Id(db, idVenta);
             if (ventaVista == null)
             {
@@ -440,6 +484,8 @@ namespace WebApplication
                 await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "La venta ya se encuentra anulada.");
                 return;
             }
+
+            NotaCreditoFEHelper.NotaCreditoResultado notaCreditoResultado = null;
 
             if (EsVentaElectronica(ventaVista))
             {
@@ -459,16 +505,19 @@ namespace WebApplication
                     return;
                 }
 
-                var notaCreditoOk = await NotaCreditoFEHelper.GenerarNotaCreditoAnulacion(
+                notaCreditoResultado = await NotaCreditoFEHelper.GenerarNotaCreditoAnulacion(
                     db,
                     ventaVista,
                     detalleVenta,
                     tokenFe,
                     $"Nota crédito por anulación de la factura {ventaVista.prefijo}-{ventaVista.numeroVenta}.");
 
-                if (!notaCreditoOk)
+                if (notaCreditoResultado == null || !notaCreditoResultado.Exitoso)
                 {
-                    await MostrarMensaje(TipoMensaje.Error, "Anular venta", "No fue posible generar la nota crédito electrónica. La venta no se anuló.");
+                    await MostrarMensaje(
+                        TipoMensaje.Error,
+                        "Anular venta",
+                        $"No fue posible generar la nota crédito electrónica. {notaCreditoResultado?.Mensaje ?? "La venta no se anuló."}");
                     return;
                 }
             }
@@ -494,7 +543,13 @@ namespace WebApplication
                 return;
             }
 
-            await MostrarMensaje(TipoMensaje.Success, "Anular venta", "La venta fue anulada correctamente.");
+            var mensajeExito = "La venta fue anulada correctamente.";
+            if (EsVentaElectronica(ventaVista) && !string.IsNullOrWhiteSpace(notaCreditoResultado?.NumeroNotaCredito))
+            {
+                mensajeExito = $"La venta fue anulada correctamente. Nota crédito: {notaCreditoResultado.NumeroNotaCredito}.";
+            }
+
+            await MostrarMensaje(TipoMensaje.Success, "Anular venta", mensajeExito);
         }
 
         private async Task btnDevolucionVenta(string idventa)
@@ -509,6 +564,12 @@ namespace WebApplication
             if (string.IsNullOrWhiteSpace(db))
             {
                 await MostrarMensaje(TipoMensaje.Warning, "Devolución", "La sesión de base de datos no está disponible.");
+                return;
+            }
+
+            if (!await UsuarioTienePermisoAnulacionDevolucion(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "El vendedor actual no tiene permiso para crear devoluciones.");
                 return;
             }
 
@@ -1031,6 +1092,26 @@ namespace WebApplication
             await EjecutarScript(script);
         }
 
+        private async Task btnDescargarNotaCreditoPDF(string idVentaRaw)
+        {
+            if (!int.TryParse(idVentaRaw, out var idVenta) || idVenta <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No se recibió una venta válida para descargar la nota crédito PDF.");
+                return;
+            }
+
+            var payload = await ConstruirNotaCreditoPdf(idVenta);
+            if (payload == null)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Error", "No fue posible construir el PDF de la nota crédito.");
+                return;
+            }
+
+            var json = HttpUtility.JavaScriptStringEncode(JsonConvert.SerializeObject(payload));
+            var script = $"window.hvBuildInvoicePdf(JSON.parse('{json}'));";
+            await EjecutarScript(script);
+        }
+
         #endregion
 
         #region Helpers PRO
@@ -1182,6 +1263,67 @@ namespace WebApplication
             };
         }
 
+        private async Task<FacturaPdfDto> ConstruirNotaCreditoPdf(int idVenta)
+        {
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                return null;
+            }
+
+            var ventaFactura = await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            if (ventaFactura == null)
+            {
+                return null;
+            }
+
+            var notaCredito = await NotasCreditoControler.ConsultarIdVenta(db, idVenta);
+            if (notaCredito == null || string.IsNullOrWhiteSpace(notaCredito.cufe))
+            {
+                return null;
+            }
+
+            var payload = await ConstruirFacturaPdf(idVenta);
+            if (payload == null)
+            {
+                return null;
+            }
+
+            var fechaNotaCredito = ventaFactura.fechaVenta;
+            if (!string.IsNullOrWhiteSpace(notaCredito.fechaEmision))
+            {
+                DateTime fechaParseada;
+                if (DateTime.TryParse(notaCredito.fechaEmision, out fechaParseada))
+                {
+                    fechaNotaCredito = fechaParseada;
+                }
+            }
+
+            var fechaVencimientoNota = payload.fechaVencimiento;
+            if (!string.IsNullOrWhiteSpace(notaCredito.fecahVensimiento))
+            {
+                DateTime fechaVencimientoParseada;
+                if (DateTime.TryParse(notaCredito.fecahVensimiento, out fechaVencimientoParseada))
+                {
+                    fechaVencimientoNota = FormatearFechaPdf(fechaVencimientoParseada);
+                }
+            }
+
+            payload.archivo = $"NC-{(notaCredito.numeroFactura ?? (ventaFactura.prefijo + "-" + ventaFactura.numeroVenta))}";
+            payload.tipoFactura = "NOTA CREDITO ELECTRONICA";
+            payload.numeroFactura = $"N. {(!string.IsNullOrWhiteSpace(notaCredito.numeroFactura) ? notaCredito.numeroFactura : (ventaFactura.prefijo + " " + ventaFactura.numeroVenta))}";
+            payload.fechaGeneracion = FormatearFechaPdf(fechaNotaCredito);
+            payload.fechaExpedicion = FormatearFechaPdf(fechaNotaCredito);
+            payload.fechaVencimiento = fechaVencimientoNota;
+            payload.observacion = $"Nota credito de anulacion generada para la factura {ventaFactura.prefijo}-{ventaFactura.numeroVenta}.";
+            payload.cufe = notaCredito.cufe;
+            payload.qrBase64 = ObtenerQrBase64NotaCredito(notaCredito);
+            payload.nombreRecargo = "Propina";
+            payload.recargo = 0;
+
+            return payload;
+        }
+
         private string ConstruirDescripcionDetalle(V_DetalleCaja detalle)
         {
             var descripcion = detalle?.nombreProducto ?? string.Empty;
@@ -1232,6 +1374,34 @@ namespace WebApplication
                 {
                     var contenidoQr = ExtraerContenidoQr(facturaElectronica.dataQR);
                     var qrGenerado = ClassFE.General_qr(contenidoQr, ventaFactura?.id ?? 0)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    return NormalizarImagenBase64(qrGenerado);
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private string ObtenerQrBase64NotaCredito(NotasCredito notaCredito)
+        {
+            var qr = NormalizarImagenBase64(notaCredito?.imagenQR);
+            if (!string.IsNullOrWhiteSpace(qr))
+            {
+                return qr;
+            }
+
+            if (!string.IsNullOrWhiteSpace(notaCredito?.dataQR) && notaCredito.dataQR != "--")
+            {
+                try
+                {
+                    var contenidoQr = ExtraerContenidoQr(notaCredito.dataQR);
+                    var qrGenerado = ClassFE.General_qr(contenidoQr, notaCredito?.idVenta ?? 0)
                         .GetAwaiter()
                         .GetResult();
 
@@ -1344,6 +1514,36 @@ namespace WebApplication
             }
 
             return dataQr.Trim();
+        }
+
+        private int ObtenerIdVendedorSesion()
+        {
+            try
+            {
+                var modelsJson = Convert.ToString(Session["ModelsJson"]);
+                if (string.IsNullOrWhiteSpace(modelsJson))
+                {
+                    return 0;
+                }
+
+                var model = JsonConvert.DeserializeObject<MenuViewModels>(modelsJson);
+                return model?.vendedor?.id ?? 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private async Task<bool> UsuarioTienePermisoAnulacionDevolucion(string db)
+        {
+            var idVendedor = ObtenerIdVendedorSesion();
+            if (idVendedor <= 0)
+            {
+                return false;
+            }
+
+            return await V_R_PermisoCajeroControler.TienePermiso(db, idVendedor, 1);
         }
 
         private CorreoFacturaPreview ConstruirPreviewCorreo(int ventaId, V_TablaVentas ventaCorreo, string correoPrincipal, List<string> correosAdicionales)

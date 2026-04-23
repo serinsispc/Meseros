@@ -491,6 +491,24 @@
                 hvDescargarPDF(idVentaPdf);
                 return;
             }
+
+            var btnDescargarNotaCredito = e.target.closest('.btn-descargar-nota-credito');
+            if (btnDescargarNotaCredito) {
+                if (btnDescargarNotaCredito.classList.contains('disabled')) return;
+                if (btnDescargarNotaCredito.dataset.loading === '1') return;
+
+                btnDescargarNotaCredito.dataset.loading = '1';
+                btnDescargarNotaCredito.disabled = true;
+
+                var idVentaNotaCredito = btnDescargarNotaCredito.dataset.id;
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Descargando nota crédito PDF...');
+                }
+
+                hvDescargarNotaCreditoPDF(idVentaNotaCredito);
+                return;
+            }
         });
     }
 
@@ -684,6 +702,15 @@
         }
 
         showInfo('Error', 'No se encontró la acción descargar PDF.', 'error');
+    };
+
+    window.hvDescargarNotaCreditoPDF = function (idVenta) {
+        if (window.hvAction && typeof window.hvAction.descargarNotaCreditoPDF === 'function') {
+            window.hvAction.descargarNotaCreditoPDF(idVenta);
+            return;
+        }
+
+        showInfo('Error', 'No se encontró la acción descargar nota crédito PDF.', 'error');
     };
 
     window.hvImprimirVentaActual = function () {

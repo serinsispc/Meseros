@@ -78,6 +78,10 @@
 
         descargarPDF: function (idVenta) {
             postback('btnDescargarPDF', String(idVenta || 0));
+        },
+
+        descargarNotaCreditoPDF: function (idVenta) {
+            postback('btnDescargarNotaCreditoPDF', String(idVenta || 0));
         }
     };
 })();
