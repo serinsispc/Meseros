@@ -154,6 +154,14 @@ namespace WebApplication
                     await btnImprimirVenta(eventArgument);
                     break;
 
+                case "btnAnularVenta":
+                    await btnAnularVenta(eventArgument);
+                    break;
+
+                case "btnDevolucionVenta":
+                    await btnDevolucionVenta(eventArgument);
+                    break;
+
                 case "btnGuardarResolucion":
                     await btnGuardarResolucion(eventArgument);
                     break;
@@ -213,6 +221,29 @@ namespace WebApplication
         protected bool EsVentaAnulada(V_TablaVentas item)
         {
             return string.Equals(item?.estadoVenta, "ANULADA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected bool EsVentaElectronica(V_TablaVentas item)
+        {
+            if (item == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.cufe) && item.cufe != "--")
+            {
+                return true;
+            }
+
+            return string.Equals(item.tipoFactura, "FACTURA ELECTRÓNICA DE VENTA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected bool PuedeHacerDevolucion(V_TablaVentas item)
+        {
+            return item != null
+                && !EsVentaAnulada(item)
+                && !EsVentaElectronica(item)
+                && item.numeroVenta > 0;
         }
 
         protected bool EsVentaValida(V_TablaVentas item)
@@ -380,6 +411,153 @@ namespace WebApplication
 
             await MostrarMensaje(TipoMensaje.Success, "Ok", "Factura enviada.");
             await Task.CompletedTask;
+        }
+
+        private async Task btnAnularVenta(string idventa)
+        {
+            if (!int.TryParse(idventa, out var idVenta) || idVenta <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "No se recibió una venta válida.");
+                return;
+            }
+
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "La sesión de base de datos no está disponible.");
+                return;
+            }
+
+            var ventaVista = await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            if (ventaVista == null)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "No fue posible encontrar la venta.");
+                return;
+            }
+
+            if (EsVentaAnulada(ventaVista))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "La venta ya se encuentra anulada.");
+                return;
+            }
+
+            if (EsVentaElectronica(ventaVista))
+            {
+                if (string.IsNullOrWhiteSpace(ventaVista.cufe) || ventaVista.cufe == "--")
+                {
+                    await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "La factura electrónica aún no tiene CUFE. Primero debes emitirla para poder generar la nota crédito.");
+                    return;
+                }
+
+                var detalleVenta = await V_DetalleCajaControler.Lista_IdVenta(db, idVenta, 0) ?? new List<V_DetalleCaja>();
+                var model = SessionContextHelper.LoadModels(Session);
+                var tokenFe = model?.TokenEmpresa ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(tokenFe))
+                {
+                    await MostrarMensaje(TipoMensaje.Warning, "Anular venta", "No fue posible obtener el token de facturación electrónica para generar la nota crédito.");
+                    return;
+                }
+
+                var notaCreditoOk = await NotaCreditoFEHelper.GenerarNotaCreditoAnulacion(
+                    db,
+                    ventaVista,
+                    detalleVenta,
+                    tokenFe,
+                    $"Nota crédito por anulación de la factura {ventaVista.prefijo}-{ventaVista.numeroVenta}.");
+
+                if (!notaCreditoOk)
+                {
+                    await MostrarMensaje(TipoMensaje.Error, "Anular venta", "No fue posible generar la nota crédito electrónica. La venta no se anuló.");
+                    return;
+                }
+            }
+
+            var ventaEditar = await TablaVentasControler.ConsultarIdVenta(db, idVenta);
+            if (ventaEditar == null)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Anular venta", "No fue posible cargar la venta para actualizarla.");
+                return;
+            }
+
+            ventaEditar.estadoVenta = "ANULADA";
+            ventaEditar.observacionVenta = AgregarObservacionSistema(
+                ventaEditar.observacionVenta,
+                EsVentaElectronica(ventaVista)
+                    ? "Venta anulada desde Historial de Ventas con generación de nota crédito electrónica."
+                    : "Venta anulada desde Historial de Ventas.");
+
+            var resp = await TablaVentasControler.CRUD(db, ventaEditar, 1);
+            if (resp == null || !resp.estado)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Anular venta", resp?.mensaje ?? "No fue posible anular la venta.");
+                return;
+            }
+
+            await MostrarMensaje(TipoMensaje.Success, "Anular venta", "La venta fue anulada correctamente.");
+        }
+
+        private async Task btnDevolucionVenta(string idventa)
+        {
+            if (!int.TryParse(idventa, out var idVenta) || idVenta <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "No se recibió una venta válida.");
+                return;
+            }
+
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "La sesión de base de datos no está disponible.");
+                return;
+            }
+
+            var ventaVista = await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            if (ventaVista == null)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "No fue posible encontrar la venta.");
+                return;
+            }
+
+            if (EsVentaAnulada(ventaVista))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "La venta ya está anulada y no admite devolución.");
+                return;
+            }
+
+            if (EsVentaElectronica(ventaVista))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "La devolución solo aplica para facturas no electrónicas.");
+                return;
+            }
+
+            if (ventaVista.numeroVenta <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Devolución", "La venta ya tiene el número en 0.");
+                return;
+            }
+
+            var ventaEditar = await TablaVentasControler.ConsultarIdVenta(db, idVenta);
+            if (ventaEditar == null)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Devolución", "No fue posible cargar la venta para actualizarla.");
+                return;
+            }
+
+            ventaEditar.numeroVenta = 0;
+            ventaEditar.estadoVenta = "ANULADA";
+            ventaEditar.observacionVenta = AgregarObservacionSistema(
+                ventaEditar.observacionVenta,
+                "Devolución registrada desde Historial de Ventas. Número de venta ajustado a 0.");
+
+            var resp = await TablaVentasControler.CRUD(db, ventaEditar, 1);
+            if (resp == null || !resp.estado)
+            {
+                await MostrarMensaje(TipoMensaje.Error, "Devolución", resp?.mensaje ?? "No fue posible registrar la devolución.");
+                return;
+            }
+
+            await MostrarMensaje(TipoMensaje.Success, "Devolución", "La devolución se registró correctamente y el número de venta quedó en 0.");
         }
 
         private async Task btnBuscarNIT(string nit)
@@ -1198,6 +1376,18 @@ namespace WebApplication
             {
                 return false;
             }
+        }
+
+        private string AgregarObservacionSistema(string observacionActual, string mensaje)
+        {
+            var nota = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {mensaje}";
+
+            if (string.IsNullOrWhiteSpace(observacionActual))
+            {
+                return nota;
+            }
+
+            return observacionActual.Trim() + " | " + nota;
         }
 
         #endregion

@@ -156,6 +156,7 @@
     <Compile Include="Funciones\CuentaCliente_f.cs" />
     <Compile Include="Funciones\DetalleVenta_f.cs" />
     <Compile Include="Funciones\Mesas_f.cs" />
+    <Compile Include="Funciones\NotaCreditoFEHelper.cs" />
     <Compile Include="Funciones\R_CuentaCliente_DetalleVenta_f.cs" />
     <Compile Include="Funciones\R_VentaMesa_f.cs" />
     <Compile Include="Funciones\R_VentaVendedor_f.cs" />

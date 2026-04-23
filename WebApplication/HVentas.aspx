@@ -222,6 +222,22 @@
                                                 <i class="bi bi-printer me-1"></i>Imprimir
                                             </button>
 
+                                            <button type="button"
+                                                class='btn btn-outline-danger btn-sm hv-linkbtn me-2 btn-anular-venta <%# EsVentaAnulada(Item) ? "disabled" : "" %>'
+                                                data-id="<%# Item.id %>"
+                                                data-factura="<%# Item.prefijo %>-<%# Item.numeroVenta %>"
+                                                <%# EsVentaAnulada(Item) ? "disabled=\"disabled\"" : "" %>>
+                                                <i class="bi bi-x-octagon me-1"></i>Anular
+                                            </button>
+
+                                            <button type="button"
+                                                class='btn btn-outline-dark btn-sm hv-linkbtn me-2 btn-devolucion-venta <%# !PuedeHacerDevolucion(Item) ? "disabled" : "" %>'
+                                                data-id="<%# Item.id %>"
+                                                data-factura="<%# Item.prefijo %>-<%# Item.numeroVenta %>"
+                                                <%# !PuedeHacerDevolucion(Item) ? "disabled=\"disabled\"" : "" %>>
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i>Devolución
+                                            </button>
+
                                             <a href="#"
                                                 class='btn btn-outline-secondary btn-sm hv-linkbtn btn-descargar-pdf <%# Item.cufe == "--" ? "disabled" : "" %>'
                                                 data-id="<%# Item.id %>"

@@ -32,6 +32,14 @@
             postback('btnImprimirVenta', String(idVenta || 0));
         },
 
+        anularVenta: function (idVenta) {
+            postback('btnAnularVenta', String(idVenta || 0));
+        },
+
+        devolucionVenta: function (idVenta) {
+            postback('btnDevolucionVenta', String(idVenta || 0));
+        },
+
         editarResolucion: function (idVenta) {
             postback('btnEditarResolucion', String(idVenta || 0));
         },

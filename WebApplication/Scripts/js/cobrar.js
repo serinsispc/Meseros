@@ -935,7 +935,10 @@
             const el = byId(id);
             if (!el) return;
             const val = (value ?? '').toString().trim();
-            if (!val) return;
+            if (!val) {
+                el.selectedIndex = 0;
+                return;
+            }
 
             const option = Array.from(el.options).find(o => o.value === val);
             if (option) {
@@ -943,11 +946,11 @@
                 return;
             }
 
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = val;
-            el.appendChild(opt);
-            el.value = val;
+            // WebForms valida que el valor enviado exista entre las opciones
+            // renderizadas por el servidor. Si no existe, no lo inyectamos
+            // dinámicamente para evitar "Argumento de postback no válido".
+            el.selectedIndex = 0;
+            console.warn('Valor no encontrado en el select', id, val);
         };
 
         const setGuardarLabel = (label) => {

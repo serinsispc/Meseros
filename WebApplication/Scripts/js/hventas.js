@@ -23,6 +23,30 @@
         });
     }
 
+    function confirmAction(title, text, confirmText, onConfirm) {
+        if (!window.Swal) {
+            if (window.confirm((title || 'Confirmar') + '\n\n' + (text || ''))) {
+                onConfirm();
+            }
+            return;
+        }
+
+        Swal.fire({
+            icon: 'warning',
+            title: title || 'Confirmar',
+            text: text || '',
+            showCancelButton: true,
+            confirmButtonText: confirmText || 'Continuar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                onConfirm();
+            }
+        });
+    }
+
     function setValue(id, value) {
         var el = byId(id);
         if (el) {
@@ -382,6 +406,40 @@
                 return;
             }
 
+            var btnAnular = e.target.closest('.btn-anular-venta');
+            if (btnAnular) {
+                if (btnAnular.classList.contains('disabled') || btnAnular.disabled) return;
+
+                var idAnular = btnAnular.dataset.id;
+                var facturaAnular = btnAnular.dataset.factura || ('Venta #' + idAnular);
+
+                confirmAction(
+                    'Anular venta',
+                    'Se anulará la venta ' + facturaAnular + '. Esta acción aplica para ventas POS y electrónicas.',
+                    'Sí, anular',
+                    function () {
+                        hvAnularVenta(idAnular);
+                    });
+                return;
+            }
+
+            var btnDevolucion = e.target.closest('.btn-devolucion-venta');
+            if (btnDevolucion) {
+                if (btnDevolucion.classList.contains('disabled') || btnDevolucion.disabled) return;
+
+                var idDevolucion = btnDevolucion.dataset.id;
+                var facturaDevolucion = btnDevolucion.dataset.factura || ('Venta #' + idDevolucion);
+
+                confirmAction(
+                    'Registrar devolución',
+                    'Se pondrá en 0 el número de venta de ' + facturaDevolucion + '. Esta acción solo aplica para facturas no electrónicas.',
+                    'Sí, devolver',
+                    function () {
+                        hvDevolucionVenta(idDevolucion);
+                    });
+                return;
+            }
+
             var btnEnviarDIAN = e.target.closest('.btn-enviar-dian');
             if (btnEnviarDIAN) {
                 if (btnEnviarDIAN.dataset.loading === '1') return;
@@ -572,6 +630,24 @@
         }
 
         showInfo('Error', 'No se encontró la acción imprimirVenta.', 'error');
+    };
+
+    window.hvAnularVenta = function (idVenta) {
+        if (window.hvAction && typeof window.hvAction.anularVenta === 'function') {
+            window.hvAction.anularVenta(idVenta);
+            return;
+        }
+
+        showInfo('Error', 'No se encontró la acción anularVenta.', 'error');
+    };
+
+    window.hvDevolucionVenta = function (idVenta) {
+        if (window.hvAction && typeof window.hvAction.devolucionVenta === 'function') {
+            window.hvAction.devolucionVenta(idVenta);
+            return;
+        }
+
+        showInfo('Error', 'No se encontró la acción devolucionVenta.', 'error');
     };
 
     window.hvEnviarDIAN = function (idVenta) {
