@@ -3,6 +3,7 @@ using DAL.Controler;
 using DAL.Model;
 using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -25,6 +26,9 @@ namespace WebApplication
         private List<InformeProductoVendidoTurnoItem> productosVendidosTurno = new List<InformeProductoVendidoTurnoItem>();
         protected DBConexion ajustes;
         protected bool MostrarCierreCajaHabilitado => ajustes != null && ajustes.MostrarCierreCaja;
+        protected string NombreSpPagosInternos => ajustes != null && ajustes.ConsecutivoCaja
+            ? "InformePagoInterno_Turno_DIAN"
+            : "InformePagoInterno_Turno";
 
         protected async void Page_Load(object sender, EventArgs e)
         {
@@ -67,8 +71,9 @@ namespace WebApplication
         private async Task InicializarPagina()
         {
             var dal = new SqlAutoDAL();
-            turnoCaja = await dal.ConsultarUno<V_TurnosCaja>(db, x => x.id == baseCaja.id);
+            turnoCaja = await ConsultarTurnoCajaAsync(dal);
             ventas = await dal.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == baseCaja.id && x.eliminada == false);
+            ventas = FiltrarVentasParaCierre(ventas);
             ventas = ventas.OrderByDescending(x => x.fechaVenta).ToList();
             pagosInternosTurno = await ConsultarPagosInternosTurno();
             gastosTurno = await ConsultarGastosTurno();
@@ -118,6 +123,46 @@ namespace WebApplication
             BindPagosInternosReporte();
         }
 
+        private async Task<V_TurnosCaja> ConsultarTurnoCajaAsync(SqlAutoDAL dal)
+        {
+            var nombreVista = ajustes != null && ajustes.ConsecutivoCaja
+                ? "V_TurnosCaja_DIAN"
+                : "V_TurnosCaja";
+
+            var sql = $@"
+SELECT TOP 1
+    id,
+    fechaApertura,
+    fechaCierre,
+    idUsuarioApertura,
+    nombreUsuario,
+    valorBase,
+    ventasCredito,
+    totalEfectivo,
+    efectivoMasBase,
+    pagoCC_Efectivo,
+    pagoCC_Targeta,
+    pagoCP_Efectivo,
+    gastos_Efectivo,
+    ventasEfectivo,
+    ventasTargeta,
+    totalIngresos,
+    totalEgresos,
+    producido,
+    estadoBase
+FROM [{nombreVista}]
+WHERE id = {baseCaja.id}";
+
+            try
+            {
+                return await dal.EjecutarSQLObjeto<V_TurnosCaja>(db, sql);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private void PintarTurnoDesdeVista(V_TurnosCaja turno)
         {
             var ventasValidas = (ventas ?? new List<V_TablaVentas>()).Where(x => !EsVentaAnulada(x)).ToList();
@@ -152,6 +197,35 @@ namespace WebApplication
             lblPagoCC_Targeta.InnerText = FormatearMoneda(turno.pagoCC_Targeta);
             lblPagoCP_Efectivo.InnerText = FormatearMoneda(turno.pagoCP_Efectivo);
             lblTotalEgresos2.InnerText = FormatearMoneda(turno.totalEgresos);
+        }
+
+        private List<V_TablaVentas> FiltrarVentasParaCierre(List<V_TablaVentas> listaVentas)
+        {
+            var ventasTurno = listaVentas ?? new List<V_TablaVentas>();
+            if (ajustes == null || !ajustes.ConsecutivoCaja)
+            {
+                return ventasTurno;
+            }
+
+            return ventasTurno
+                .Where(EsVentaElectronicaParaCierre)
+                .ToList();
+        }
+
+        private bool EsVentaElectronicaParaCierre(V_TablaVentas venta)
+        {
+            if (venta == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(venta.cufe) && venta.cufe != "--")
+            {
+                return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(venta.tipoFactura)
+                && venta.tipoFactura.Trim().StartsWith("FACTURA ELECTRÓNICA", StringComparison.OrdinalIgnoreCase);
         }
 
         protected async void btn_Click(object sender, EventArgs e)
@@ -441,14 +515,37 @@ namespace WebApplication
             {
                 using (var cn = new Conection_SQL(db))
                 {
-                    var sql = $"exec InformePagoInterno_Turno {baseCaja.id}";
+                    var sql = $"exec {NombreSpPagosInternos} {baseCaja.id}";
                     var json = await cn.EjecutarConsulta(sql, true);
                     if (string.IsNullOrWhiteSpace(json))
                     {
                         return new List<InformePagoInternoTurnoItem>();
                     }
 
-                    return JsonConvert.DeserializeObject<List<InformePagoInternoTurnoItem>>(json) ?? new List<InformePagoInternoTurnoItem>();
+                    var lista = new List<InformePagoInternoTurnoItem>();
+                    var array = JArray.Parse(json);
+                    foreach (var token in array)
+                    {
+                        if (!(token is JObject row))
+                        {
+                            continue;
+                        }
+
+                        lista.Add(new InformePagoInternoTurnoItem
+                        {
+                            id = row.Value<int?>("id") ?? 0,
+                            nombreMPI = row.Value<string>("nombreMPI")
+                                ?? row.Value<string>("NombreMPI")
+                                ?? row.Value<string>("medioPago")
+                                ?? row.Value<string>("nombre")
+                                ?? string.Empty,
+                            estado = row.Value<int?>("estado") ?? row.Value<int?>("Estado") ?? 0,
+                            reporteDIAN = row.Value<int?>("reporteDIAN") ?? row.Value<int?>("ReporteDIAN") ?? 0,
+                            total = row.Value<decimal?>("total") ?? row.Value<decimal?>("Total") ?? 0m
+                        });
+                    }
+
+                    return lista;
                 }
             }
             catch

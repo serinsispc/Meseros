@@ -535,7 +535,7 @@
                 <div class="cc-card">
                     <div class="cc-card-h">
                         <h2 class="cc-card-t"><i class="bi bi-table"></i>Reporte pagos internos por turno</h2>
-                        <span class="cc-pill"><i class="bi bi-diagram-3"></i>SP InformePagoInterno_Turno</span>
+                        <span class="cc-pill"><i class="bi bi-diagram-3"></i>SP <%: NombreSpPagosInternos %></span>
                     </div>
                     <div class="cc-card-b">
                         <div id="pnlPagosInternos" runat="server" ClientIDMode="Static" class="cc-report-wrap">

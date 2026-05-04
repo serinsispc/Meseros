@@ -546,6 +546,17 @@ namespace WebApplication
                     }
                     else
                     {
+                        Session[SessionFacturaElectronicaKey] = false;
+                        hfFacturaElectronica.Value = "false";
+
+                        ScriptManager.RegisterStartupScript(
+                            this,
+                            GetType(),
+                            "desactivarFeError",
+                            "setTimeout(function(){ if(window.desactivarFacturaElectronicaCobro){ window.desactivarFacturaElectronicaCobro(false); } }, 100);",
+                            true
+                        );
+
                         AlertModerno.Error(this, "Error", "La factura electr\u00f3nica no fue enviada.", true, 1200);
                         GuardarModelsEnSesion();
                         DataBind();
@@ -599,13 +610,16 @@ namespace WebApplication
                 // ==========================================================
                 // 12) Final OK
                 // ==========================================================
+                Session[SessionFacturaElectronicaKey] = false;
+                hfFacturaElectronica.Value = "false";
+
                 AlertModerno.Success(this, "OK", "Datos de cobro recibidos correctamente.", true, 1200);
 
                 ScriptManager.RegisterStartupScript(
                     this,
                     GetType(),
                     "redirOK",
-                    "setTimeout(function(){ if(window.bloquearCobroHastaSalir){ window.bloquearCobroHastaSalir('Finalizando cobro'); } }, 1150); setTimeout(function(){ window.location.href='caja.aspx'; }, 1500);",
+                    "setTimeout(function(){ if(window.desactivarFacturaElectronicaCobro){ window.desactivarFacturaElectronicaCobro(true); } if(window.bloquearCobroHastaSalir){ window.bloquearCobroHastaSalir('Finalizando cobro'); } }, 1150); setTimeout(function(){ window.location.href='caja.aspx'; }, 1500);",
                     true
                 );
 

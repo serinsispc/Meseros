@@ -65,6 +65,7 @@ namespace WebApplication
         protected bool _mdlClienteVenta = false;
         protected bool _mdlCorreoFactura = false;
         protected bool _puedeGestionarAnulacionDevolucion = false;
+        protected DBConexion ajustesDb { get; set; } = new DBConexion();
 
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private readonly CultureInfo _co = new CultureInfo("es-CO");
@@ -226,6 +227,15 @@ namespace WebApplication
         {
             var model = JsonConvert.DeserializeObject<MenuViewModels>(Session["ModelsJson"].ToString());
             var listaventas = await V_TablaVentasControler.Lista(Session["db"].ToString(), model.BaseCaja.id);
+            var ajustes = await ObtenerAjustesDbAsync();
+
+            if (ajustes != null && ajustes.ConsecutivoCaja)
+            {
+                listaventas = listaventas?
+                    .Where(DebeMostrarFacturaElectronicaEnHistorial)
+                    .ToList();
+            }
+
             var ventasValidas = listaventas?.Where(x => EsVentaValida(x)).ToList() ?? new List<V_TablaVentas>();
             var ventasContadoValidas = ventasValidas.Where(x => x.idFormaDePago != 2).ToList();
 
@@ -241,6 +251,53 @@ namespace WebApplication
 
             rpVentas.DataSource = listaventas;
             rpVentas.DataBind();
+        }
+
+        private async Task<DBConexion> ObtenerAjustesDbAsync()
+        {
+            if (ajustesDb != null && ajustesDb.Id != Guid.Empty)
+            {
+                return ajustesDb;
+            }
+
+            var dbJson = Session["DBConexion"]?.ToString();
+            if (!string.IsNullOrWhiteSpace(dbJson))
+            {
+                try
+                {
+                    ajustesDb = JsonConvert.DeserializeObject<DBConexion>(dbJson) ?? new DBConexion();
+                    return ajustesDb;
+                }
+                catch
+                {
+                    ajustesDb = new DBConexion();
+                }
+            }
+
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                return ajustesDb;
+            }
+
+            var ajustes = await DBConexionControler.DAsync(db);
+            if (ajustes != null)
+            {
+                ajustesDb = ajustes;
+                Session["DBConexion"] = JsonConvert.SerializeObject(ajustes);
+            }
+
+            return ajustesDb;
+        }
+
+        private bool DebeMostrarFacturaElectronicaEnHistorial(V_TablaVentas item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.tipoFactura))
+            {
+                return false;
+            }
+
+            return item.tipoFactura.Trim().StartsWith("FACTURA ELECTRÓNICA", StringComparison.OrdinalIgnoreCase);
         }
 
         protected bool EsVentaAnulada(V_TablaVentas item)

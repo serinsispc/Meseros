@@ -244,6 +244,23 @@
         swFE.checked = (hfFacturaElectronica.value || '').toLowerCase() === 'true';
     };
 
+    const desactivarFacturaElectronica = (bloquearControl) => {
+        const swFE = byId('swFE');
+        const hfFacturaElectronica = byId('hfFacturaElectronica');
+        if (!swFE) return;
+
+        swFE.checked = false;
+        if (typeof bloquearControl === 'boolean') {
+            swFE.disabled = bloquearControl;
+        }
+
+        if (hfFacturaElectronica) {
+            hfFacturaElectronica.value = 'false';
+        }
+    };
+
+    window.desactivarFacturaElectronicaCobro = desactivarFacturaElectronica;
+
     const esVentaCredito = () => {
         const chkCredito = byId('chkCredito');
         return !!(chkCredito && chkCredito.checked);
