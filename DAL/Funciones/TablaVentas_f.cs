@@ -7,62 +7,71 @@ namespace DAL.Funciones
 {
     public class TablaVentas_f
     {
+        private const int MaxIntentosNuevaVenta = 20;
+
         /// <summary>
         /// Crea una nueva venta en estado PENDIENTE usando CRUD_TablaVentas.
-        /// Retorna el id de la venta creada, o 0 si falla.
+        /// Si el id creado ya existe en FacturaElectronica.idVenta, descarta esa venta
+        /// y crea la siguiente para evitar cruces de facturas.
         /// </summary>
         public static async Task<int> NuevaVenta(string db, int porpro)
         {
             try
             {
-                Guid guid = Guid.NewGuid();
-
-                // 1. Crear objeto con los valores iniciales
-                var tablaVentas = new TablaVentas
+                for (int intento = 0; intento < MaxIntentosNuevaVenta; intento++)
                 {
-                    id = 0,
-                    fechaVenta = DateTime.Now,
-                    numeroVenta = 0,
-                    descuentoVenta = 0,
-                    efectivoVenta = 0,
-                    cambioVenta = 0,
-                    estadoVenta = "PENDIENTE",
-                    numeroReferenciaPago = "-",
-                    diasCredito = 0,
-                    observacionVenta = "-",
-                    IdSede = 0,
-                    guidVenta = guid,
-                    abonoTarjeta = 0,
-                    propina = 0,
-                    abonoEfectivo = 0,
-                    idMedioDePago = 10,   // como lo tenías
-                    idResolucion = 0,
-                    idFormaDePago = 1,
-                    razonDescuento = "-",
-                    idBaseCaja = 0,
-                    aliasVenta = "--",
-                    porpropina = Convert.ToDecimal(porpro) / 100m,
-                    eliminada = false
-                };
+                    Guid guid = Guid.NewGuid();
 
-                // 2. INSERT usando SP CRUD_TablaVentas (funcion = 0)
-                var respInsert = await TablaVentasControler.CRUD(db, tablaVentas, 0);
+                    var tablaVentas = new TablaVentas
+                    {
+                        id = 0,
+                        fechaVenta = DateTime.Now,
+                        numeroVenta = 0,
+                        descuentoVenta = 0,
+                        efectivoVenta = 0,
+                        cambioVenta = 0,
+                        estadoVenta = "PENDIENTE",
+                        numeroReferenciaPago = "-",
+                        diasCredito = 0,
+                        observacionVenta = "-",
+                        IdSede = 0,
+                        guidVenta = guid,
+                        abonoTarjeta = 0,
+                        propina = 0,
+                        abonoEfectivo = 0,
+                        idMedioDePago = 10,
+                        idResolucion = 0,
+                        idFormaDePago = 1,
+                        razonDescuento = "-",
+                        idBaseCaja = 0,
+                        aliasVenta = "--",
+                        porpropina = Convert.ToDecimal(porpro) / 100m,
+                        eliminada = false
+                    };
 
-                if (respInsert == null || !respInsert.estado || respInsert.data == null)
-                    return 0;
+                    var respInsert = await TablaVentasControler.CRUD(db, tablaVentas, 0);
+                    if (respInsert == null || !respInsert.estado || respInsert.data == null)
+                        return 0;
 
-                int idVenta;
-                if (!int.TryParse(respInsert.data.ToString(), out idVenta))
-                    return 0;
+                    if (!int.TryParse(respInsert.data.ToString(), out int idVenta))
+                        return 0;
 
-                // 3. Actualizar aliasVenta con el id (como hacías antes)
-                tablaVentas.id = idVenta;
-                tablaVentas.aliasVenta = idVenta.ToString();
+                    tablaVentas.id = idVenta;
+                    tablaVentas.aliasVenta = idVenta.ToString();
 
-                var respUpdate = await TablaVentasControler.CRUD(db, tablaVentas, 1);
-                // Si el update falla, igual devolvemos el id, pero podrías validar respUpdate.estado
+                    if (await FacturaElectronicaControler.ConsultarIdVenta(db, idVenta) != null)
+                    {
+                        tablaVentas.eliminada = true;
+                        tablaVentas.observacionVenta = "ID descartado automaticamente por cruce con FacturaElectronica.idVenta";
+                        await TablaVentasControler.CRUD(db, tablaVentas, 1);
+                        continue;
+                    }
 
-                return idVenta;
+                    await TablaVentasControler.CRUD(db, tablaVentas, 1);
+                    return idVenta;
+                }
+
+                return 0;
             }
             catch (Exception ex)
             {
