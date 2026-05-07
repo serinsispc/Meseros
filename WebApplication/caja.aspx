@@ -576,9 +576,11 @@
                                                         <button type="button" class="act-btn" aria-label="Anclar a cuenta" title="<%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("nombreCuenta"))) ? "Anclar a cuenta" : Eval("nombreCuenta") %>" onclick="return anclarDetalleCuenta(this);">
                                                             <i class="bi bi-link-45deg"></i>
                                                         </button>
+                                                        <% if (PuedeEliminarDetalleCaja()) { %>
                                                         <button type="button" class="act-btn act-danger" aria-label="Eliminar" title="Eliminar producto" onclick="return confirmarEliminarDetalle(this);">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
+                                                        <% } %>
                                                         <button type="button" class="act-btn" aria-label="Dividir" title="Dividir producto" onclick="return dividirDetalle(this);">
                                                             <i class="bi bi-scissors"></i>
                                                         </button>

@@ -213,6 +213,16 @@ namespace WebApplication
             return models?.IdCuentaActiva > 0 && (models.detalleCaja == null || !models.detalleCaja.Any());
         }
 
+        protected bool PuedeEliminarDetalleCaja()
+        {
+            if (models?.vendedor?.cajaMovil == 1)
+            {
+                return true;
+            }
+
+            return ajustes?.EliminarDetalleCaja == true;
+        }
+
         protected IEnumerable<V_CuentaCliente> CuentasClienteActivas()
         {
             return (models?.v_CuentaClientes ?? new List<V_CuentaCliente>())
@@ -1354,6 +1364,12 @@ namespace WebApplication
         {
             try
             {
+                if (!PuedeEliminarDetalleCaja())
+                {
+                    AlertModerno.Warning(this, "Atención", "La eliminación de detalle está desactivada en la configuración.", true, 1800);
+                    return;
+                }
+
                 var data = new EventArgumentParser(parametros);
                 int idDetalle = data.GetInt("ID");
                 string nota = data.GetString("NOTA") ?? string.Empty;

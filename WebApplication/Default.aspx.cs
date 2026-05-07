@@ -205,10 +205,7 @@ namespace WebApplication
                     models.BaseCaja = baseActiva;
                     SessionContextHelper.ApplyOperationalContext(Session, models);
 
-                    if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, onCloseScript: "openBaseModal();"))
-                    {
-                        return;
-                    }
+                    await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db);
 
                     AbrirModalBase(false);
                     return;
@@ -216,10 +213,7 @@ namespace WebApplication
 
                 SessionContextHelper.ApplyOperationalContext(Session, models);
 
-                if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, onCloseScript: "openBaseModal();"))
-                {
-                    return;
-                }
+                await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db);
 
                 AbrirModalBase(true);
                 return;
@@ -227,10 +221,7 @@ namespace WebApplication
 
             SessionContextHelper.ApplyOperationalContext(Session, models);
 
-            if (await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db, onCloseScript: "openBaseModal();"))
-            {
-                return;
-            }
+            await AdminControlAccessHelper.MostrarRecordatorioIngresoSiCorrespondeAsync(this, db);
 
             AbrirModalBase(false);
         }
