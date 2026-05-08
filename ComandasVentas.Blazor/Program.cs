@@ -10,6 +10,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<AppSessionState>();
 builder.Services.AddScoped<LoginDataService>();
 builder.Services.AddScoped<LogoCacheService>();
+builder.Services.AddScoped<PosSessionPersistenceService>();
 builder.Services.AddScoped<CajaDataService>();
 
 var app = builder.Build();

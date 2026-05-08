@@ -23,6 +23,34 @@ public sealed class AppSessionState
         UsuarioCaja = result.UsuarioCaja;
     }
 
+    public void Restore(SessionSnapshot snapshot)
+    {
+        Database = snapshot.Database;
+        Sede = snapshot.Sede;
+        DbConexion = snapshot.DbConexion;
+        Vendedor = snapshot.Vendedor;
+        BaseCaja = snapshot.BaseCaja;
+        UsuarioCaja = snapshot.UsuarioCaja;
+    }
+
+    public SessionSnapshot? CreateSnapshot()
+    {
+        if (!IsAuthenticated)
+        {
+            return null;
+        }
+
+        return new SessionSnapshot
+        {
+            Database = Database,
+            Sede = Sede,
+            DbConexion = DbConexion,
+            Vendedor = Vendedor,
+            BaseCaja = BaseCaja,
+            UsuarioCaja = UsuarioCaja
+        };
+    }
+
     public void SetBaseCaja(BaseCajaInfo? baseCaja)
     {
         BaseCaja = baseCaja;
@@ -37,4 +65,14 @@ public sealed class AppSessionState
         BaseCaja = null;
         UsuarioCaja = null;
     }
+}
+
+public sealed class SessionSnapshot
+{
+    public string Database { get; init; } = string.Empty;
+    public SedeInfo? Sede { get; init; }
+    public DbConexionInfo? DbConexion { get; init; }
+    public VendedorInfo? Vendedor { get; init; }
+    public BaseCajaInfo? BaseCaja { get; init; }
+    public RVendorUsuarioInfo? UsuarioCaja { get; init; }
 }

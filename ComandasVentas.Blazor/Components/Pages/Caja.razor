@@ -7,6 +7,7 @@
 @inject AppSessionState SessionState
 @inject LoginDataService LoginDataService
 @inject CajaDataService CajaDataService
+@inject PosSessionPersistenceService SessionPersistence
 
 <PageTitle>Caja</PageTitle>
 
@@ -571,7 +572,32 @@
     private string ResumenTotal2 => FormatearMoneda(CuentaClienteActual?.TotalAPagar ?? VentaActual?.TotalAPagar ?? 0m);
     private string ResumenPorcentajePropina => $"{((CuentaClienteActual?.PorcentajePropina ?? VentaActual?.PorcentajePropina ?? 0m) * 100m):0.#}%";
 
-    protected override async Task OnInitializedAsync() => await RecargarCajaAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        if (SessionState.IsAuthenticated)
+        {
+            await RecargarCajaAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || SessionState.IsAuthenticated)
+        {
+            return;
+        }
+
+        if (await SessionPersistence.TryRestoreAsync(SessionState, Db))
+        {
+            await RecargarCajaAsync();
+            StateHasChanged();
+            return;
+        }
+
+        SessionState.Clear();
+        IsLoading = false;
+        NavigationManager.NavigateTo($"/login?db={Uri.EscapeDataString(DbVisual)}", forceLoad: false);
+    }
 
     private async Task RecargarCajaAsync(bool showLoader = true)
     {
@@ -1279,12 +1305,14 @@
         SessionState.SetBaseCaja(response.BaseCaja);
         ShowCerrarCajaModal = false;
         SessionState.Clear();
+        await SessionPersistence.ClearAsync();
         NavigationManager.NavigateTo($"/login?db={Uri.EscapeDataString(DbVisual)}", forceLoad: false);
     }
 
-    private void CerrarSesion()
+    private async Task CerrarSesion()
     {
         SessionState.Clear();
+        await SessionPersistence.ClearAsync();
         NavigationManager.NavigateTo($"/login?db={Uri.EscapeDataString(DbVisual)}", forceLoad: false);
     }
 

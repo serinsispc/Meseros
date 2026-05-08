@@ -7,6 +7,7 @@
 @inject ComandasVentas.Blazor.Services.Auth.LoginDataService LoginDataService
 @inject ComandasVentas.Blazor.Services.Auth.AppSessionState SessionState
 @inject ComandasVentas.Blazor.Services.Auth.LogoCacheService LogoCacheService
+@inject ComandasVentas.Blazor.Services.Auth.PosSessionPersistenceService SessionPersistence
 
 <PageTitle>Iniciar Sesion</PageTitle>
 
@@ -199,12 +200,20 @@
         StatusMessage = null;
         ShowCajaModal = false;
         CajaModalMessage = null;
-        SessionState.Clear();
 
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
         query.TryGetValue("db", out var dbValues);
         CurrentDb = LoginDataService.SanitizeDatabaseName(dbValues.FirstOrDefault());
+
+        if (await SessionPersistence.TryRestoreAsync(SessionState, CurrentDb))
+        {
+            var dbDestino = string.IsNullOrWhiteSpace(CurrentDb) ? SessionState.Database : CurrentDb;
+            NavigationManager.NavigateTo($"/caja?db={Uri.EscapeDataString(dbDestino)}", forceLoad: false);
+            return;
+        }
+
+        SessionState.Clear();
 
         BootstrapResult = await LoginDataService.LoadLoginAsync(CurrentDb);
 
@@ -295,6 +304,7 @@
         }
 
         SessionState.SetLogin(result);
+        await SessionPersistence.SaveAsync(SessionState);
         StatusMessage = $"Bienvenido {result.Vendedor?.NombreVendedor}";
         NavigationManager.NavigateTo($"/caja?db={Uri.EscapeDataString(CurrentDb)}");
     }
@@ -365,6 +375,7 @@
         }
 
         SessionState.SetLogin(result);
+        await SessionPersistence.SaveAsync(SessionState);
         ShowCajaModal = false;
         CajaModalHasError = false;
         CajaModalMessage = null;

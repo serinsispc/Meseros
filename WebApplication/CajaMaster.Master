@@ -21,6 +21,55 @@
 </head>
 
 <body>
+    <script>
+        window.SerinsisPosSession = window.SerinsisPosSession || {
+            keepAliveUrl: '<%= ResolveUrl("~/KeepAlive.aspx") %>',
+            intervalMs: 5 * 60 * 1000
+        };
+
+        (function () {
+            if (window.__serinsisKeepAliveStarted) return;
+            window.__serinsisKeepAliveStarted = true;
+
+            function pingKeepAlive() {
+                var cfg = window.SerinsisPosSession || {};
+                if (!cfg.keepAliveUrl || typeof fetch !== 'function') return;
+
+                try {
+                    fetch(cfg.keepAliveUrl, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        keepalive: true,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).catch(function () { });
+                } catch (e) {
+                }
+            }
+
+            function iniciarKeepAlive() {
+                pingKeepAlive();
+
+                var cfg = window.SerinsisPosSession || {};
+                var intervalMs = parseInt(cfg.intervalMs || 300000, 10);
+                window.setInterval(pingKeepAlive, intervalMs);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', iniciarKeepAlive);
+            } else {
+                iniciarKeepAlive();
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    pingKeepAlive();
+                }
+            });
+
+            window.addEventListener('focus', pingKeepAlive);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <form id="form1" runat="server" style="height: 100%;">
