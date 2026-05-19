@@ -121,7 +121,8 @@
                                     <asp:Repeater runat="server" ID="rpCuentas">
                                         <ItemTemplate>
 
-                                            <div class="cuenta-card <%# (Convert.ToInt32(Eval("id")) == models.IdCuentaActiva ? "cuenta-activa" : "") %>">
+                                            <div class="cuenta-card <%# (Convert.ToInt32(Eval("id")) == models.IdCuentaActiva ? "cuenta-activa" : "") %> <%# EsCuentaDomicilio(Eval("nombreCD")) ? "cuenta-domicilio" : "" %>"
+                                                onclick="EjecutarAccion('SeleccionarCuenta','ID=<%# Eval("id") %>',this)">
 
                                                 <!-- ?? EDITAR: abre modal (NO debe disparar seleccionar cuenta) -->
                                                 <button type="button"
@@ -134,10 +135,10 @@
                                                 </button>
 
                                                 <!-- Click de la tarjeta: selecciona cuenta (si lo necesitas) -->
-                                                <div class="cuenta-body"
-                                                    onclick="EjecutarAccion('SeleccionarCuenta','ID=<%# Eval("id") %>',this)">
+                                                <div class="cuenta-body">
+                                                    <%# EsCuentaDomicilio(Eval("nombreCD")) ? "<span class=\"cuenta-badge-domicilio\">DOMICILIO</span>" : string.Empty %>
                                                     <div class="cuenta-num"><%# Eval("aliasVenta") %></div>
-                                                    <div class="cuenta-name"><%# Eval("nombremesa") %></div>
+                                                    <div class="cuenta-name"><%# TextoSecundarioCuenta(Eval("nombremesa"), Eval("nombreCD")) %></div>
                                                     <div class="cuenta-vendedor" title="<%# Eval("nombrevendedor") %>">
                                                         <%# NombreVendedorCorto(Eval("nombrevendedor")) %>
                                                     </div>

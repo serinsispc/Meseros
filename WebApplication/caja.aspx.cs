@@ -141,6 +141,65 @@ namespace WebApplication
             return NombreVendedorCorto(cuentaMesa.nombrevendedor);
         }
 
+        protected bool EsCuentaDomicilio(object nombreClienteDomicilioObj)
+        {
+            var nombreClienteDomicilio = Convert.ToString(nombreClienteDomicilioObj ?? string.Empty).Trim();
+            return !string.IsNullOrWhiteSpace(nombreClienteDomicilio)
+                && !string.Equals(nombreClienteDomicilio, "-", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(nombreClienteDomicilio, "N/A", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(nombreClienteDomicilio, "NULL", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string CapitalizarNombre(string valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return string.Empty;
+            }
+
+            valor = valor.Trim().ToLowerInvariant();
+            return char.ToUpperInvariant(valor[0]) + valor.Substring(1);
+        }
+
+        protected string ResumirNombreClienteDomicilio(object nombreClienteDomicilioObj)
+        {
+            var nombreClienteDomicilio = Convert.ToString(nombreClienteDomicilioObj ?? string.Empty).Trim();
+            if (!EsCuentaDomicilio(nombreClienteDomicilio))
+            {
+                return string.Empty;
+            }
+
+            var partes = nombreClienteDomicilio
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+
+            if (partes.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (partes.Length == 1)
+            {
+                return CapitalizarNombre(partes[0]);
+            }
+
+            var nombrePrincipal = CapitalizarNombre(partes[0]);
+            var iniciales = string.Join(".", partes.Skip(1).Select(x => char.ToUpperInvariant(x.Trim()[0]).ToString()));
+            return nombrePrincipal + " " + iniciales;
+        }
+
+        protected string TextoSecundarioCuenta(object nombreMesaObj, object nombreClienteDomicilioObj)
+        {
+            var nombreClienteDomicilio = Convert.ToString(nombreClienteDomicilioObj ?? string.Empty).Trim();
+            if (EsCuentaDomicilio(nombreClienteDomicilio))
+            {
+                return ResumirNombreClienteDomicilio(nombreClienteDomicilio);
+            }
+
+            return Convert.ToString(nombreMesaObj ?? string.Empty).Trim();
+        }
+
         private V_CuentasVenta CuentaActivaPorMesa(int idMesa)
         {
             var mesa = models?.MesasLista?.FirstOrDefault(x => x.id == idMesa);
@@ -1741,23 +1800,21 @@ namespace WebApplication
 
         private async Task Domicilio(string eventArgument)
         {
-            if (string.IsNullOrWhiteSpace(eventArgument))
-            {
-                AlertModerno.Error(this, "Error", "No hay una mesa seleccionada.", true);
-                return;
-            }
-
-            var parts = eventArgument.Split('|');
-            if (!int.TryParse(parts[0], out int idMesa) || idMesa <= 0)
-            {
-                AlertModerno.Error(this, "Error", "Mesa invÃƒÂ¡lida.", true);
-                return;
-            }
-
             int idServicio = models.IdCuentaActiva;
-            if (parts.Length > 1)
+            int idMesa = models.IdMesaActiva;
+
+            if (!string.IsNullOrWhiteSpace(eventArgument))
             {
-                int.TryParse(parts[1], out idServicio);
+                var parts = eventArgument.Split('|');
+                if (parts.Length > 0)
+                {
+                    int.TryParse(parts[0], out idMesa);
+                }
+
+                if (parts.Length > 1)
+                {
+                    int.TryParse(parts[1], out idServicio);
+                }
             }
 
             if (idServicio <= 0)
@@ -1766,20 +1823,7 @@ namespace WebApplication
                 return;
             }
 
-            var mesa = await MesasControler.Consultar_id(models.db, idMesa);
-            if (mesa == null)
-            {
-                AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ la mesa.", true);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(mesa.nombreMesa) || !mesa.nombreMesa.ToUpperInvariant().Contains("DOMICILIO"))
-            {
-                AlertModerno.Error(this, "Error", "La mesa seleccionada no es un domicilio.", true);
-                return;
-            }
-
-            models.IdMesaActiva = idMesa;
+            models.IdMesaActiva = idMesa > 0 ? idMesa : models.IdMesaActiva;
             models.IdCuentaActiva = idServicio;
             models.IdCuenteClienteActiva = 0;
             models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idServicio);
@@ -1788,6 +1832,12 @@ namespace WebApplication
             models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
             models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
             models.AbrirModalDomicilio = true;
+
+            if (models.venta == null || models.venta.id == 0)
+            {
+                AlertModerno.Error(this, "Error", "No se encontro el servicio activo.", true);
+                return;
+            }
 
             await CargarDATA();
         }
