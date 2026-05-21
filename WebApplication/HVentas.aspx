@@ -334,7 +334,7 @@
                             <div class="alert alert-light border mb-0">
                                 <strong>Observación:</strong>
                                 <span id="hvDetalleObservacion">
-                                    <%: venta != null ? venta.observacionVenta : "" %>
+                                    <%: venta != null ? ObservacionVisibleVenta(venta.observacionVenta) : "" %>
                                 </span>
                             </div>
                         </div>

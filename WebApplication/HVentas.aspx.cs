@@ -1,5 +1,6 @@
 ﻿using DAL.Controler;
 using DAL.Funciones;
+using DAL.Helpers;
 using DAL.Model;
 using Newtonsoft.Json;
 using RFacturacionElectronicaDIAN.Entities.Request;
@@ -352,6 +353,11 @@ namespace WebApplication
                 return "<span class='hv-badge success'><i class='bi bi-qr-code-scan'></i>Emitida</span>";
 
             return "<span class='hv-badge danger'><i class='bi bi-x-circle'></i>Rechazada</span>";
+        }
+
+        protected string ObservacionVisibleVenta(string observacionVenta)
+        {
+            return DomicilioEstadoVentaHelper.LimpiarObservacionVisible(observacionVenta);
         }
 
         #endregion
@@ -1289,7 +1295,9 @@ namespace WebApplication
                 clienteTelefono = cliente?.phone ?? string.Empty,
                 clienteCiudad = string.Empty,
                 formaPago = !string.IsNullOrWhiteSpace(ventaFactura.medioDePago) ? ventaFactura.medioDePago : ventaFactura.formaDePago,
-                observacion = string.IsNullOrWhiteSpace(ventaFactura.observacionVenta) ? "--" : ventaFactura.observacionVenta,
+                observacion = string.IsNullOrWhiteSpace(DomicilioEstadoVentaHelper.LimpiarObservacionVisible(ventaFactura.observacionVenta))
+                    ? "--"
+                    : DomicilioEstadoVentaHelper.LimpiarObservacionVisible(ventaFactura.observacionVenta),
                 resolucionNumero = resolucion?.numeroResolucion ?? string.Empty,
                 resolucionFecha = resolucion?.fechaAvilitacion ?? string.Empty,
                 resolucionRango = resolucion == null

@@ -31,11 +31,15 @@ namespace WebApplication.ViewModels
         public List<V_CatagoriaAdicion> adiciones { get; set; } = new List<V_CatagoriaAdicion>();
         public V_CuentaCliente ventaCuenta { get; set; } = new V_CuentaCliente();
         public List<ClienteDomicilio> clienteDomicilios { get; set; } = new List<ClienteDomicilio>();
+        public ClienteDomicilio clienteDomicilioActivo { get; set; } = new ClienteDomicilio();
         public bool AbrirModalDomicilio { get; set; } = false;
         public List<Vendedor> ListaVendedor { get; set; } = new List<Vendedor>();
         public Vendedor vendedor { get; set; }= new Vendedor();
         public List<CargoDescuentoVentas> cargoDescuentoVentas { get; set; } = new List<CargoDescuentoVentas>();
         public List<Clientes> clientes { get; set; } = new List<Clientes>();
+        public List<payment_methods> metodosPago { get; set; } = new List<payment_methods>();
+        public List<MediosDePagoInternos> mediosPagoInternos { get; set; } = new List<MediosDePagoInternos>();
+        public List<V_R_MediosDePago_MediosDePagoInternos> relMediosPagoInternos { get; set; } = new List<V_R_MediosDePago_MediosDePagoInternos>();
         public List<PuntosDePago> puntosDePago { get; set; } = new List<PuntosDePago>();
         public PuntosDePago PuntoDePagoSeleccionado { get; set; } = new PuntosDePago();
     }

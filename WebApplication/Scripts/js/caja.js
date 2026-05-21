@@ -1376,3 +1376,396 @@ window.cargarTablaDomicilios = function (filtro) {
         }
     });
 })();
+
+(function () {
+    function getRelDomicilio() {
+        const hf = document.getElementById('hfRelMediosInternosDomicilio');
+        if (!hf || !hf.value) return [];
+        try { return JSON.parse(hf.value); } catch { return []; }
+    }
+
+    function actualizarPlaceholderDomicilio(nombreMedio) {
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        if (!sel || !sel.options || sel.options.length === 0) return;
+        sel.options[0].text = nombreMedio && String(nombreMedio).trim()
+            ? String(nombreMedio).trim()
+            : 'Selecciona un medio';
+    }
+
+    function obtenerNombreBaseDomicilio(idMedioBase) {
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        if (!sel || !sel.options) return '';
+        const id = parseInt(idMedioBase || '0', 10) || 0;
+        if (!id) return '';
+        const opt = Array.from(sel.options).find(x => parseInt(x.value || '0', 10) === id);
+        return opt ? String(opt.text || '').trim() : '';
+    }
+
+    function obtenerNombreInternoDomicilio(idMedioBase, idMedioInterno) {
+        const rel = getRelDomicilio();
+        const idBase = parseInt(idMedioBase || '0', 10) || 0;
+        const idInterno = Math.abs(parseInt(idMedioInterno || '0', 10) || 0);
+        if (!idBase || !idInterno) return '';
+        const item = rel.find(x =>
+            parseInt(x.idMedioDePago, 10) === idBase &&
+            parseInt(x.idMediosDePagoInternos, 10) === idInterno);
+        return item ? String(item.nombreRMPI || '').trim() : '';
+    }
+
+    function actualizarResumenCobroDomicilio() {
+        const lbl = document.getElementById('lblResumenMedioDomicilio');
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        const hfMedioBase = document.getElementById('hfMedioBaseDomicilio');
+        const hfMedioInterno = document.getElementById('hfMedioInternoDomicilio');
+        if (!lbl) return;
+
+        const idBase = parseInt((sel && sel.value) || (hfMedioBase && hfMedioBase.value) || '0', 10) || 0;
+        const idInterno = parseInt((hfMedioInterno && hfMedioInterno.value) || '0', 10) || 0;
+
+        let texto = 'Sin definir';
+        if (idBase > 0) {
+            const nombreBase = obtenerNombreBaseDomicilio(idBase);
+            texto = nombreBase || texto;
+
+            if (idInterno < 0) {
+                const nombreInterno = obtenerNombreInternoDomicilio(idBase, idInterno);
+                if (nombreInterno) {
+                    texto = nombreBase ? (nombreBase + ' / ' + nombreInterno) : nombreInterno;
+                }
+            }
+        }
+
+        lbl.textContent = texto;
+    }
+
+    function esMetodoEfectivo(selectEl) {
+        if (!selectEl) return false;
+        const option = selectEl.options[selectEl.selectedIndex];
+        const texto = option ? (option.text || '') : '';
+        return String(selectEl.value || '') === '10' || texto.toLowerCase().indexOf('efect') >= 0;
+    }
+
+    function actualizarCobroDomicilioUI() {
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        const box = document.getElementById('boxMontoBilleteDomicilio');
+        const txt = document.getElementById('txtMontoBilleteDomicilio');
+        if (!sel || !box) return;
+
+        const mostrar = esMetodoEfectivo(sel);
+        box.style.display = mostrar ? '' : 'none';
+        if (!mostrar && txt) {
+            txt.value = '';
+        }
+    }
+
+    function abrirModalInternosDomicilio(idMedioPago, nombreMedioPago) {
+        const modalEl = document.getElementById('mdlMediosInternosDomicilio');
+        const cont = document.getElementById('listMediosInternosDomicilio');
+        const lbl = document.getElementById('lblMedioSeleccionadoDomicilio');
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        const hfMedioBase = document.getElementById('hfMedioBaseDomicilio');
+        const hfMedioInterno = document.getElementById('hfMedioInternoDomicilio');
+        const rel = getRelDomicilio();
+        if (!modalEl || !cont) return;
+        const id = parseInt(idMedioPago, 10);
+        const filtrados = rel.filter(x => parseInt(x.idMedioDePago, 10) === id);
+        if (!filtrados.length) return;
+
+        if (lbl) lbl.textContent = `Medio seleccionado: ${nombreMedioPago} (ID ${id})`;
+        cont.innerHTML = '';
+
+        filtrados.forEach(item => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            btn.innerHTML = `
+                <div>
+                    <div class="fw-bold">${item.nombreRMPI || 'Sin nombre'}</div>
+                    <div class="text-muted" style="font-size:12px;">${item.reporteRDIAN || ''}</div>
+                </div>
+                <span class="badge text-bg-secondary">ID ${item.idMediosDePagoInternos}</span>
+            `;
+
+            btn.addEventListener('click', () => {
+                if (hfMedioBase) {
+                    hfMedioBase.value = String(id);
+                }
+                if (hfMedioInterno) {
+                    hfMedioInterno.value = String(parseInt(item.idMediosDePagoInternos || '0', 10) * -1);
+                }
+                if (sel) {
+                    actualizarPlaceholderDomicilio(nombreMedioPago);
+                    sel.value = '';
+                }
+                actualizarCobroDomicilioUI();
+                actualizarResumenCobroDomicilio();
+
+                if (window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                }
+            });
+
+            cont.appendChild(btn);
+        });
+
+        if (window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static' }).show();
+        }
+    }
+
+    window.guardarCobroDomicilio = function (btn) {
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        const txt = document.getElementById('txtMontoBilleteDomicilio');
+        const hfMedioBase = document.getElementById('hfMedioBaseDomicilio');
+        const hfMedioInterno = document.getElementById('hfMedioInternoDomicilio');
+        const idMetodoBase = parseInt((sel && sel.value) || (hfMedioBase && hfMedioBase.value) || '0', 10) || 0;
+        if (!sel || !idMetodoBase) {
+            if (window.Swal) {
+                Swal.fire({ icon: 'warning', title: 'Medio de pago', text: 'Selecciona cómo va a pagar el cliente.' });
+            }
+            return false;
+        }
+
+        const rel = getRelDomicilio();
+        const tieneInternos = rel.some(x => parseInt(x.idMedioDePago, 10) === idMetodoBase);
+        const idMetodoFinal = (hfMedioInterno && hfMedioInterno.value) ? parseInt(hfMedioInterno.value || '0', 10) : idMetodoBase;
+
+        if (tieneInternos && (!idMetodoFinal || idMetodoFinal >= 0)) {
+            const nombre = sel.value
+                ? (sel.options[sel.selectedIndex] ? (sel.options[sel.selectedIndex].text || '') : '')
+                : ((sel.options && Array.from(sel.options).find(x => parseInt(x.value || '0', 10) === idMetodoBase)?.text) || '');
+            abrirModalInternosDomicilio(idMetodoBase, nombre);
+            return false;
+        }
+
+        const nombreBase = ((sel.options && Array.from(sel.options).find(x => parseInt(x.value || '0', 10) === idMetodoBase)?.text) || '');
+        const esEfectivo = idMetodoBase === 10 || nombreBase.toLowerCase().indexOf('efect') >= 0;
+        const monto = txt ? String(txt.value || '').replace(/\D/g, '') : '';
+        if (esEfectivo && !monto) {
+            if (window.Swal) {
+                Swal.fire({ icon: 'warning', title: 'Billete del cliente', text: 'Indica con qué billete va a pagar para preparar las vueltas.' });
+            }
+            return false;
+        }
+
+        EjecutarAccion('GuardarCobroDomicilio', BuildArgs({
+            IDMEDIO: idMetodoFinal,
+            MONTO: esEfectivo ? monto : ''
+        }), btn);
+        return false;
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const sel = document.getElementById('selMetodoPagoDomicilio');
+        const txt = document.getElementById('txtMontoBilleteDomicilio');
+        const hfMedioBase = document.getElementById('hfMedioBaseDomicilio');
+        const hfMedioInterno = document.getElementById('hfMedioInternoDomicilio');
+        if (sel) {
+            sel.addEventListener('change', function () {
+                const idMetodoBase = parseInt(sel.value || '0', 10) || 0;
+                if (hfMedioBase) {
+                    hfMedioBase.value = idMetodoBase > 0 ? String(idMetodoBase) : '';
+                }
+                if (hfMedioInterno) {
+                    hfMedioInterno.value = '';
+                }
+
+                const rel = getRelDomicilio();
+                const tieneInternos = rel.some(x => parseInt(x.idMedioDePago, 10) === idMetodoBase);
+                const nombre = sel.options[sel.selectedIndex] ? (sel.options[sel.selectedIndex].text || '') : '';
+
+                actualizarPlaceholderDomicilio();
+                actualizarCobroDomicilioUI();
+                actualizarResumenCobroDomicilio();
+
+                if (tieneInternos && idMetodoBase > 0) {
+                    abrirModalInternosDomicilio(idMetodoBase, nombre);
+                }
+            });
+
+            const nombreBaseActual = ((sel.options && Array.from(sel.options).find(x => parseInt(x.value || '0', 10) === parseInt((hfMedioBase && hfMedioBase.value) || '0', 10))?.text) || '');
+            if (hfMedioInterno && hfMedioInterno.value && nombreBaseActual) {
+                actualizarPlaceholderDomicilio(nombreBaseActual);
+                sel.value = '';
+            } else {
+                actualizarPlaceholderDomicilio();
+            }
+            actualizarCobroDomicilioUI();
+            actualizarResumenCobroDomicilio();
+        }
+        if (txt) {
+            txt.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '');
+            });
+        }
+    });
+})();
+
+(function () {
+    function escapeHtml(text) {
+        return String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    window.imprimirDomicilioActivo = function () {
+        const data = window.DomicilioActivoPrintData;
+        if (!data) return false;
+
+        const items = Array.isArray(data.items) ? data.items : [];
+        const filas = items.length
+            ? items.map(function (item) {
+                return '<tr>'
+                    + '<td style="padding:4px 0;">' + escapeHtml(item.cantidad) + 'x</td>'
+                    + '<td style="padding:4px 8px;">' + escapeHtml(item.producto) + (item.nota ? '<div style="font-size:11px;color:#475569;">' + escapeHtml(item.nota) + '</div>' : '') + '</td>'
+                    + '<td style="padding:4px 0;text-align:right;">' + escapeHtml(item.valor) + '</td>'
+                    + '</tr>';
+            }).join('')
+            : '<tr><td colspan="3" style="padding:6px 0;color:#64748b;text-align:center;">Sin productos cargados</td></tr>';
+
+        const html = '<!doctype html><html><head><meta charset="utf-8"><title>Domicilio ' + escapeHtml(data.cuenta) + '</title>'
+            + '<style>'
+            + 'body{font-family:Consolas,monospace;padding:18px;color:#0f172a;}'
+            + '.t{font-size:18px;font-weight:800;text-align:center;margin-bottom:4px;}'
+            + '.s{text-align:center;font-size:12px;margin-bottom:14px;}'
+            + '.b{margin-bottom:10px;font-size:12px;}'
+            + '.k{font-weight:800;}'
+            + 'table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}'
+            + '.f{margin-top:12px;border-top:1px dashed #94a3b8;padding-top:10px;font-size:12px;}'
+            + '</style></head><body>'
+            + '<div class="t">DOMICILIO</div>'
+            + '<div class="s">Cuenta ' + escapeHtml(data.cuenta) + ' · Estado: ' + escapeHtml(data.estado) + '</div>'
+            + '<div class="b"><span class="k">Cliente:</span> ' + escapeHtml(data.cliente) + '</div>'
+            + '<div class="b"><span class="k">Teléfono:</span> ' + escapeHtml(data.telefono) + '</div>'
+            + '<div class="b"><span class="k">Dirección:</span> ' + escapeHtml(data.direccion) + '</div>'
+            + '<div class="b"><span class="k">Medio de pago:</span> ' + escapeHtml(data.medioPago) + '</div>'
+            + (data.pagaCon ? '<div class="b"><span class="k">Paga con:</span> ' + escapeHtml(data.pagaCon) + '</div>' : '')
+            + (data.vueltas ? '<div class="b"><span class="k">Vueltas:</span> ' + escapeHtml(data.vueltas) + '</div>' : '')
+            + '<div class="b"><span class="k">Total:</span> ' + escapeHtml(data.total) + '</div>'
+            + (data.observacion ? '<div class="b"><span class="k">Observación:</span> ' + escapeHtml(data.observacion) + '</div>' : '')
+            + '<table><thead><tr><th style="text-align:left;">Cant</th><th style="text-align:left;">Producto</th><th style="text-align:right;">Valor</th></tr></thead><tbody>' + filas + '</tbody></table>'
+            + '<div class="f">Ticket de despacho de domicilio</div>'
+            + '</body></html>';
+
+        const win = window.open('', '_blank', 'width=420,height=760');
+        if (!win) return false;
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(function () { win.print(); }, 300);
+        return false;
+    };
+})();
+
+(function () {
+    function escapeHtmlTicket(text) {
+        return String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    window.imprimirDomicilioActivo = function () {
+        const data = window.DomicilioActivoPrintData;
+        if (!data) return false;
+
+        const widthMm = parseInt(data.printerWidth || 80, 10) <= 58 ? 58 : 80;
+        const maxWidth = widthMm === 58 ? '54mm' : '76mm';
+        const fontSize = widthMm === 58 ? '10px' : '12px';
+        const titleSize = widthMm === 58 ? '15px' : '18px';
+        const smallSize = widthMm === 58 ? '9px' : '10px';
+        const popupWidth = widthMm === 58 ? 420 : 520;
+        const fecha = new Date();
+        const fechaTexto = fecha.toLocaleString('es-CO', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const items = Array.isArray(data.items) ? data.items : [];
+        const filas = items.length
+            ? items.map(function (item) {
+                return '<tr>'
+                    + '<td style="padding:4px 0;">' + escapeHtmlTicket(item.cantidad) + 'x</td>'
+                    + '<td style="padding:4px 8px;">' + escapeHtmlTicket(item.producto) + (item.nota ? '<div style="font-size:11px;color:#475569;">' + escapeHtmlTicket(item.nota) + '</div>' : '') + '</td>'
+                    + '<td style="padding:4px 0;text-align:right;">' + escapeHtmlTicket(item.valor) + '</td>'
+                    + '</tr>';
+            }).join('')
+            : '<tr><td colspan="3" style="padding:6px 0;color:#64748b;text-align:center;">Sin productos cargados</td></tr>';
+
+        const cabeceraRestaurante = [
+            data.restaurante,
+            data.nitRestaurante ? 'NIT: ' + data.nitRestaurante : '',
+            data.regimenRestaurante,
+            data.direccionRestaurante,
+            data.telefonoRestaurante ? 'Tel: ' + data.telefonoRestaurante : '',
+            data.horarioRestaurante,
+            data.puntoPago ? 'Punto: ' + data.puntoPago : '',
+            data.leyendaRestaurante1,
+            data.leyendaRestaurante2
+        ].filter(function (linea) {
+            return String(linea || '').trim() !== '';
+        }).map(function (linea, index) {
+            return '<div class="' + (index === 0 ? 'r1' : 'r2') + '">' + escapeHtmlTicket(linea) + '</div>';
+        }).join('');
+
+        const html = '<!doctype html><html><head><meta charset="utf-8"><title>Domicilio ' + escapeHtmlTicket(data.cuenta) + '</title>'
+            + '<style>'
+            + '@page{size:' + widthMm + 'mm auto;margin:4mm;}'
+            + 'html,body{margin:0;padding:0;background:#fff;color:#0f172a;font-family:Consolas,monospace;font-size:' + fontSize + ';}'
+            + 'body{padding:6px;}'
+            + '.ticket{width:100%;max-width:' + maxWidth + ';margin:0 auto;}'
+            + '.restaurant{border-bottom:1px dashed #94a3b8;padding-bottom:8px;margin-bottom:8px;text-align:center;}'
+            + '.r1{font-size:' + titleSize + ';font-weight:800;line-height:1.15;}'
+            + '.r2{font-size:' + fontSize + ';margin-top:2px;line-height:1.25;}'
+            + '.t{font-size:' + titleSize + ';font-weight:800;text-align:center;margin:4px 0 2px;}'
+            + '.s{text-align:center;font-size:' + fontSize + ';margin-bottom:10px;line-height:1.3;}'
+            + '.b{margin-bottom:7px;font-size:' + fontSize + ';line-height:1.3;}'
+            + '.k{font-weight:800;}'
+            + '.sec{margin-top:8px;padding-top:8px;border-top:1px dashed #94a3b8;}'
+            + 'table{width:100%;border-collapse:collapse;font-size:' + fontSize + ';margin-top:6px;}'
+            + 'th,td{vertical-align:top;}'
+            + 'th{padding-bottom:4px;border-bottom:1px solid #cbd5e1;}'
+            + '.meta{display:flex;justify-content:space-between;gap:8px;font-size:' + smallSize + ';margin:2px 0 10px;color:#334155;}'
+            + '.meta div:last-child{text-align:right;}'
+            + '.f{margin-top:10px;border-top:1px dashed #94a3b8;padding-top:8px;font-size:' + smallSize + ';text-align:center;line-height:1.35;}'
+            + '</style></head><body>'
+            + '<div class="ticket">'
+            + '<div class="restaurant">'
+            + cabeceraRestaurante
+            + '</div>'
+            + '<div class="t">DOMICILIO</div>'
+            + '<div class="s">Cuenta ' + escapeHtmlTicket(data.cuenta) + ' - Estado: ' + escapeHtmlTicket(data.estado) + '</div>'
+            + '<div class="meta"><div>Fecha: ' + escapeHtmlTicket(fechaTexto) + '</div><div>Ancho: ' + escapeHtmlTicket(widthMm + 'mm') + '</div></div>'
+            + '<div class="b"><span class="k">Cliente:</span> ' + escapeHtmlTicket(data.cliente) + '</div>'
+            + '<div class="b"><span class="k">Telefono:</span> ' + escapeHtmlTicket(data.telefono) + '</div>'
+            + '<div class="b"><span class="k">Direccion:</span> ' + escapeHtmlTicket(data.direccion) + '</div>'
+            + '<div class="sec">'
+            + '<div class="b"><span class="k">Medio de pago:</span> ' + escapeHtmlTicket(data.medioPago) + '</div>'
+            + (data.pagaCon ? '<div class="b"><span class="k">Paga con:</span> ' + escapeHtmlTicket(data.pagaCon) + '</div>' : '')
+            + (data.vueltas ? '<div class="b"><span class="k">Vueltas:</span> ' + escapeHtmlTicket(data.vueltas) + '</div>' : '')
+            + '<div class="b"><span class="k">Total:</span> ' + escapeHtmlTicket(data.total) + '</div>'
+            + '</div>'
+            + (data.observacion ? '<div class="sec"><div class="b"><span class="k">Observacion:</span> ' + escapeHtmlTicket(data.observacion) + '</div></div>' : '')
+            + '<table><thead><tr><th style="text-align:left;">Cant</th><th style="text-align:left;">Producto</th><th style="text-align:right;">Valor</th></tr></thead><tbody>' + filas + '</tbody></table>'
+            + '<div class="f">Ticket de despacho de domicilio<br/>Gracias por preferirnos</div>'
+            + '</div></body></html>';
+
+        const win = window.open('', '_blank', 'width=' + popupWidth + ',height=760');
+        if (!win) return false;
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(function () { win.print(); }, 300);
+        return false;
+    };
+})();

@@ -11,6 +11,11 @@ namespace WebApplication.Helpers
     {
         private const int DefaultPrinterWidth = 58;
 
+        private static int NormalizePrinterWidth(int width)
+        {
+            return width >= 80 ? 80 : 58;
+        }
+
         public static string ResolvePrinterName(HttpSessionState session, MenuViewModels model = null)
         {
             var resolvedModel = model ?? SessionContextHelper.LoadModels(session) ?? session?[SessionContextHelper.ModelsKey] as MenuViewModels;
@@ -100,10 +105,15 @@ namespace WebApplication.Helpers
 
             if (resolvedModel.PuntoDePagoSeleccionado != null && resolvedModel.PuntoDePagoSeleccionado.ancho > 0)
             {
-                return resolvedModel.PuntoDePagoSeleccionado.ancho;
+                return NormalizePrinterWidth(resolvedModel.PuntoDePagoSeleccionado.ancho);
             }
 
-            return DefaultPrinterWidth;
+            if (resolvedModel.Sede != null && resolvedModel.Sede.tamanoPapel > 0)
+            {
+                return NormalizePrinterWidth(resolvedModel.Sede.tamanoPapel);
+            }
+
+            return NormalizePrinterWidth(DefaultPrinterWidth);
         }
 
         public static void Apply(ImprimirCuenta solicitud, HttpSessionState session, MenuViewModels model = null)

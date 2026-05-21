@@ -9,6 +9,19 @@ namespace DAL.Controler
 {
     public class MediosDePagoInternos_Controler
     {
+        public static async Task<List<MediosDePagoInternos>> Lista(string db)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                return await cn.ConsultarLista<MediosDePagoInternos>(db);
+            }
+            catch (Exception)
+            {
+                return new List<MediosDePagoInternos>();
+            }
+        }
+
         public static async Task<string>ConsultarReferencia(string db,int idmpi)
         {
             try

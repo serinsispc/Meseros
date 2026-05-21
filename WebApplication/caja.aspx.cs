@@ -1,6 +1,7 @@
 ﻿using DAL;
 using DAL.Controler;
 using DAL.Funciones;
+using DAL.Helpers;
 using DAL.Model;
 using Newtonsoft.Json;
 using System;
@@ -200,6 +201,166 @@ namespace WebApplication
             return Convert.ToString(nombreMesaObj ?? string.Empty).Trim();
         }
 
+        protected bool CuentaActivaEsDomicilio()
+        {
+            if (models?.cuentas == null || !models.cuentas.Any() || models.IdCuentaActiva <= 0)
+            {
+                return false;
+            }
+
+            var cuenta = models.cuentas.FirstOrDefault(x => x.id == models.IdCuentaActiva);
+            return cuenta != null && EsCuentaDomicilio(cuenta.nombreCD);
+        }
+
+        protected string NombreClienteDomicilioActivo()
+        {
+            if (models?.clienteDomicilioActivo != null && !string.IsNullOrWhiteSpace(models.clienteDomicilioActivo.nombreCliente))
+            {
+                return ResumirNombreClienteDomicilio(models.clienteDomicilioActivo.nombreCliente);
+            }
+
+            if (models?.cuentas == null || !models.cuentas.Any() || models.IdCuentaActiva <= 0)
+            {
+                return string.Empty;
+            }
+
+            var cuenta = models.cuentas.FirstOrDefault(x => x.id == models.IdCuentaActiva);
+            return cuenta == null ? string.Empty : ResumirNombreClienteDomicilio(cuenta.nombreCD);
+        }
+
+        protected string EstadoDomicilioActualCodigo()
+        {
+            if (!CuentaActivaEsDomicilio())
+            {
+                return string.Empty;
+            }
+
+            var estado = DomicilioEstadoVentaHelper.ObtenerEstado(models?.venta?.observacionVenta);
+            return string.IsNullOrWhiteSpace(estado) ? DomicilioEstadoVentaHelper.EstadoRecibido : estado;
+        }
+
+        protected string EstadoDomicilioActualTexto()
+        {
+            return DomicilioEstadoVentaHelper.EtiquetaEstado(EstadoDomicilioActualCodigo());
+        }
+
+        protected string ObservacionVentaVisibleActual()
+        {
+            return DomicilioEstadoVentaHelper.LimpiarObservacionVisible(models?.venta?.observacionVenta);
+        }
+
+        protected string ClaseEstadoDomicilioActual()
+        {
+            switch (EstadoDomicilioActualCodigo())
+            {
+                case "RECIBIDO":
+                    return "estado-recibido";
+                case "EN_PREPARACION":
+                    return "estado-preparacion";
+                case "LISTO_PARA_DESPACHO":
+                    return "estado-listo";
+                case "EN_CAMINO":
+                    return "estado-camino";
+                case "ENTREGADO":
+                    return "estado-entregado";
+                case "NOVEDAD":
+                    return "estado-novedad";
+                default:
+                    return "estado-recibido";
+            }
+        }
+
+        protected bool EstadoDomicilioEs(string estado)
+        {
+            return string.Equals(EstadoDomicilioActualCodigo(), DomicilioEstadoVentaHelper.NormalizarEstado(estado), StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected int MetodoPagoDomicilioActualId()
+        {
+            return DomicilioEstadoVentaHelper.ObtenerMetodoPagoId(models?.venta?.observacionVenta);
+        }
+
+        protected int MetodoPagoDomicilioBaseActualId()
+        {
+            var idMetodo = MetodoPagoDomicilioActualId();
+            if (idMetodo > 0)
+            {
+                return idMetodo;
+            }
+
+            if (idMetodo < 0)
+            {
+                var relacion = models?.relMediosPagoInternos?.FirstOrDefault(x => x.idMediosDePagoInternos == Math.Abs(idMetodo));
+                return relacion?.idMedioDePago ?? 0;
+            }
+
+            return 0;
+        }
+
+        protected string MetodoPagoDomicilioActualNombre()
+        {
+            var idMetodo = MetodoPagoDomicilioActualId();
+            if (idMetodo == 0)
+            {
+                return "Sin definir";
+            }
+
+            if (idMetodo < 0)
+            {
+                var relacion = models?.relMediosPagoInternos?.FirstOrDefault(x => x.idMediosDePagoInternos == Math.Abs(idMetodo));
+                var nombreBase = relacion?.idMedioDePago > 0
+                    ? models?.metodosPago?.FirstOrDefault(x => x.id == relacion.idMedioDePago)?.name ?? string.Empty
+                    : string.Empty;
+                var medioInterno = models?.mediosPagoInternos?.FirstOrDefault(x => x.id == Math.Abs(idMetodo));
+                var nombreInterno = string.IsNullOrWhiteSpace(medioInterno?.nombreMPI) ? string.Empty : medioInterno.nombreMPI.Trim();
+                if (string.IsNullOrWhiteSpace(nombreInterno))
+                {
+                    return "Sin definir";
+                }
+
+                return string.IsNullOrWhiteSpace(nombreBase)
+                    ? nombreInterno
+                    : nombreBase + " / " + nombreInterno;
+            }
+
+            if (models?.metodosPago == null || !models.metodosPago.Any())
+            {
+                return "Sin definir";
+            }
+
+            return models.metodosPago.FirstOrDefault(x => x.id == idMetodo)?.name ?? "Sin definir";
+        }
+
+        protected decimal MontoBilleteDomicilioActual()
+        {
+            return DomicilioEstadoVentaHelper.ObtenerMontoBillete(models?.venta?.observacionVenta);
+        }
+
+        protected bool MetodoPagoDomicilioEsEfectivo()
+        {
+            var idMetodoBase = MetodoPagoDomicilioBaseActualId();
+            var nombreBase = models?.metodosPago?.FirstOrDefault(x => x.id == idMetodoBase)?.name ?? string.Empty;
+            return idMetodoBase == 10 || nombreBase.IndexOf("efect", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        protected string CambioSugeridoDomicilio()
+        {
+            var billete = MontoBilleteDomicilioActual();
+            var total = models?.venta?.total_A_Pagar ?? 0m;
+            if (billete <= 0 || total <= 0 || billete < total)
+            {
+                return "$ 0";
+            }
+
+            return FormatearMoneda(billete - total);
+        }
+
+        protected string RelMediosPagoInternosJson()
+        {
+            var lista = models?.relMediosPagoInternos ?? new List<V_R_MediosDePago_MediosDePagoInternos>();
+            return JsonConvert.SerializeObject(lista).Replace("</", "<\\/");
+        }
+
         private V_CuentasVenta CuentaActivaPorMesa(int idMesa)
         {
             var mesa = models?.MesasLista?.FirstOrDefault(x => x.id == idMesa);
@@ -344,6 +505,55 @@ namespace WebApplication
         {
             var lista = models?.clienteDomicilios ?? new List<ClienteDomicilio>();
             return JsonConvert.SerializeObject(lista).Replace("</", "<\\/");
+        }
+
+        protected string DomicilioActivoPrintJson()
+        {
+            if (!CuentaActivaEsDomicilio())
+            {
+                return "null";
+            }
+
+            var cliente = models?.clienteDomicilioActivo ?? new ClienteDomicilio();
+            var sede = models?.Sede ?? new Sede();
+            var printerWidth = PuntoDePagoPrinterHelper.ResolvePrinterWidth(Session, models);
+            var telefonoSede = !string.IsNullOrWhiteSpace(sede.telefono) ? sede.telefono : (sede.celular ?? string.Empty);
+            var detalle = (models?.detalleCaja ?? new List<V_DetalleCaja>())
+                .Select(x => new
+                {
+                    producto = x.nombreProducto,
+                    cantidad = x.unidad.ToString("0"),
+                    valor = FormatearMoneda(x.totalDetalle),
+                    nota = string.IsNullOrWhiteSpace(x.adiciones) ? string.Empty : x.adiciones
+                })
+                .ToList();
+
+            var payload = new
+            {
+                restaurante = sede.nombreSede ?? string.Empty,
+                nitRestaurante = sede.nit ?? string.Empty,
+                regimenRestaurante = sede.regimen ?? string.Empty,
+                direccionRestaurante = sede.direccion ?? string.Empty,
+                telefonoRestaurante = telefonoSede,
+                horarioRestaurante = sede.horarios_atencion ?? string.Empty,
+                leyendaRestaurante1 = sede.leyenda1 ?? string.Empty,
+                leyendaRestaurante2 = sede.leyenda2 ?? string.Empty,
+                puntoPago = NombrePuntoDePagoActual(),
+                printerWidth = printerWidth <= 58 ? 58 : 80,
+                cuenta = models.IdCuentaActiva,
+                estado = EstadoDomicilioActualTexto(),
+                cliente = cliente?.nombreCliente ?? string.Empty,
+                telefono = cliente?.celularCliente ?? string.Empty,
+                direccion = cliente?.direccionCliente ?? string.Empty,
+                medioPago = MetodoPagoDomicilioActualNombre(),
+                pagaCon = MetodoPagoDomicilioEsEfectivo() && MontoBilleteDomicilioActual() > 0 ? FormatearMoneda(MontoBilleteDomicilioActual()) : string.Empty,
+                vueltas = MetodoPagoDomicilioEsEfectivo() && MontoBilleteDomicilioActual() > 0 ? CambioSugeridoDomicilio() : string.Empty,
+                total = FormatearMoneda(models?.venta?.total_A_Pagar ?? 0m),
+                observacion = ObservacionVentaVisibleActual(),
+                items = detalle
+            };
+
+            return JsonConvert.SerializeObject(payload).Replace("</", "<\\/");
         }
         protected string AdicionesCatalogoJson()
         {
@@ -540,6 +750,13 @@ namespace WebApplication
             var categorias = await V_CategoriaControler.lista(models.db) ?? new List<V_Categoria>();
             var mesas = await MesasControler.Lista(models.db) ?? new List<Mesas>();
             var productos = await v_productoVentaControler.Lista(models.db) ?? new List<v_productoVenta>();
+            var metodosPago = (await payment_methodsControler.ListaMetodosDePago(models.db) ?? new List<payment_methods>())
+                .Where(x => x != null && x.state)
+                .ToList();
+            var mediosPagoInternos = (await MediosDePagoInternos_Controler.Lista(models.db) ?? new List<MediosDePagoInternos>())
+                .Where(x => x != null && x.estado == 1)
+                .ToList();
+            var relMediosPagoInternos = await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(models.db) ?? new List<V_R_MediosDePago_MediosDePagoInternos>();
             if (!productos.Any())
             {
                 AlertModerno.Error(this, "Error", "No fue posible cargar la lista de productos.", true);
@@ -589,9 +806,13 @@ namespace WebApplication
             models.v_CuentaClientes = listacc;
             models.adiciones = await V_CatagoriaAdicionControler.Lista(models.db);
             models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            models.clienteDomicilioActivo = await CargarClienteDomicilioActivo(idVenta);
             models.AbrirModalDomicilio = false;
             models.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(models.db, idVenta);
             models.clientes = await ClientesControler.ListaClientes(models.db);
+            models.metodosPago = metodosPago;
+            models.mediosPagoInternos = mediosPagoInternos;
+            models.relMediosPagoInternos = relMediosPagoInternos;
             models.cuentas = cuentas;
             models.IdCuentaActiva = idVenta;
 
@@ -738,6 +959,18 @@ namespace WebApplication
 
                 case "SeleccionarClienteDomicilio":
                     await SeleccionarClienteDomicilio(eventArgument);
+                    break;
+
+                case "ActualizarEstadoDomicilio":
+                    await ActualizarEstadoDomicilio(eventArgument);
+                    break;
+
+                case "GuardarCobroDomicilio":
+                    await GuardarCobroDomicilio(eventArgument);
+                    break;
+
+                case "DespacharDomicilio":
+                    await DespacharDomicilio();
                     break;
 
                 case "Comandar":
@@ -947,6 +1180,7 @@ namespace WebApplication
                 models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idCuenta);
                 models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
                 models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, idCuenta, 0);
+                models.clienteDomicilioActivo = await CargarClienteDomicilioActivo(idCuenta);
 
                 await CargarDATA();
             }
@@ -1732,6 +1966,17 @@ namespace WebApplication
             var resp = await ImprecionComandaAddControler.CRUD(models.db, comanda, 0);
             if (resp.estado)
             {
+                if (CuentaActivaEsDomicilio())
+                {
+                    var venta = await TablaVentasControler.ConsultarIdVenta(models.db, models.IdCuentaActiva);
+                    if (venta != null)
+                    {
+                        venta.observacionVenta = DomicilioEstadoVentaHelper.AplicarEstado(venta.observacionVenta, "EN_PREPARACION");
+                        await TablaVentasControler.CRUD(models.db, venta, 1);
+                        await RecargarVentaActiva();
+                    }
+                }
+
                 AlertModerno.Success(this, "OK", "Comanda enviada correctamente.", true, 1500);
             }
             else
@@ -1842,6 +2087,28 @@ namespace WebApplication
             await CargarDATA();
         }
 
+        private async Task<ClienteDomicilio> CargarClienteDomicilioActivo(int idVenta)
+        {
+            if (idVenta <= 0)
+            {
+                return new ClienteDomicilio();
+            }
+
+            var relacion = await ClienteDomicilioControler.ConsultarRelacion(models.db, idVenta);
+            if (relacion == null || relacion.idClienteDomicilio == Guid.Empty)
+            {
+                return new ClienteDomicilio();
+            }
+
+            var lista = models?.clienteDomicilios;
+            if (lista == null || !lista.Any())
+            {
+                lista = await ClienteDomicilioControler.Lista(models.db);
+            }
+
+            return lista?.FirstOrDefault(x => x.id == relacion.idClienteDomicilio) ?? new ClienteDomicilio();
+        }
+
         private async Task CrearActualizarClienteDomicilio(string eventArgument)
         {
             if (string.IsNullOrWhiteSpace(eventArgument))
@@ -1939,6 +2206,16 @@ namespace WebApplication
                 return;
             }
 
+            var ventaDomicilio = await TablaVentasControler.ConsultarIdVenta(models.db, idVenta);
+            if (ventaDomicilio != null && string.IsNullOrWhiteSpace(DomicilioEstadoVentaHelper.ObtenerEstado(ventaDomicilio.observacionVenta)))
+            {
+                ventaDomicilio.observacionVenta = DomicilioEstadoVentaHelper.AplicarEstado(
+                    ventaDomicilio.observacionVenta,
+                    DomicilioEstadoVentaHelper.EstadoRecibido);
+
+                await TablaVentasControler.CRUD(models.db, ventaDomicilio, 1);
+            }
+
             models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
             models.cuentas = await CargarCuentas();
             models.cuentasMesasVista = await CargarCuentasMesasVista();
@@ -1956,6 +2233,184 @@ namespace WebApplication
             );
         }
 
+        private async Task ActualizarEstadoDomicilio(string eventArgument)
+        {
+            var args = new EventArgumentParser(eventArgument);
+            var estado = DomicilioEstadoVentaHelper.NormalizarEstado(args.GetString("ESTADO"));
+            if (string.IsNullOrWhiteSpace(estado))
+            {
+                AlertModerno.Warning(this, "Atencion", "No se recibio un estado de domicilio valido.", true, 2200);
+                return;
+            }
+
+            if (models.IdCuentaActiva <= 0 || !CuentaActivaEsDomicilio())
+            {
+                AlertModerno.Warning(this, "Atencion", "La cuenta activa no corresponde a un domicilio.", true, 2200);
+                return;
+            }
+
+            var venta = await TablaVentasControler.ConsultarIdVenta(models.db, models.IdCuentaActiva);
+            if (venta == null)
+            {
+                AlertModerno.Error(this, "Error", "No se encontro la venta activa del domicilio.", true);
+                return;
+            }
+
+            venta.observacionVenta = DomicilioEstadoVentaHelper.AplicarEstado(venta.observacionVenta, estado);
+            var resp = await TablaVentasControler.CRUD(models.db, venta, 1);
+            if (!resp.estado)
+            {
+                AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo actualizar el estado del domicilio.", true);
+                return;
+            }
+
+            await RecargarVentaActiva();
+            AlertModerno.Success(this, "OK", "Estado de domicilio actualizado a " + DomicilioEstadoVentaHelper.EtiquetaEstado(estado) + ".", true, 1400);
+        }
+
+        private async Task GuardarCobroDomicilio(string eventArgument)
+        {
+            var args = new EventArgumentParser(eventArgument);
+            var idMetodoPago = args.GetInt("IDMEDIO");
+            var montoBilleteTexto = (args.GetString("MONTO") ?? "0").Replace(",", ".");
+            decimal.TryParse(montoBilleteTexto, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var montoBillete);
+
+            if (models.IdCuentaActiva <= 0 || !CuentaActivaEsDomicilio())
+            {
+                AlertModerno.Warning(this, "Atencion", "La cuenta activa no corresponde a un domicilio.", true, 2200);
+                return;
+            }
+
+            if (idMetodoPago == 0)
+            {
+                AlertModerno.Warning(this, "Atencion", "Debes seleccionar el medio de pago del domicilio.", true, 2200);
+                return;
+            }
+
+            var esMedioInterno = idMetodoPago < 0;
+            var idMetodoBase = idMetodoPago;
+            if (esMedioInterno)
+            {
+                idMetodoBase = models?.relMediosPagoInternos?.FirstOrDefault(x => x.idMediosDePagoInternos == Math.Abs(idMetodoPago))?.idMedioDePago ?? 0;
+            }
+
+            var metodo = idMetodoBase > 0 ? models?.metodosPago?.FirstOrDefault(x => x.id == idMetodoBase) : null;
+            var nombreMetodo = metodo?.name ?? string.Empty;
+            var esEfectivo = idMetodoBase == 10 || nombreMetodo.IndexOf("efect", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!esEfectivo)
+            {
+                montoBillete = 0m;
+            }
+
+            if (esEfectivo && montoBillete <= 0)
+            {
+                AlertModerno.Warning(this, "Atencion", "Indica con cuanto paga el cliente para preparar las vueltas.", true, 2200);
+                return;
+            }
+
+            var venta = await TablaVentasControler.ConsultarIdVenta(models.db, models.IdCuentaActiva);
+            if (venta == null)
+            {
+                AlertModerno.Error(this, "Error", "No se encontro la venta activa del domicilio.", true);
+                return;
+            }
+
+            if (idMetodoBase > 0)
+            {
+                venta.idMedioDePago = idMetodoBase;
+            }
+
+            venta.observacionVenta = DomicilioEstadoVentaHelper.AplicarCobro(venta.observacionVenta, idMetodoPago, montoBillete);
+            var resp = await TablaVentasControler.CRUD(models.db, venta, 1);
+            if (!resp.estado)
+            {
+                AlertModerno.Error(this, "Error", resp.mensaje ?? "No se pudo guardar la informacion de cobro del domicilio.", true);
+                return;
+            }
+
+            await RecargarVentaActiva();
+            AlertModerno.Success(this, "OK", "Informacion de cobro del domicilio guardada.", true, 1400);
+        }
+
+        private async Task DespacharDomicilio()
+        {
+            const string DomicilioPrintPrefix = "__DOMICILIO__|";
+
+            if (models.IdCuentaActiva <= 0 || !CuentaActivaEsDomicilio())
+            {
+                AlertModerno.Warning(this, "Atencion", "La cuenta activa no corresponde a un domicilio.", true, 2200);
+                return;
+            }
+
+            var idMetodoPago = MetodoPagoDomicilioActualId();
+            var idMetodoPagoBase = MetodoPagoDomicilioBaseActualId();
+            if (idMetodoPago == 0 || idMetodoPagoBase <= 0)
+            {
+                AlertModerno.Warning(this, "Atencion", "Debes definir como va a pagar el cliente antes de despachar.", true, 2200);
+                return;
+            }
+
+            if (MetodoPagoDomicilioEsEfectivo() && MontoBilleteDomicilioActual() <= 0)
+            {
+                AlertModerno.Warning(this, "Atencion", "Debes indicar con que billete paga el cliente antes de despachar.", true, 2200);
+                return;
+            }
+
+            var venta = await TablaVentasControler.ConsultarIdVenta(models.db, models.IdCuentaActiva);
+            if (venta == null)
+            {
+                AlertModerno.Error(this, "Error", "No se encontro la venta activa del domicilio.", true);
+                return;
+            }
+
+            venta.observacionVenta = DomicilioEstadoVentaHelper.AplicarEstado(venta.observacionVenta, "EN_CAMINO");
+            var respVenta = await TablaVentasControler.CRUD(models.db, venta, 1);
+            if (!respVenta.estado)
+            {
+                AlertModerno.Error(this, "Error", respVenta.mensaje ?? "No se pudo actualizar el despacho del domicilio.", true);
+                return;
+            }
+
+            await RecargarVentaActiva();
+
+            var impresion = new ImprimirCuenta
+            {
+                id = 0,
+                idVenta = models.IdCuentaActiva
+            };
+            PuntoDePagoPrinterHelper.Apply(impresion, Session, models);
+
+            if (string.IsNullOrWhiteSpace(impresion.namePrinter))
+            {
+                AlertModerno.Warning(this, "Atencion", "El domicilio quedo en camino, pero no hay una impresora configurada para enviar el ticket.", true, 2600);
+                return;
+            }
+
+            impresion.namePrinter = DomicilioPrintPrefix + impresion.namePrinter.Trim();
+            var respImpresion = await ImprimirCuentaControler.CRUD(models.db, impresion, 0);
+            if (!respImpresion.estado)
+            {
+                AlertModerno.Warning(this, "Atencion", "El domicilio quedo en camino, pero no se pudo encolar la impresion para el servidor.", true, 2600);
+                return;
+            }
+
+            var impresionFactura = new ImprimirFactura
+            {
+                id = 0,
+                idventa = models.IdCuentaActiva
+            };
+            PuntoDePagoPrinterHelper.Apply(impresionFactura, Session, models);
+
+            var respFactura = await ImprimirFacturaControler.CRUD(models.db, impresionFactura, 0);
+            if (!respFactura.estado)
+            {
+                AlertModerno.Warning(this, "Atencion", "El domicilio se despacho y el ticket se envio a impresion, pero no fue posible encolar la factura.", true, 2600);
+                return;
+            }
+
+            AlertModerno.Success(this, "OK", "Domicilio despachado. Se envio a imprimir el ticket del domicilio y la factura.", true, 1700);
+        }
+
         private async Task RecargarVentaActiva()
         {
             models.cuentas = await CargarCuentas();
@@ -1964,6 +2419,7 @@ namespace WebApplication
             models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
             models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
             models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
+            models.clienteDomicilioActivo = await CargarClienteDomicilioActivo(models.IdCuentaActiva);
             await CargarDATA();
         }
 

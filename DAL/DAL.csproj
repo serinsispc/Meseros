@@ -149,6 +149,7 @@
     <Compile Include="Controler\V_TablaVentasControler.cs" />
     <Compile Include="Controler\ZonasControler.cs" />
     <Compile Include="CrudSpHelper.cs" />
+    <Compile Include="Helpers\DomicilioEstadoVentaHelper.cs" />
     <Compile Include="Model\AperturarCajon.cs" />
     <Compile Include="Model\AdminControl.cs" />
     <Compile Include="Model\DBConexion.cs" />

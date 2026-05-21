@@ -161,6 +161,79 @@
                     <!-- Zonas + Mesas -->
                     <div id="divZonas" runat="server" class="col-12 col-lg-5 d-flex">
                         <div id="bloqueZonas" class="panel bg-light w-100 border-1">
+                            <% if (CuentaActivaEsDomicilio()) { %>
+                            <div class="box domicilio-estado-box domicilio-estado-box--left h-100">
+                                <div class="domicilio-estado-head">
+                                    <div class="domicilio-estado-head-copy">
+                                        <div class="domicilio-estado-title">Estado del domicilio</div>
+                                        <div class="domicilio-estado-subtitle">
+                                            Cuenta <%: models.IdCuentaActiva %>
+                                            <% if (!string.IsNullOrWhiteSpace(NombreClienteDomicilioActivo())) { %>
+                                                · <%: NombreClienteDomicilioActivo() %>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <span class="domicilio-estado-badge <%: ClaseEstadoDomicilioActual() %>"><%: EstadoDomicilioActualTexto() %></span>
+                                </div>
+
+                                <section class="domicilio-panel domicilio-panel-estados">
+                                    <div class="domicilio-panel-title">Seguimiento</div>
+                                    <div class="domicilio-estado-actions">
+                                        <button type="button" class="domicilio-estado-btn <%: EstadoDomicilioEs("RECIBIDO") ? "activo" : string.Empty %>" onclick="EjecutarAccion('ActualizarEstadoDomicilio','ESTADO=RECIBIDO',this)">Recibido</button>
+                                        <button type="button" class="domicilio-estado-btn <%: EstadoDomicilioEs("EN_PREPARACION") ? "activo" : string.Empty %>" onclick="EjecutarAccion('ActualizarEstadoDomicilio','ESTADO=EN_PREPARACION',this)">En preparación</button>
+                                        <button type="button" class="domicilio-estado-btn <%: EstadoDomicilioEs("LISTO_PARA_DESPACHO") ? "activo" : string.Empty %>" onclick="EjecutarAccion('ActualizarEstadoDomicilio','ESTADO=LISTO_PARA_DESPACHO',this)">Listo para despacho</button>
+                                        <button type="button" class="domicilio-estado-btn <%: EstadoDomicilioEs("EN_CAMINO") ? "activo" : string.Empty %>" onclick="EjecutarAccion('ActualizarEstadoDomicilio','ESTADO=EN_CAMINO',this)">En camino</button>
+                                        <button type="button" class="domicilio-estado-btn <%: EstadoDomicilioEs("ENTREGADO") ? "activo" : string.Empty %>" onclick="EjecutarAccion('ActualizarEstadoDomicilio','ESTADO=ENTREGADO',this)">Entregado</button>
+                                        <button type="button" class="domicilio-estado-btn novedad <%: EstadoDomicilioEs("NOVEDAD") ? "activo" : string.Empty %>" onclick="EjecutarAccion('ActualizarEstadoDomicilio','ESTADO=NOVEDAD',this)">Novedad</button>
+                                    </div>
+                                </section>
+
+                                <section class="domicilio-panel domicilio-cobro-box">
+                                    <div class="domicilio-panel-title">Cobro del domicilio</div>
+                                    <div class="domicilio-cobro-form">
+                                        <div class="domicilio-cobro-field">
+                                            <label for="selMetodoPagoDomicilio">¿Cómo va a pagar?</label>
+                                            <select id="selMetodoPagoDomicilio" class="domicilio-cobro-select" data-efectivo-actual="<%: MetodoPagoDomicilioEsEfectivo() ? "true" : "false" %>">
+                                                <option value="">Selecciona un medio</option>
+                                                <% foreach (var metodoPago in models.metodosPago ?? new List<DAL.Model.payment_methods>()) { %>
+                                                <option value="<%= metodoPago.id %>" <%= metodoPago.id == MetodoPagoDomicilioBaseActualId() ? "selected" : string.Empty %>><%= metodoPago.name %></option>
+                                                <% } %>
+                                            </select>
+                                            <input type="hidden" id="hfRelMediosInternosDomicilio" value="<%= HttpUtility.HtmlAttributeEncode(RelMediosPagoInternosJson()) %>" />
+                                            <input type="hidden" id="hfMedioBaseDomicilio" value="<%: MetodoPagoDomicilioBaseActualId() > 0 ? MetodoPagoDomicilioBaseActualId().ToString() : string.Empty %>" />
+                                            <input type="hidden" id="hfMedioInternoDomicilio" value="<%: MetodoPagoDomicilioActualId() < 0 ? MetodoPagoDomicilioActualId().ToString() : string.Empty %>" />
+                                        </div>
+                                        <div class="domicilio-cobro-field" id="boxMontoBilleteDomicilio" style="<%= MetodoPagoDomicilioEsEfectivo() ? string.Empty : "display:none;" %>">
+                                            <label for="txtMontoBilleteDomicilio">¿Con qué billete paga?</label>
+                                            <input id="txtMontoBilleteDomicilio" type="text" class="domicilio-cobro-input" inputmode="numeric" value="<%: MontoBilleteDomicilioActual() > 0 ? Convert.ToInt64(MontoBilleteDomicilioActual()).ToString() : string.Empty %>" placeholder="Ej: 50000" />
+                                        </div>
+                                        <button type="button" class="domicilio-cobro-save" onclick="return guardarCobroDomicilio(this);">Guardar cobro</button>
+                                    </div>
+                                    <div class="domicilio-cobro-summary">
+                                        <span><strong>Medio:</strong> <span id="lblResumenMedioDomicilio"><%: MetodoPagoDomicilioActualNombre() %></span></span>
+                                        <% if (MetodoPagoDomicilioEsEfectivo() && MontoBilleteDomicilioActual() > 0) { %>
+                                        <span><strong>Paga con:</strong> <%: FormatearMoneda(MontoBilleteDomicilioActual()) %></span>
+                                        <span><strong>Vueltas:</strong> <%: CambioSugeridoDomicilio() %></span>
+                                        <% } %>
+                                    </div>
+                                </section>
+
+                                <div class="domicilio-footer-row">
+                                    <% if (!string.IsNullOrWhiteSpace(ObservacionVentaVisibleActual())) { %>
+                                    <div class="domicilio-estado-note">
+                                        <strong>Observación:</strong>
+                                        <span><%: ObservacionVentaVisibleActual() %></span>
+                                    </div>
+                                    <% } %>
+
+                                    <div class="domicilio-despacho-actions">
+                                        <button type="button" class="domicilio-despacho-btn" onclick="EjecutarAccion('DespacharDomicilio','',this)">
+                                            <i class="bi bi-box-seam me-1"></i>Despachar e imprimir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <% } else { %>
                             <div class="row">
                                 <div class="col-12 panel-zona">
                                     <div class="box p-0 h-zonas zonas-box">
@@ -208,6 +281,7 @@
                                     </div>
                                 </div>
                             </div>
+                            <% } %>
                         </div>
                     </div>
 
@@ -984,6 +1058,25 @@
         </div>
     </div>
 
+    <div class="modal fade" id="mdlMediosInternosDomicilio" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-list-check"></i> Medios internos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-muted mb-2" id="lblMedioSeleccionadoDomicilio"></div>
+                    <div class="list-group" id="listMediosInternosDomicilio"></div>
+                    <div class="text-muted mt-2" style="font-size:12px;">Selecciona uno para continuar.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btnx" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         window.SerinsisLoading = {
             show: function () {
@@ -1005,6 +1098,7 @@
     <script>
         window.ListaClientesDomicilio = <%= ClienteDomiciliosJson() %>;
         window.CajaAdicionesCatalogo = <%= AdicionesCatalogoJson() %>;
+        window.DomicilioActivoPrintData = <%= DomicilioActivoPrintJson() %>;
     </script>
 
     <% if (models.AbrirModalDomicilio) { %>

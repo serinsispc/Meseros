@@ -313,6 +313,259 @@ body {
     letter-spacing: .55px;
 }
 
+.domicilio-estado-box {
+    padding: 14px 16px;
+    border: 1px solid rgba(22, 163, 74, .18);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(240,253,244,1), rgba(255,255,255,1) 72%);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.domicilio-estado-box--left {
+    min-height: 100%;
+}
+
+.domicilio-estado-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, .18);
+}
+
+.domicilio-estado-head-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.domicilio-estado-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #14532d;
+}
+
+.domicilio-estado-subtitle {
+    font-size: 12px;
+    color: #4b5563;
+    margin-top: 2px;
+}
+
+.domicilio-estado-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.domicilio-estado-badge.estado-recibido,
+.domicilio-estado-btn.activo {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.domicilio-estado-badge.estado-preparacion {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.domicilio-estado-badge.estado-listo {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.domicilio-estado-badge.estado-camino {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.domicilio-estado-badge.estado-entregado {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.domicilio-estado-badge.estado-novedad {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.domicilio-panel {
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    border-radius: 14px;
+    background: rgba(255,255,255,.78);
+    margin-top: 0;
+}
+
+.domicilio-panel-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 10px;
+}
+
+.domicilio-estado-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.domicilio-estado-btn {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: #fff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all .15s ease;
+}
+
+.domicilio-estado-btn:hover {
+    border-color: rgba(59, 130, 246, .35);
+    color: #1d4ed8;
+}
+
+.domicilio-estado-btn.novedad.activo {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.domicilio-estado-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #475569;
+}
+
+.domicilio-cobro-box {
+    margin-top: 0;
+    padding-top: 14px;
+}
+
+.domicilio-cobro-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.domicilio-cobro-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.domicilio-cobro-select,
+.domicilio-cobro-input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid rgba(148, 163, 184, .35);
+    border-radius: 12px;
+    padding: 0 12px;
+    font-size: 13px;
+    background: #fff;
+    color: #0f172a;
+}
+
+.domicilio-cobro-save {
+    width: 100%;
+    height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: #1f6bff;
+    color: #fff;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.domicilio-cobro-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #334155;
+}
+
+.domicilio-despacho-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.domicilio-despacho-btn {
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 10px 20px rgba(234, 88, 12, .18);
+}
+
+.domicilio-footer-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-top: 0;
+}
+
+.domicilio-footer-row .domicilio-estado-note {
+    margin-top: 0;
+    flex: 0 0 auto;
+}
+
+.domicilio-footer-row .domicilio-despacho-actions,
+.domicilio-footer-row .domicilio-despacho-btn {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .domicilio-estado-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .domicilio-cobro-form {
+        grid-template-columns: 1fr;
+    }
+
+    .domicilio-estado-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .domicilio-footer-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .domicilio-despacho-actions {
+        justify-content: stretch;
+    }
+
+    .domicilio-despacho-btn {
+        width: 100%;
+    }
+}
+
 .cuenta-edit {
     position: absolute;
     top: 6px;
