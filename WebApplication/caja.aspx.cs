@@ -650,6 +650,11 @@ namespace WebApplication
             }
 
             models = JsonConvert.DeserializeObject<MenuViewModels>(modelJson);
+            if (models != null)
+            {
+                await CargarPermisosDetalleCajeroAsync();
+            }
+
             return models != null;
         }
 
