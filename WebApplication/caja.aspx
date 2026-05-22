@@ -660,8 +660,7 @@
                                                             <i class="bi bi-scissors"></i>
                                                         </button>
 
-                                                        <%if (ajustes.DecuentoVendedorJSON==true)
-                                                            {%>
+                                                        <% if (PuedeEditarDetalleCaja()) { %>
 
                                                         <button type="button" class="act-btn" aria-label="Descuento" title="Editar valor o descuento" onclick="return editarValorDetalle(this);">
                                                             <i class="bi bi-cash-coin"></i>

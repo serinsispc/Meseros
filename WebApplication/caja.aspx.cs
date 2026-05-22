@@ -34,6 +34,8 @@ namespace WebApplication
         private const string VistaCaja = "caja";
         private const string VistaVentas = "ventas";
         private const string SessionModelsJson = "ModelsJson";
+        private const string PermisoEditarDetalleVenta = "EDITAR DETALLE VENTA";
+        private const string PermisoEliminarDetalleVenta = "ELIMINAR DETALLE VENTA";
         protected MenuViewModels models = new MenuViewModels();
         protected List<V_TablaVentas> VentasCaja = new List<V_TablaVentas>();
         protected decimal VentasCajaTotal;
@@ -41,6 +43,8 @@ namespace WebApplication
         protected decimal VentasCajaPendiente;
         protected int VentasCajaAnuladas;
         protected DBConexion ajustes = new DBConexion();
+        private bool _puedeEditarDetalleVentaCajero;
+        private bool _puedeEliminarDetalleVentaCajero;
 
         protected bool EnVistaVentas()
         {
@@ -435,12 +439,22 @@ namespace WebApplication
 
         protected bool PuedeEliminarDetalleCaja()
         {
-            if (models?.vendedor?.cajaMovil == 1)
+            if (UsuarioActualEsCajero())
             {
-                return true;
+                return _puedeEliminarDetalleVentaCajero;
             }
 
             return ajustes?.EliminarDetalleCaja == true;
+        }
+
+        protected bool PuedeEditarDetalleCaja()
+        {
+            if (UsuarioActualEsCajero())
+            {
+                return _puedeEditarDetalleVentaCajero;
+            }
+
+            return ajustes?.DecuentoVendedorJSON == true;
         }
 
         protected IEnumerable<V_CuentaCliente> CuentasClienteActivas()
@@ -654,6 +668,7 @@ namespace WebApplication
 
         private async Task CargarDATA()
         {
+            await CargarPermisosDetalleCajeroAsync();
             await Cargar_RP();
             Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
 
@@ -702,6 +717,35 @@ namespace WebApplication
             {
                 return false;
             }
+        }
+
+        private bool UsuarioActualEsCajero()
+        {
+            return models?.vendedor?.cajaMovil == 1;
+        }
+
+        private async Task CargarPermisosDetalleCajeroAsync()
+        {
+            _puedeEditarDetalleVentaCajero = false;
+            _puedeEliminarDetalleVentaCajero = false;
+
+            if (!UsuarioActualEsCajero())
+            {
+                return;
+            }
+
+            var db = models?.db;
+            var idCajero = models?.vendedor?.id ?? 0;
+            if (string.IsNullOrWhiteSpace(db) || idCajero <= 0)
+            {
+                return;
+            }
+
+            var permisos = await V_R_PermisoCajeroControler.Lista(db, idCajero) ?? new List<V_R_PermisoCajero>();
+            _puedeEditarDetalleVentaCajero = permisos.Any(x =>
+                string.Equals((x?.nombrePermiso ?? string.Empty).Trim(), PermisoEditarDetalleVenta, StringComparison.OrdinalIgnoreCase));
+            _puedeEliminarDetalleVentaCajero = permisos.Any(x =>
+                string.Equals((x?.nombrePermiso ?? string.Empty).Trim(), PermisoEliminarDetalleVenta, StringComparison.OrdinalIgnoreCase));
         }
         private async Task IniciarPagina()
         {
@@ -1785,6 +1829,12 @@ namespace WebApplication
         {
             try
             {
+                if (!PuedeEditarDetalleCaja())
+                {
+                    AlertModerno.Warning(this, "Atención", "No tiene permiso para editar el valor del detalle.", true, 1800);
+                    return;
+                }
+
                 var data = new EventArgumentParser(parametros);
                 int idDetalle = data.GetInt("ID");
                 decimal valor = Convert.ToDecimal((data.GetString("VALOR") ?? "0").Replace(".", ","));
@@ -1823,6 +1873,12 @@ namespace WebApplication
         {
             try
             {
+                if (!PuedeEditarDetalleCaja())
+                {
+                    AlertModerno.Warning(this, "Atención", "No tiene permiso para editar el producto del detalle.", true, 1800);
+                    return;
+                }
+
                 var data = new EventArgumentParser(parametros);
                 int idDetalle = data.GetInt("ID");
                 string nombre = (data.GetString("NOMBRE") ?? string.Empty).Trim();
