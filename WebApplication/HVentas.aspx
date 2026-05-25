@@ -364,18 +364,16 @@
                                         <tr>
                                             <td>
                                                 <div class="hv-detail-product"><%# Item.Detalle.nombreProducto %></div>
-                                                <% if (Item.NoFacturadoEnFe) { %>
-                                                <div class="hv-detail-note">Se conserva solo como control interno.</div>
-                                                <% } %>
+                                                <%# Item.NoFacturadoEnFe
+                                                    ? "<div class='hv-detail-note'>Se conserva solo como control interno.</div>"
+                                                    : string.Empty %>
                                             </td>
                                             <td>
-                                                <% if (Item.NoFacturadoEnFe) { %>
-                                                <span class="hv-badge warning">No facturado en FE</span>
-                                                <% } else if (Item.EsCortesiaFe) { %>
-                                                <span class="hv-badge info">Cortesía FE</span>
-                                                <% } else { %>
-                                                <span class="hv-badge success">Facturado</span>
-                                                <% } %>
+                                                <%# Item.NoFacturadoEnFe
+                                                    ? "<span class='hv-badge warning'>No facturado en FE</span>"
+                                                    : (Item.EsCortesiaFe
+                                                        ? "<span class='hv-badge info'>Cortesía FE</span>"
+                                                        : "<span class='hv-badge success'>Facturado</span>") %>
                                             </td>
                                             <td><%# Item.Detalle.idVenta %></td>
                                             <td class="text-end"><%# Item.Detalle.unidad.ToString("N0") %></td>
