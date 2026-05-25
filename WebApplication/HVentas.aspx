@@ -345,6 +345,7 @@
                             <thead>
                                 <tr>
                                     <th>Producto</th>
+                                    <th>FE</th>
                                     <th>Cuenta</th>
                                     <th class="text-end">Cantidad</th>
                                     <th class="text-end">Precio</th>
@@ -355,18 +356,32 @@
                             <tbody id="hvDetalleBody">
                                 <% if (detalleCaja == null || detalleCaja.Count == 0) { %>
                                 <tr>
-                                    <td colspan="6" class="text-center py-4 hv-muted">No hay datos disponibles</td>
+                                    <td colspan="7" class="text-center py-4 hv-muted">No hay datos disponibles</td>
                                 </tr>
                                 <% } else { %>
-                                <asp:Repeater ID="rpDetalleCaja" runat="server" ItemType="DAL.Model.V_DetalleCaja">
+                                <asp:Repeater ID="rpDetalleCaja" runat="server" ItemType="WebApplication.HVentas.DetalleCajaVisualItem">
                                     <ItemTemplate>
                                         <tr>
-                                            <td><%# Item.nombreProducto %></td>
-                                            <td><%# Item.idVenta %></td>
-                                            <td class="text-end"><%# Item.unidad.ToString("N0") %></td>
-                                            <td class="text-end"><%# Item.precioVenta.ToString("C0") %></td>
-                                            <td class="text-end"><%# Item.totalDetalle.ToString("C0") %></td>
-                                            <td><%# Item.adiciones %></td>
+                                            <td>
+                                                <div class="hv-detail-product"><%# Item.Detalle.nombreProducto %></div>
+                                                <% if (Item.NoFacturadoEnFe) { %>
+                                                <div class="hv-detail-note">Se conserva solo como control interno.</div>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if (Item.NoFacturadoEnFe) { %>
+                                                <span class="hv-badge warning">No facturado en FE</span>
+                                                <% } else if (Item.EsCortesiaFe) { %>
+                                                <span class="hv-badge info">Cortesía FE</span>
+                                                <% } else { %>
+                                                <span class="hv-badge success">Facturado</span>
+                                                <% } %>
+                                            </td>
+                                            <td><%# Item.Detalle.idVenta %></td>
+                                            <td class="text-end"><%# Item.Detalle.unidad.ToString("N0") %></td>
+                                            <td class="text-end"><%# Item.Detalle.precioVenta.ToString("C0") %></td>
+                                            <td class="text-end"><%# Item.Detalle.totalDetalle.ToString("C0") %></td>
+                                            <td><%# Item.Detalle.adiciones %></td>
                                         </tr>
                                     </ItemTemplate>
                                 </asp:Repeater>

@@ -54,9 +54,18 @@ namespace WebApplication
             public List<string> correos { get; set; }
         }
 
+        public class DetalleCajaVisualItem
+        {
+            public V_DetalleCaja Detalle { get; set; } = new V_DetalleCaja();
+            public bool EsCortesiaFe { get; set; }
+            public bool NoFacturadoEnFe { get; set; }
+            public decimal PrecioReferenciaFe { get; set; }
+        }
+
         protected Valores valores { get; set; } = new Valores();
         protected V_TablaVentas venta { get; set; } = new V_TablaVentas();
         protected List<V_DetalleCaja> detalleCaja { get; set; } = new List<V_DetalleCaja>();
+        protected List<DetalleCajaVisualItem> detalleCajaVisual { get; set; } = new List<DetalleCajaVisualItem>();
         protected List<V_Resoluciones> listaResoluciones { get; set; } = new List<V_Resoluciones>();
         protected List<Clientes> listaClientes { get; set; } = new List<Clientes>();
         protected CorreoFacturaPreview correoFacturaPreview { get; set; } = new CorreoFacturaPreview();
@@ -375,8 +384,9 @@ namespace WebApplication
 
             var detalle = await V_DetalleCajaControler.Lista_IdVenta(Session["db"].ToString(), id, 0);
             detalleCaja = detalle ?? new List<V_DetalleCaja>();
+            detalleCajaVisual = await ConstruirDetalleCajaVisualAsync(Session["db"].ToString(), detalleCaja);
 
-            rpDetalleCaja.DataSource = detalleCaja;
+            rpDetalleCaja.DataSource = detalleCajaVisual;
             rpDetalleCaja.DataBind();
 
             _mdlVenta = true;
@@ -1399,6 +1409,80 @@ namespace WebApplication
             }
 
             return descripcion.Trim();
+        }
+
+        private async Task<List<DetalleCajaVisualItem>> ConstruirDetalleCajaVisualAsync(string db, IEnumerable<V_DetalleCaja> detalles)
+        {
+            var lista = new List<DetalleCajaVisualItem>();
+            if (detalles == null)
+            {
+                return lista;
+            }
+
+            foreach (var detalle in detalles)
+            {
+                var esCortesia = EsDetalleCortesiaCandidato(detalle);
+                var precioReferencia = esCortesia
+                    ? await ObtenerPrecioReferenciaDetalleAsync(db, detalle)
+                    : detalle.precioVenta;
+
+                lista.Add(new DetalleCajaVisualItem
+                {
+                    Detalle = detalle,
+                    EsCortesiaFe = esCortesia && precioReferencia > 0,
+                    NoFacturadoEnFe = esCortesia && precioReferencia <= 0,
+                    PrecioReferenciaFe = precioReferencia
+                });
+            }
+
+            return lista;
+        }
+
+        private bool EsDetalleCortesiaCandidato(V_DetalleCaja detalle)
+        {
+            return detalle != null
+                && detalle.unidad > 0
+                && detalle.precioVenta <= 0
+                && detalle.totalDetalle <= 0;
+        }
+
+        private async Task<decimal> ObtenerPrecioReferenciaDetalleAsync(string db, V_DetalleCaja detalle)
+        {
+            if (detalle == null)
+            {
+                return 0m;
+            }
+
+            if (detalle.preVentaNeto > 0)
+            {
+                return detalle.preVentaNeto;
+            }
+
+            if (detalle.precioVenta > 0)
+            {
+                return detalle.precioVenta;
+            }
+
+            if (detalle.unidad > 0 && detalle.subTotalDetalleNeto > 0)
+            {
+                return Math.Round(detalle.subTotalDetalleNeto / detalle.unidad, 2);
+            }
+
+            if (detalle.costoUnidad > 0)
+            {
+                return detalle.costoUnidad;
+            }
+
+            if (detalle.idPresentacion > 0)
+            {
+                var producto = await v_productoVentaControler.Consultar_idpresentacion(db, detalle.idPresentacion);
+                if (producto != null && producto.precioVenta > 0)
+                {
+                    return producto.precioVenta;
+                }
+            }
+
+            return 0m;
         }
 
         private string FormatearFechaPdf(DateTime fecha)

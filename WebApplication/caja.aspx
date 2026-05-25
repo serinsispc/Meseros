@@ -627,9 +627,14 @@
                                         <ItemTemplate>
                                             <div class="col-6 col-xl-12 item-col">
                                                 <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>" data-detalle-nombre="<%# Eval("nombreProducto") %>" data-detalle-nota="<%# Eval("adiciones") %>" data-detalle-categoria-id="<%# Eval("idCategoria") %>" data-detalle-cantidad="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" data-detalle-precio="<%# Convert.ToDecimal(Eval("precioVenta")).ToString(System.Globalization.CultureInfo.InvariantCulture) %>">
+                                                    <div class="detalle-chip-cortesia <%# EsCortesiaDetalle(Eval("precioVenta")) ? string.Empty : "d-none" %>">
+                                                        <i class="bi bi-gift"></i>
+                                                        <span>Cortesía</span>
+                                                    </div>
+
                                                     <div class="prod-top-detalle">
                                                         <div class="prod-nombre"><%# Eval("nombreProducto") %></div>
-                                                        <div class="prod-precio"><%# FormatearMoneda(Eval("precioVenta")) %></div>
+                                                        <div class="prod-precio <%# EsCortesiaDetalle(Eval("precioVenta")) ? "prod-precio-cortesia" : string.Empty %>"><%# EsCortesiaDetalle(Eval("precioVenta")) ? "Cortesía" : FormatearMoneda(Eval("precioVenta")) %></div>
                                                     </div>
 
                                                     <div class="prod-mid-detalle">
@@ -684,7 +689,7 @@
                                                             <i class="bi bi-journal-text me-2"></i><span><%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("adiciones"))) || Convert.ToString(Eval("adiciones")) == "--" ? "Sin nota" : Eval("adiciones") %></span>
                                                         </button>
 
-                                                        <div class="prod-total"><%# FormatearMoneda(Eval("totalDetalle")) %></div>
+                                                        <div class="prod-total <%# EsCortesiaDetalle(Eval("precioVenta")) ? "prod-total-cortesia" : string.Empty %>"><%# FormatearMoneda(Eval("totalDetalle")) %></div>
                                                     </div>
                                                 </div>
                                             </div>

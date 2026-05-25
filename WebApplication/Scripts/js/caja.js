@@ -1046,7 +1046,7 @@ function editarValorDetalle(btn) {
         title: 'Editar valor',
         input: 'number',
         inputValue: valorActual,
-        inputAttributes: { min: 1, step: '0.01' },
+        inputAttributes: { min: 0, step: '0.01' },
         inputLabel: 'Nuevo valor unitario',
         showCancelButton: true,
         confirmButtonText: 'Guardar',
@@ -1054,8 +1054,8 @@ function editarValorDetalle(btn) {
         confirmButtonColor: '#2563eb',
         preConfirm: function (value) {
             const numero = parseFloat(value);
-            if (!numero || numero <= 0) {
-                Swal.showValidationMessage('Ingrese un valor mayor a cero.');
+            if (Number.isNaN(numero) || numero < 0) {
+                Swal.showValidationMessage('Ingrese un valor mayor o igual a cero.');
                 return false;
             }
             return value;

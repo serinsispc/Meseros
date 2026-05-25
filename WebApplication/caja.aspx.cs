@@ -515,6 +515,13 @@ namespace WebApplication
             decimal numero;
             return decimal.TryParse(Convert.ToString(valor), out numero) ? numero.ToString("C0") : "$ 0";
         }
+
+        protected bool EsCortesiaDetalle(object valor)
+        {
+            decimal numero;
+            return decimal.TryParse(Convert.ToString(valor), out numero) && numero <= 0;
+        }
+
         protected string ClienteDomiciliosJson()
         {
             var lista = models?.clienteDomicilios ?? new List<ClienteDomicilio>();
@@ -1844,9 +1851,9 @@ namespace WebApplication
                 int idDetalle = data.GetInt("ID");
                 decimal valor = Convert.ToDecimal((data.GetString("VALOR") ?? "0").Replace(".", ","));
 
-                if (idDetalle <= 0 || valor <= 0)
+                if (idDetalle <= 0 || valor < 0)
                 {
-                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Ingrese un valor vÃƒÂ¡lido.", true, 1800);
+                    AlertModerno.Warning(this, "AtenciÃƒÂ³n", "Ingrese un valor vÃƒÂ¡lido mayor o igual a cero.", true, 1800);
                     return;
                 }
 

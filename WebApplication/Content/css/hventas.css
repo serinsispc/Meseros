@@ -240,11 +240,17 @@
     border: 1px solid transparent;
 }
 
-    .hv-badge.success {
-        background: rgba(22,163,74,.10);
-        color: var(--hv-success);
-        border-color: rgba(22,163,74,.18);
-    }
+.hv-badge.success {
+    background: rgba(22,163,74,.10);
+    color: var(--hv-success);
+    border-color: rgba(22,163,74,.18);
+}
+
+.hv-badge.info {
+    background: rgba(14,165,233,.10);
+    color: var(--hv-info);
+    border-color: rgba(14,165,233,.18);
+}
 
     .hv-badge.warning {
         background: rgba(245,158,11,.12);
@@ -252,11 +258,23 @@
         border-color: rgba(245,158,11,.20);
     }
 
-    .hv-badge.danger {
-        background: rgba(239,68,68,.10);
-        color: var(--hv-danger);
-        border-color: rgba(239,68,68,.18);
-    }
+.hv-badge.danger {
+    background: rgba(239,68,68,.10);
+    color: var(--hv-danger);
+    border-color: rgba(239,68,68,.18);
+}
+
+.hv-detail-product {
+    font-weight: 700;
+    color: var(--hv-text);
+}
+
+.hv-detail-note {
+    margin-top: 4px;
+    font-size: .78rem;
+    color: var(--hv-muted);
+    white-space: normal;
+}
 
     .hv-badge.info {
         background: rgba(14,165,233,.10);

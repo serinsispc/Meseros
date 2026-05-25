@@ -26,6 +26,8 @@ namespace DAL.Funciones
 {
     public class ClassFE
     {
+        private const int ReferencePriceValorComercialId = 1;
+
         public static async Task<bool> FacturaElectronica(string db,V_TablaVentas v_TablaVentas, List<V_DetalleCaja> dataTable,string TokenFE, [Optional] bool numeroFE)
         {
             int IdCliente_frm = 0;
@@ -66,7 +68,7 @@ namespace DAL.Funciones
                 facturaNacional.date = $"{DateTime.Today:yyyy-MM-dd}";
                 facturaNacional.time = $"{DateTime.Today:HH:mm:ss}";
                 /*en esta parte creamos la observacion*/
-                string observacion = $"el servicio ó producto fue facturado el día {v_TablaVentas.fechaVenta:yyyy-MM-dd} pero con inconvenientes en el sistema de facturación ha sido aceptada por la DIAN el día {DateTime.Today:yyyy-MM-dd}";
+                string observacion = $"el servicio \u00F3 producto fue facturado el d\u00EDa {v_TablaVentas.fechaVenta:yyyy-MM-dd} pero con inconvenientes en el sistema de facturaci\u00F3n ha sido aceptada por la DIAN el d\u00EDa {DateTime.Today:yyyy-MM-dd}";
                 TablaVentas tablaVentas = new TablaVentas();
                 tablaVentas = await TablaVentasControler.ConsultarIdVenta(db,v_TablaVentas.id);
                 if (tablaVentas != null)
@@ -183,28 +185,39 @@ namespace DAL.Funciones
             {
                 foreach (V_DetalleCaja row in dataTable)
                 {
-
-                    if (Convert.ToInt32(row.totalDetalle) > 0)
+                    bool esCortesia = EsCortesiaAutomatica(row);
+                    if (Convert.ToInt32(row.totalDetalle) > 0 || esCortesia)
                     {
+                        decimal precioReferencia = esCortesia
+                            ? await ObtenerPrecioReferenciaCortesiaAsync(db, row)
+                            : row.precioVenta;
+                        if (esCortesia && precioReferencia <= 0)
+                        {
+                            // El item queda en la venta como control interno, pero no se reporta
+                            // en la factura electronica si no existe valor comercial de referencia.
+                            continue;
+                        }
+
                         InvoiceLine itemDetalleFactura = new InvoiceLine();
 
                         itemDetalleFactura.unit_measure_id = 70;
-                        itemDetalleFactura.invoiced_quantity = $"{row.unidad}".Replace(",", ".");
-                        itemDetalleFactura.line_extension_amount = $"{row.subTotalDetalle}".Replace(",", ".");
+                        itemDetalleFactura.invoiced_quantity = FormatearNumero(row.unidad);
+                        itemDetalleFactura.line_extension_amount = esCortesia
+                            ? "0.00"
+                            : FormatearNumero(row.subTotalDetalle);
 
                         /*cargamos los descuentos*/
                         itemDetalleFactura.allowance_charges = new List<AllowanceCharge_InvoiceLine>();
 
                         itemDetalleFactura.tax_totals = new List<TaxTotal>();
-                        decimal ivaDetalle = Convert.ToDecimal(row.porImpuesto);
-                        if (row.impuesto_id != 24)
+                        if (!esCortesia && row.impuesto_id != 24)
                         {
 
                             TaxTotal taxTotalItem = new TaxTotal();
 
                             taxTotalItem.tax_id = Convert.ToInt32(row.impuesto_id);
-                            taxTotalItem.tax_amount = $"{row.valorImpuesto}".Replace(",", ".");
-                            taxTotalItem.taxable_amount = $"{row.baseImpuesto}".Replace(",", ".");
+                            taxTotalItem.tax_amount = FormatearNumero(row.valorImpuesto);
+                            taxTotalItem.taxable_amount = FormatearNumero(row.baseImpuesto);
                             string iva = Convert.ToString(row.porImpuesto);
                             int xx = Convert.ToInt32(Convert.ToDecimal(iva) * 100);
                             taxTotalItem.percent = $"{xx}.00";
@@ -216,8 +229,13 @@ namespace DAL.Funciones
                         itemDetalleFactura.description = Convert.ToString(row.nombreProducto);
                         itemDetalleFactura.code = Convert.ToString(row.codigoProducto);
                         itemDetalleFactura.type_item_identification_id = 3;
-                        itemDetalleFactura.price_amount = $"{row.precioVenta}".Replace(",", ".");
+                        itemDetalleFactura.price_amount = FormatearNumero(precioReferencia);
                         itemDetalleFactura.base_quantity = "1.000000";
+                        if (esCortesia)
+                        {
+                            itemDetalleFactura.reference_price_id = ReferencePriceValorComercialId;
+                            itemDetalleFactura.free_of_charge_indicator = true;
+                        }
 
                         facturaNacional.invoice_lines.Add(itemDetalleFactura);
                     }
@@ -324,6 +342,71 @@ namespace DAL.Funciones
                 return false;
             }
         }
+
+        private static bool EsCortesiaAutomatica(V_DetalleCaja row)
+        {
+            if (row == null)
+            {
+                return false;
+            }
+
+            return row.unidad > 0
+                && row.precioVenta <= 0
+                && row.totalDetalle <= 0;
+        }
+
+        private static async Task<decimal> ObtenerPrecioReferenciaCortesiaAsync(string db, V_DetalleCaja row)
+        {
+            if (row == null)
+            {
+                return 0m;
+            }
+
+            if (row.preVentaNeto > 0)
+            {
+                return row.preVentaNeto;
+            }
+
+            if (row.precioVenta > 0)
+            {
+                return row.precioVenta;
+            }
+
+            if (row.unidad > 0 && row.subTotalDetalleNeto > 0)
+            {
+                return Math.Round(row.subTotalDetalleNeto / row.unidad, 2);
+            }
+
+            if (row.costoUnidad > 0)
+            {
+                return row.costoUnidad;
+            }
+
+            if (row.idPresentacion > 0)
+            {
+                var producto = await v_productoVentaControler.Consultar_idpresentacion(db, row.idPresentacion);
+                if (producto != null)
+                {
+                    if (producto.precioVenta > 0)
+                    {
+                        return producto.precioVenta;
+                    }
+
+                    if (producto.costo_mas_impuesto > 0)
+                    {
+                        return producto.costo_mas_impuesto;
+                    }
+                }
+            }
+
+            return 0m;
+        }
+
+        private static string FormatearNumero(decimal valor)
+        {
+            return valor.ToString("0.00####", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         public static async Task<bool> EnviarFacturaElectronicaCorreo(string db, int idCliente, string uuid, string tokenFE, string correoPrincipal = null, IEnumerable<string> correosCopia = null)
         {
             try
