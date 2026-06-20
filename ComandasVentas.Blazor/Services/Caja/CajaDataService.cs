@@ -644,18 +644,43 @@ public sealed class CajaDataService(IConfiguration configuration)
         await connection.OpenAsync(cancellationToken);
 
         const string sql = """
-            INSERT INTO ImprecionComandaAdd (idVenta, idMesa, idMesero, estado)
-            VALUES (@idVenta, @idMesa, @idMesero, 1)
+            DECLARE @resultado INT = 0;
+
+            IF EXISTS (
+                SELECT 1
+                FROM ImprecionComandaAdd WITH (UPDLOCK, HOLDLOCK)
+                WHERE idVenta = @idVenta AND estado = 1
+            )
+            BEGIN
+                SET @resultado = 2;
+            END
+            ELSE IF EXISTS (
+                SELECT 1
+                FROM V_DetalleComandas
+                WHERE idVenta = @idVenta AND itemComandado = 0
+            )
+            BEGIN
+                INSERT INTO ImprecionComandaAdd (idVenta, idMesa, idMesero, estado)
+                VALUES (@idVenta, @idMesa, @idMesero, 1);
+
+                SET @resultado = 1;
+            END
+
+            SELECT @resultado;
             """;
 
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@idVenta", idVenta);
         command.Parameters.AddWithValue("@idMesa", idMesa.ToString());
         command.Parameters.AddWithValue("@idMesero", idMesero.ToString());
-        var rows = await command.ExecuteNonQueryAsync(cancellationToken);
-        return rows > 0
-            ? CajaCommandResult.SuccessResult("Comanda enviada correctamente.")
-            : CajaCommandResult.ErrorResult("Comanda no enviada correctamente.");
+        int resultado = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
+
+        return resultado switch
+        {
+            1 => CajaCommandResult.SuccessResult("Comanda enviada correctamente."),
+            2 => CajaCommandResult.SuccessResult("La comanda ya estaba pendiente en cola de impresion."),
+            _ => CajaCommandResult.ErrorResult("No hay items pendientes por comandar.")
+        };
     }
 
     public async Task<CajaCommandResult> SolicitarCuentaAsync(string db, int idVenta, CancellationToken cancellationToken = default)

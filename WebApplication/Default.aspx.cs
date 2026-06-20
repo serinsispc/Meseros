@@ -331,9 +331,7 @@ namespace WebApplication
             }
 
             //cargamos orden para abrir el cajon
-            var cajon = new AperturarCajon() { estado = true };
-            PuntoDePagoPrinterHelper.Apply(cajon, Session, models);
-            var respCajon = await AperturarCajonControler.CRUD(Session["db"].ToString(), cajon, 0);
+            var respCajon = await AperturarCajonRequestHelper.EnviarAsync(Session["db"].ToString(), Session, models);
 
             AlertModerno.SuccessGoTo(this, "Ok", mensaje, "~/caja.aspx", false, 1800);
         }

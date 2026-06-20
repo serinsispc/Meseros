@@ -130,7 +130,10 @@ namespace WebApplication
             await CargarRelMediosInternos();
             await AsegurarPagoJsonInicial();
 
-            var cliente = await ClientesControler.Consultar_id(DbActual, ModelSesion.venta.idCliente);
+            var clienteIdInicial = await ObtenerClienteSeleccionadoIdAsync();
+            var cliente = clienteIdInicial > 0
+                ? await ClientesControler.Consultar_id(DbActual, clienteIdInicial)
+                : null;
             if (cliente != null)
             {
                 Session["cliente_seleccionado_id"] = cliente.id;
@@ -409,7 +412,8 @@ namespace WebApplication
                 // ==========================================================
                 if (payload.facturaElectronica || payload.idFormaDePago == 2)
                 {
-                    if (Session["cliente_seleccionado_id"] == null)
+                    var clienteSeleccionadoId = await ObtenerClienteSeleccionadoIdAsync();
+                    if (clienteSeleccionadoId <= 0)
                     {
                         var mensajeCliente = payload.idFormaDePago == 2
                             ? "Venta a cr\u00e9dito: debes seleccionar un cliente."
@@ -417,6 +421,38 @@ namespace WebApplication
 
                         AlertModerno.Warning(this, "Atenci\u00f3n", mensajeCliente, true, 2200);
                         return;
+                    }
+
+                    if (!await PersistirClienteEnVentaAsync(clienteSeleccionadoId))
+                    {
+                        AlertModerno.Error(this, "Error", "No fue posible dejar guardado el cliente en la venta antes del envío.", true, 2200);
+                        return;
+                    }
+
+                    if (payload.facturaElectronica)
+                    {
+                        var clienteFe = await ClientesControler.Consultar_id(DbActual, clienteSeleccionadoId);
+                        var erroresClienteFe = ValidarClienteParaFacturaElectronica(clienteFe);
+                        if (erroresClienteFe.Count > 0)
+                        {
+                            var detalle = string.Join(" ", erroresClienteFe);
+                            var documentoValidacion = string.Format("{0}-{1}", ModelSesion?.venta?.prefijo ?? string.Empty, ModelSesion?.venta?.numeroVenta ?? 0).Trim('-');
+
+                            await FacturaElectronicaNotificacionControler.RegistrarAsync(
+                                DbActual,
+                                ModelSesion?.venta?.id ?? 0,
+                                "VALIDACION_CLIENTE",
+                                "Validacion previa de cliente",
+                                "La venta no cumple los requisitos minimos del cliente para facturacion electronica.",
+                                detalle,
+                                documentoValidacion,
+                                ModelSesion?.venta?.cufe,
+                                ModelSesion?.venta?.numeroVenta);
+
+                            AlertModerno.Warning(this, "Atención", detalle, true, 3500);
+                            GuardarModelsEnSesion();
+                            return;
+                        }
                     }
                 }
 
@@ -587,9 +623,7 @@ namespace WebApplication
                 }
 
                 //cargamos orden para abrir el cajon
-                var cajon=new AperturarCajon() { estado = true };
-                PuntoDePagoPrinterHelper.Apply(cajon, Session, ModelSesion);
-                var respCajon = await AperturarCajonControler.CRUD(Session["db"].ToString(),cajon,0);
+                var respCajon = await AperturarCajonRequestHelper.EnviarAsync(Session["db"].ToString(), Session, ModelSesion);
 
                 //antes de terminar liberamos las mesas que est\u00e1n ancladas a esta cuenta
                 var relaciones = await R_VentaMesaControler.ListaRelacion(db,venta.id);
@@ -651,6 +685,99 @@ namespace WebApplication
             SessionContextHelper.ApplyOperationalContext(Session, ModelSesion);
         }
 
+        private async Task<int> ObtenerClienteSeleccionadoIdAsync()
+        {
+            if (Session["cliente_seleccionado_id"] != null
+                && int.TryParse(Session["cliente_seleccionado_id"].ToString(), out var clienteIdSesion)
+                && clienteIdSesion > 0)
+            {
+                return clienteIdSesion;
+            }
+
+            if (ModelSesion?.venta?.idCliente > 0)
+            {
+                return ModelSesion.venta.idCliente;
+            }
+
+            if (ModelSesion?.venta?.id > 0)
+            {
+                var relacion = await R_VentaCliente_Controler.ConsultarRelacion(DbActual, ModelSesion.venta.id);
+                if (relacion != null && relacion.idCliente > 0)
+                {
+                    return relacion.idCliente;
+                }
+            }
+
+            return 0;
+        }
+
+        private async Task<bool> PersistirClienteEnVentaAsync(int clienteId)
+        {
+            if (clienteId <= 0 || ModelSesion?.venta == null)
+            {
+                return false;
+            }
+
+            if (ModelSesion.venta.idCliente == clienteId)
+            {
+                return true;
+            }
+
+            ModelSesion.venta.idCliente = clienteId;
+            ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(DbActual, ModelSesion.venta.id) ?? ModelSesion.venta;
+            ModelSesion.venta.idCliente = clienteId;
+            GuardarModelsEnSesion();
+            return true;
+        }
+
+        private List<string> ValidarClienteParaFacturaElectronica(Clientes cliente)
+        {
+            var errores = new List<string>();
+
+            if (cliente == null)
+            {
+                errores.Add("No fue posible cargar el cliente seleccionado.");
+                return errores;
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.identificationNumber))
+            {
+                errores.Add("El cliente no tiene identificación configurada.");
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.nameCliente))
+            {
+                errores.Add("El cliente no tiene nombre o razón social configurada.");
+            }
+
+            if (cliente.municipality_id <= 0)
+            {
+                errores.Add("El cliente no tiene municipio DIAN configurado.");
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.adress))
+            {
+                errores.Add("El cliente no tiene dirección configurada.");
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.email))
+            {
+                errores.Add("El cliente no tiene correo configurado.");
+            }
+
+            if (cliente.typeDocumentIdentification_id <= 0)
+            {
+                errores.Add("El cliente no tiene tipo de documento configurado.");
+            }
+
+            if (cliente.typeOrganization_id <= 0)
+            {
+                errores.Add("El cliente no tiene tipo de organización configurado.");
+            }
+
+            return errores;
+        }
+
         private async Task btnSeleccionarCliente(string eventArgument)
         {
             if (string.IsNullOrWhiteSpace(eventArgument))
@@ -692,6 +819,12 @@ namespace WebApplication
             if (!resul)
             {
                 AlertModerno.Error(this, "Error", "No se puso relacionar el cliente seleccionado.", true);
+                return;
+            }
+
+            if (!await PersistirClienteEnVentaAsync(clienteId))
+            {
+                AlertModerno.Error(this, "Error", "El cliente se relacionó, pero no fue posible actualizar la venta principal.", true);
                 return;
             }
 

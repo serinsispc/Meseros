@@ -191,7 +191,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <asp:Literal runat="server" Text='<%# ObtenerEstadoBadge(Item.cufe, Item.tipoFactura) %>' />
+                                            <asp:Literal runat="server" Text='<%# ObtenerEstadoBadge(Item) %>' />
                                         </td>
                                         <td><span class="hv-badge gray"><i class="bi bi-hash"></i><%# Item.idResolucion %></span></td>
                                         <td class="text-end">
@@ -211,10 +211,14 @@
                                                 <i class="bi bi-cloud-upload me-1"></i>Transmitir a DIAN
                                             </button>
 
+                                            <button type="button" class="btn btn-outline-dark btn-sm hv-linkbtn me-2 btn-ver-notificaciones-dian" data-id="<%# Item.id %>">
+                                                <i class="bi bi-chat-left-text me-1"></i>Notificaciones DIAN
+                                            </button>
+
                                             <button type="button"
-                                                class='btn btn-outline-info btn-sm hv-linkbtn me-2 btn-reenviar-correo-fe <%# Item.cufe == "--" ? "disabled" : "" %>'
+                                                class='btn btn-outline-info btn-sm hv-linkbtn me-2 btn-reenviar-correo-fe <%# TieneCufeValido(Item.cufe) ? "" : "disabled" %>'
                                                 data-id="<%# Item.id %>"
-                                                <%# Item.cufe == "--" ? "disabled=\"disabled\"" : "" %>>
+                                                <%# TieneCufeValido(Item.cufe) ? "" : "disabled=\"disabled\"" %>>
                                                 <i class="bi bi-envelope-arrow-up me-1"></i>Reenviar correo FE
                                             </button>
 
@@ -247,10 +251,10 @@
                                             </a>
 
                                             <a href="#"
-                                                class='btn btn-outline-secondary btn-sm hv-linkbtn btn-descargar-pdf <%# Item.cufe == "--" ? "disabled" : "" %>'
+                                                class='btn btn-outline-secondary btn-sm hv-linkbtn btn-descargar-pdf <%# TieneCufeValido(Item.cufe) ? "" : "disabled" %>'
                                                 data-id="<%# Item.id %>"
                                                 data-cufe="<%# Item.cufe %>"
-                                                <%# Item.cufe == "--" ? "onclick=\"return false;\"" : "" %>>
+                                                <%# TieneCufeValido(Item.cufe) ? "" : "onclick=\"return false;\"" %>>
                                                 <i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF
                                             </a>
                                         </td>
@@ -746,6 +750,76 @@
         </div>
     </div>
 
+    <div class="modal fade" id="mdlNotificacionesDian" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content hv-card">
+                <div class="hv-card-header">
+                    <h3 class="hv-card-title">
+                        <i class="bi bi-chat-left-text"></i>
+                        Historial de notificaciones DIAN
+                    </h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="hv-card-body">
+                    <div class="alert alert-light border">
+                        <div><strong>Documento:</strong> <%: notificacionesFacturaDocumento %></div>
+                        <div><strong>Registros:</strong> <%: notificacionesFactura.Count %></div>
+                    </div>
+
+                    <% if (notificacionesFactura == null || notificacionesFactura.Count == 0) { %>
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-inbox d-block mb-2" style="font-size: 2rem;"></i>
+                        No hay notificaciones DIAN registradas para esta venta.
+                    </div>
+                    <% } else { %>
+                    <div class="d-grid gap-3">
+                        <% foreach (var item in notificacionesFactura) { %>
+                        <div class="border rounded-4 p-3 bg-white shadow-sm">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                <span class='hv-badge <%: ObtenerClaseNotificacionDian(item) %>'>
+                                    <i class="bi bi-bell me-1"></i><%: item.tipoNotificacion %>
+                                </span>
+                                <span class="hv-pill">
+                                    <i class="bi bi-clock-history"></i>
+                                    <%: FormatearFechaNotificacion(item.fechaCreacion) %>
+                                </span>
+                            </div>
+
+                            <div class="fw-bold mb-1"><%: item.titulo %></div>
+                            <div class="mb-2"><%: item.mensaje %></div>
+
+                            <% if (!string.IsNullOrWhiteSpace(item.detalle)) { %>
+                            <div class="small text-muted mb-2">
+                                <strong>Detalle:</strong> <%: item.detalle %>
+                            </div>
+                            <% } %>
+
+                            <div class="row g-2 small text-muted">
+                                <div class="col-12 col-md-4">
+                                    <strong>Documento:</strong> <%: string.IsNullOrWhiteSpace(item.documento) ? "--" : item.documento %>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <strong>CUFE:</strong> <%: string.IsNullOrWhiteSpace(item.cufe) ? "--" : item.cufe %>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <strong>Consecutivo:</strong> <%: item.consecutivoIntentado.HasValue ? item.consecutivoIntentado.Value.ToString() : "--" %>
+                                </div>
+                            </div>
+                        </div>
+                        <% } %>
+                    </div>
+                    <% } %>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg me-2"></i>Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="Scripts/js/hventas.actions.js"></script>
@@ -804,6 +878,22 @@
     <script>
         window.addEventListener('load', function () {
             var modalEl = document.getElementById('mdlCorreoFacturaFe');
+            if (!modalEl || !window.bootstrap) return;
+
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
+                backdrop: 'static',
+                keyboard: false
+            });
+
+            modal.show();
+        });
+    </script>
+    <% } %>
+
+    <% if (_mdlNotificacionesFactura) { %>
+    <script>
+        window.addEventListener('load', function () {
+            var modalEl = document.getElementById('mdlNotificacionesDian');
             if (!modalEl || !window.bootstrap) return;
 
             var modal = bootstrap.Modal.getOrCreateInstance(modalEl, {

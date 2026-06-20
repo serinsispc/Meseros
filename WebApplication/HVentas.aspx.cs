@@ -69,11 +69,14 @@ namespace WebApplication
         protected List<V_Resoluciones> listaResoluciones { get; set; } = new List<V_Resoluciones>();
         protected List<Clientes> listaClientes { get; set; } = new List<Clientes>();
         protected CorreoFacturaPreview correoFacturaPreview { get; set; } = new CorreoFacturaPreview();
+        protected List<FacturaElectronicaNotificacionInfo> notificacionesFactura { get; set; } = new List<FacturaElectronicaNotificacionInfo>();
+        protected string notificacionesFacturaDocumento { get; set; } = string.Empty;
 
         protected bool _mdlVenta = false;
         protected bool _mdlResolucionVenta = false;
         protected bool _mdlClienteVenta = false;
         protected bool _mdlCorreoFactura = false;
+        protected bool _mdlNotificacionesFactura = false;
         protected bool _puedeGestionarAnulacionDevolucion = false;
         protected DBConexion ajustesDb { get; set; } = new DBConexion();
 
@@ -201,6 +204,10 @@ namespace WebApplication
                 case "btnDescargarNotaCreditoPDF":
                     await btnDescargarNotaCreditoPDF(eventArgument);
                     break;
+
+                case "btnVerNotificacionesDIAN":
+                    await btnVerNotificacionesDIAN(eventArgument);
+                    break;
             }
         }
 
@@ -322,12 +329,18 @@ namespace WebApplication
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(item.cufe) && item.cufe != "--")
+            if (TieneCufeValido(item?.cufe))
             {
                 return true;
             }
 
-            return string.Equals(item.tipoFactura, "FACTURA ELECTRÓNICA DE VENTA", StringComparison.OrdinalIgnoreCase);
+            return string.Equals((item.tipoFactura ?? string.Empty).Trim(), "FACTURA ELECTRÓNICA DE VENTA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected bool TieneCufeValido(string cufe)
+        {
+            return !string.IsNullOrWhiteSpace(cufe)
+                && !string.Equals(cufe.Trim(), "--", StringComparison.OrdinalIgnoreCase);
         }
 
         protected bool PuedeDescargarNotaCredito(V_TablaVentas item)
@@ -356,10 +369,43 @@ namespace WebApplication
             return string.Equals(item?.estadoVenta, "CANCELADO", StringComparison.OrdinalIgnoreCase);
         }
 
-        protected string ObtenerEstadoBadge(string cufe, string tipoFactura)
+        protected string ObtenerEstadoBadge(V_TablaVentas item)
         {
-            if (cufe != "--" && tipoFactura == "FACTURA ELECTRÓNICA DE VENTA")
+            if (item == null)
+            {
+                return "<span class='hv-badge gray'><i class='bi bi-dash-circle'></i>No aplica</span>";
+            }
+
+            if (TieneCufeValido(item.cufe))
+            {
                 return "<span class='hv-badge success'><i class='bi bi-qr-code-scan'></i>Emitida</span>";
+            }
+
+            if (DebeMostrarFacturaElectronicaEnHistorial(item))
+            {
+                var estadoFe = (item.estadoFE ?? string.Empty).Trim();
+                if (!string.IsNullOrWhiteSpace(estadoFe))
+                {
+                    return $"<span class='hv-badge warning'><i class='bi bi-exclamation-circle'></i>{estadoFe}</span>";
+                }
+
+                return "<span class='hv-badge danger'><i class='bi bi-x-circle'></i>Pendiente</span>";
+            }
+
+            if (string.Equals((item.tipoFactura ?? string.Empty).Trim(), "POS", StringComparison.OrdinalIgnoreCase))
+            {
+                return "<span class='hv-badge gray'><i class='bi bi-receipt'></i>POS</span>";
+            }
+
+            if (string.Equals((item.tipoFactura ?? string.Empty).Trim(), "FACTURA DE VENTA", StringComparison.OrdinalIgnoreCase))
+            {
+                return "<span class='hv-badge gray'><i class='bi bi-receipt'></i>No FE</span>";
+            }
+
+            if (DebeMostrarFacturaElectronicaEnHistorial(item))
+            {
+                return "<span class='hv-badge success'><i class='bi bi-qr-code-scan'></i>Emitida</span>";
+            }
 
             return "<span class='hv-badge danger'><i class='bi bi-x-circle'></i>Rechazada</span>";
         }
@@ -995,6 +1041,20 @@ namespace WebApplication
             }
 
             var model = JsonConvert.DeserializeObject<MenuViewModels>(Session["ModelsJson"].ToString());
+            var documento = !string.IsNullOrWhiteSpace(tablaventa.prefijo) && tablaventa.numeroVenta > 0
+                ? $"{tablaventa.prefijo.Trim()}-{tablaventa.numeroVenta}"
+                : tablaventa.numeroVenta.ToString();
+
+            await FacturaElectronicaNotificacionControler.RegistrarAsync(
+                Session["db"].ToString(),
+                tablaventa.id,
+                "REVALIDACION_MANUAL",
+                "Revalidacion manual solicitada",
+                "Se solicito reenviar la factura a DIAN desde el historial de ventas.",
+                "El usuario disparo manualmente la revalidacion de la factura electronica desde HVentas.",
+                documento,
+                tablaventa.cufe,
+                tablaventa.numeroVenta);
 
             var respDIAN =await ClassFE.FacturaElectronica(Session["db"].ToString(),tablaventa, detalleventa, Convert.ToString(model.TokenEmpresa),false);
             if (!respDIAN) 
@@ -1185,6 +1245,34 @@ namespace WebApplication
             await EjecutarScript(script);
         }
 
+        private async Task btnVerNotificacionesDIAN(string idVentaRaw)
+        {
+            if (!int.TryParse(idVentaRaw, out var idVenta) || idVenta <= 0)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Notificaciones DIAN", "No se recibió una venta válida.");
+                return;
+            }
+
+            var db = Convert.ToString(Session["db"]);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Notificaciones DIAN", "La sesión de base de datos no está disponible.");
+                return;
+            }
+
+            var ventaNotificacion = await V_TablaVentasControler.Consultar_Id(db, idVenta);
+            if (ventaNotificacion == null)
+            {
+                await MostrarMensaje(TipoMensaje.Warning, "Notificaciones DIAN", "No fue posible encontrar la venta.");
+                return;
+            }
+
+            venta = ventaNotificacion;
+            notificacionesFacturaDocumento = ObtenerDocumentoVenta(ventaNotificacion);
+            notificacionesFactura = await FacturaElectronicaNotificacionConsultaControler.ConsultarPorVentaAsync(db, idVenta);
+            _mdlNotificacionesFactura = true;
+        }
+
         #endregion
 
         #region Helpers PRO
@@ -1243,6 +1331,54 @@ namespace WebApplication
                 script,
                 true
             );
+        }
+
+        protected string ObtenerDocumentoVenta(V_TablaVentas item)
+        {
+            if (item == null)
+            {
+                return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(item.prefijo) && item.numeroVenta > 0)
+            {
+                return item.prefijo.Trim() + "-" + item.numeroVenta;
+            }
+
+            if (item.numeroVenta > 0)
+            {
+                return item.numeroVenta.ToString();
+            }
+
+            return item.aliasVenta ?? string.Empty;
+        }
+
+        protected string ObtenerClaseNotificacionDian(FacturaElectronicaNotificacionInfo item)
+        {
+            var tipo = (item?.tipoNotificacion ?? string.Empty).Trim().ToUpperInvariant();
+            if (tipo.Contains("ERROR"))
+            {
+                return "danger";
+            }
+
+            if (tipo.Contains("REINTENTO") || tipo.Contains("REVALIDACION"))
+            {
+                return "warning";
+            }
+
+            if (tipo.Contains("OK"))
+            {
+                return "success";
+            }
+
+            return "info";
+        }
+
+        protected string FormatearFechaNotificacion(DateTime? fecha)
+        {
+            return fecha.HasValue
+                ? fecha.Value.ToString("yyyy-MM-dd hh:mm tt", _co)
+                : "-";
         }
 
         private async Task<Acquirer_Response> Consultar_NIT_DIAN(int nit)

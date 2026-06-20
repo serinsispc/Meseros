@@ -34,6 +34,8 @@ namespace WebApplication
         private const string VistaCaja = "caja";
         private const string VistaVentas = "ventas";
         private const string SessionModelsJson = "ModelsJson";
+        private const string SessionPuedeEditarDetalleVenta = "Caja_PuedeEditarDetalleVenta";
+        private const string SessionPuedeEliminarDetalleVenta = "Caja_PuedeEliminarDetalleVenta";
         private const string PermisoEditarDetalleVenta = "EDITAR DETALLE VENTA";
         private const string PermisoEliminarDetalleVenta = "ELIMINAR DETALLE VENTA";
         protected MenuViewModels models = new MenuViewModels();
@@ -650,19 +652,15 @@ namespace WebApplication
 
         private async Task<bool> DeserializarModels()
         {
-            var modelJson = Session[SessionModelsJson]?.ToString();
-            if (string.IsNullOrWhiteSpace(modelJson))
+            var model = SessionContextHelper.LoadModels(Session);
+            if (model == null)
             {
                 return false;
             }
 
-            models = JsonConvert.DeserializeObject<MenuViewModels>(modelJson);
-            if (models != null)
-            {
-                await CargarPermisosDetalleCajeroAsync();
-            }
-
-            return models != null;
+            models = model;
+            await CargarPermisosDetalleCajeroAsync();
+            return true;
         }
 
         private async Task<bool> RecargarAjustesDb()
@@ -682,7 +680,7 @@ namespace WebApplication
         {
             await CargarPermisosDetalleCajeroAsync();
             await Cargar_RP();
-            Session[SessionModelsJson] = JsonConvert.SerializeObject(models);
+            SessionContextHelper.SaveModels(Session, models);
 
             ScriptManager.RegisterStartupScript(
                 this,
@@ -753,11 +751,21 @@ namespace WebApplication
                 return;
             }
 
+            if (Session[SessionPuedeEditarDetalleVenta] != null && Session[SessionPuedeEliminarDetalleVenta] != null)
+            {
+                _puedeEditarDetalleVentaCajero = Convert.ToBoolean(Session[SessionPuedeEditarDetalleVenta]);
+                _puedeEliminarDetalleVentaCajero = Convert.ToBoolean(Session[SessionPuedeEliminarDetalleVenta]);
+                return;
+            }
+
             var permisos = await V_R_PermisoCajeroControler.Lista(db, idCajero) ?? new List<V_R_PermisoCajero>();
             _puedeEditarDetalleVentaCajero = permisos.Any(x =>
                 string.Equals((x?.nombrePermiso ?? string.Empty).Trim(), PermisoEditarDetalleVenta, StringComparison.OrdinalIgnoreCase));
             _puedeEliminarDetalleVentaCajero = permisos.Any(x =>
                 string.Equals((x?.nombrePermiso ?? string.Empty).Trim(), PermisoEliminarDetalleVenta, StringComparison.OrdinalIgnoreCase));
+
+            Session[SessionPuedeEditarDetalleVenta] = _puedeEditarDetalleVentaCajero;
+            Session[SessionPuedeEliminarDetalleVenta] = _puedeEliminarDetalleVentaCajero;
         }
         private async Task IniciarPagina()
         {
@@ -849,7 +857,7 @@ namespace WebApplication
             }
             models.IdCuenteClienteActiva = 0;
             models.cuentas = cuentas;
-            models.cuentasMesasVista = await CargarCuentasMesasVista();
+            await ActualizarColeccionesDeCuentasAsync();
             models.zonas = zonas;
             models.MesasLista = mesas;
             models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
@@ -869,7 +877,6 @@ namespace WebApplication
             models.metodosPago = metodosPago;
             models.mediosPagoInternos = mediosPagoInternos;
             models.relMediosPagoInternos = relMediosPagoInternos;
-            models.cuentas = cuentas;
             models.IdCuentaActiva = idVenta;
 
 
@@ -890,11 +897,34 @@ namespace WebApplication
             return (cuentas ?? new List<V_CuentasVenta>()).Where(x => !x.eliminada).ToList();
         }
 
+        private List<V_CuentasVenta> FiltrarCuentasActivasPorVendedor(IEnumerable<V_CuentasVenta> cuentasVista)
+        {
+            var visibles = (cuentasVista ?? Enumerable.Empty<V_CuentasVenta>())
+                .Where(x => x != null && !x.eliminada)
+                .ToList();
+
+            if (models?.vendedor?.cajaMovil == 1 || ajustes?.meserosCompartidos == true)
+            {
+                return visibles;
+            }
+
+            var idVendedor = models?.vendedor?.id ?? 0;
+            return visibles.Where(x => x.idvendedor == idVendedor).ToList();
+        }
+
         private async Task<List<V_CuentasVenta>> CargarCuentasMesasVista()
         {
             var cuentas = await V_CuentasVentaControler.Lista_Cajero(models.db) ?? new List<V_CuentasVenta>();
             return (cuentas ?? new List<V_CuentasVenta>()).Where(x => !x.eliminada).ToList();
         }
+
+        private async Task ActualizarColeccionesDeCuentasAsync()
+        {
+            var cuentasVista = await CargarCuentasMesasVista();
+            models.cuentasMesasVista = cuentasVista;
+            models.cuentas = FiltrarCuentasActivasPorVendedor(cuentasVista);
+        }
+
         protected async void Evento_Click(object sender, EventArgs e)
         {
             if (!await DeserializarModels())
@@ -1082,8 +1112,7 @@ namespace WebApplication
                 // Actualizar modelos y UI
                 models.IdCuenteClienteActiva = 0;
                 models.IdCuentaActiva = idVenta;
-                models.cuentas = await CargarCuentas();
-                models.cuentasMesasVista = await CargarCuentasMesasVista();
+                await ActualizarColeccionesDeCuentasAsync();
                 models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
                 models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
                 models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
@@ -1501,8 +1530,7 @@ namespace WebApplication
             models.Mesas = new List<Mesas>();
             models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
 
-            models.cuentas = await CargarCuentas();
-            models.cuentasMesasVista = await CargarCuentasMesasVista();
+            await ActualizarColeccionesDeCuentasAsync();
             models.IdCuentaActiva=idCuentaAmarrar;
 
             await CargarDATA();
@@ -1545,7 +1573,7 @@ namespace WebApplication
                     return;
                 }
 
-                var resp = await DetalleVenta_f.AgregarProducto(models.db, producto.idPresentacion, 1, models.IdCuentaActiva);
+                var resp = await DetalleVenta_f.AgregarProducto(models.db, producto, 1, models.IdCuentaActiva);
                 if (!resp.estado)
                 {
                     AlertModerno.Error(this, "Error", resp.mensaje ?? "No fue posible agregar el producto.", true);
@@ -1613,7 +1641,12 @@ namespace WebApplication
                     return;
                 }
 
-                var resp = await DetalleVenta_f.AgregarProducto(models.db, idPresentacion, cantidad, models.IdCuentaActiva);
+                var producto = (models.productosLista ?? models.productos)
+                    ?.FirstOrDefault(x => x.idPresentacion == idPresentacion);
+
+                var resp = producto != null
+                    ? await DetalleVenta_f.AgregarProducto(models.db, producto, cantidad, models.IdCuentaActiva)
+                    : await DetalleVenta_f.AgregarProducto(models.db, idPresentacion, cantidad, models.IdCuentaActiva);
                 if (!resp.estado)
                 {
                     AlertModerno.Error(this, "Error", resp.mensaje ?? "No fue posible agregar el producto.", true);
@@ -2481,8 +2514,7 @@ namespace WebApplication
 
         private async Task RecargarVentaActiva()
         {
-            models.cuentas = await CargarCuentas();
-            models.cuentasMesasVista = await CargarCuentasMesasVista();
+            await ActualizarColeccionesDeCuentasAsync();
             models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
             models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
             models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);

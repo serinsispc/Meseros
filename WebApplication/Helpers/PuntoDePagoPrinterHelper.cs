@@ -16,12 +16,16 @@ namespace WebApplication.Helpers
             return width >= 80 ? 80 : 58;
         }
 
-        public static string ResolvePrinterName(HttpSessionState session, MenuViewModels model = null)
+        private static MenuViewModels ResolveModel(HttpSessionState session, MenuViewModels model = null)
         {
-            var resolvedModel = model ?? SessionContextHelper.LoadModels(session) ?? session?[SessionContextHelper.ModelsKey] as MenuViewModels;
+            return model ?? SessionContextHelper.LoadModels(session) ?? session?[SessionContextHelper.ModelsKey] as MenuViewModels ?? new MenuViewModels();
+        }
+
+        private static void EnsureSelectedPuntoDePago(HttpSessionState session, MenuViewModels resolvedModel)
+        {
             if (resolvedModel == null)
             {
-                resolvedModel = new MenuViewModels();
+                return;
             }
 
             var puntoSesion = session?[SessionContextHelper.PuntoDePagoKey] as string;
@@ -37,24 +41,40 @@ namespace WebApplication.Helpers
                 }
             }
 
-            var idPuntoDePago = 0;
-            if (resolvedModel.PuntoDePagoSeleccionado != null && resolvedModel.PuntoDePagoSeleccionado.id > 0)
-            {
-                idPuntoDePago = resolvedModel.PuntoDePagoSeleccionado.id;
-            }
-            else if (session?[SessionContextHelper.IdPuntoDePagoKey] != null)
+            var idPuntoDePago = resolvedModel.PuntoDePagoSeleccionado?.id ?? 0;
+            if (idPuntoDePago <= 0 && session?[SessionContextHelper.IdPuntoDePagoKey] != null)
             {
                 int.TryParse(Convert.ToString(session[SessionContextHelper.IdPuntoDePagoKey]), out idPuntoDePago);
             }
 
-            if (idPuntoDePago > 0 && (resolvedModel.PuntoDePagoSeleccionado == null || string.IsNullOrWhiteSpace(resolvedModel.PuntoDePagoSeleccionado.impresoraPredeterminada)))
+            if (idPuntoDePago > 0 && resolvedModel.puntosDePago != null && resolvedModel.puntosDePago.Any())
             {
-                var puntoDesdeLista = resolvedModel.puntosDePago?.FirstOrDefault(x => x != null && x.id == idPuntoDePago);
+                var puntoDesdeLista = resolvedModel.puntosDePago.FirstOrDefault(x => x != null && x.id == idPuntoDePago);
                 if (puntoDesdeLista != null)
                 {
-                    resolvedModel.PuntoDePagoSeleccionado = puntoDesdeLista;
+                    if (resolvedModel.PuntoDePagoSeleccionado == null || resolvedModel.PuntoDePagoSeleccionado.id <= 0)
+                    {
+                        resolvedModel.PuntoDePagoSeleccionado = puntoDesdeLista;
+                        return;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(resolvedModel.PuntoDePagoSeleccionado.impresoraPredeterminada))
+                    {
+                        resolvedModel.PuntoDePagoSeleccionado.impresoraPredeterminada = puntoDesdeLista.impresoraPredeterminada;
+                    }
+
+                    if (resolvedModel.PuntoDePagoSeleccionado.ancho <= 0)
+                    {
+                        resolvedModel.PuntoDePagoSeleccionado.ancho = puntoDesdeLista.ancho;
+                    }
                 }
             }
+        }
+
+        public static string ResolvePrinterName(HttpSessionState session, MenuViewModels model = null)
+        {
+            var resolvedModel = ResolveModel(session, model);
+            EnsureSelectedPuntoDePago(session, resolvedModel);
 
             var printerName = (resolvedModel.PuntoDePagoSeleccionado?.impresoraPredeterminada ?? string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(printerName))
@@ -82,26 +102,8 @@ namespace WebApplication.Helpers
 
         public static int ResolvePrinterWidth(HttpSessionState session, MenuViewModels model = null)
         {
-            var resolvedModel = model ?? SessionContextHelper.LoadModels(session) ?? session?[SessionContextHelper.ModelsKey] as MenuViewModels;
-            if (resolvedModel == null)
-            {
-                resolvedModel = new MenuViewModels();
-            }
-
-            var idPuntoDePago = resolvedModel.PuntoDePagoSeleccionado?.id ?? 0;
-            if (idPuntoDePago <= 0 && session?[SessionContextHelper.IdPuntoDePagoKey] != null)
-            {
-                int.TryParse(Convert.ToString(session[SessionContextHelper.IdPuntoDePagoKey]), out idPuntoDePago);
-            }
-
-            if ((resolvedModel.PuntoDePagoSeleccionado == null || resolvedModel.PuntoDePagoSeleccionado.id <= 0) && idPuntoDePago > 0)
-            {
-                var puntoDesdeLista = resolvedModel.puntosDePago?.FirstOrDefault(x => x != null && x.id == idPuntoDePago);
-                if (puntoDesdeLista != null)
-                {
-                    resolvedModel.PuntoDePagoSeleccionado = puntoDesdeLista;
-                }
-            }
+            var resolvedModel = ResolveModel(session, model);
+            EnsureSelectedPuntoDePago(session, resolvedModel);
 
             if (resolvedModel.PuntoDePagoSeleccionado != null && resolvedModel.PuntoDePagoSeleccionado.ancho > 0)
             {

@@ -107,6 +107,8 @@
     <Compile Include="Controler\DBConexionControler.cs" />
     <Compile Include="Controler\DetalleVentaControler.cs" />
     <Compile Include="Controler\FacturaElectronicaControler.cs" />
+    <Compile Include="Controler\FacturaElectronicaNotificacionConsultaControler.cs" />
+    <Compile Include="Controler\FacturaElectronicaNotificacionControler.cs" />
     <Compile Include="Controler\NotasCreditoControler.cs" />
     <Compile Include="Controler\ImagenesControler.cs" />
     <Compile Include="Controler\InformePagoInternoTurnoControler.cs" />
@@ -172,6 +174,7 @@
     <Compile Include="Model\CuentaCliente.cs" />
     <Compile Include="Model\DetalleVenta.cs" />
     <Compile Include="Model\FacturaElectronica.cs" />
+    <Compile Include="Model\FacturaElectronicaNotificacionInfo.cs" />
     <Compile Include="Model\Imagenes.cs" />
     <Compile Include="Model\InformePagoInternoTurnoItem.cs" />
     <Compile Include="Model\InformeProductoVendidoTurnoItem.cs" />

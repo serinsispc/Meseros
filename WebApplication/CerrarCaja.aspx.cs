@@ -255,9 +255,7 @@ WHERE id = {baseCaja.id}";
 
         private async Task AperturarCajonMonedero()
         {
-            var cajon = new AperturarCajon() { estado = true };
-            PuntoDePagoPrinterHelper.Apply(cajon, Session, models);
-            var respCajon = await AperturarCajonControler.CRUD(db, cajon, 0);
+            var respCajon = await AperturarCajonRequestHelper.EnviarAsync(db, Session, models);
 
             if (!respCajon)
             {

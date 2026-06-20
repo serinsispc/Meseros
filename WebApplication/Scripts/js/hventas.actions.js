@@ -68,6 +68,10 @@
             postback('btnEnviarDIAN', String(idVenta || 0));
         },
 
+        verNotificacionesDIAN: function (idVenta) {
+            postback('btnVerNotificacionesDIAN', String(idVenta || 0));
+        },
+
         reenviarCorreoFE: function (idVenta) {
             postback('btnReenviarCorreoFE', String(idVenta || 0));
         },

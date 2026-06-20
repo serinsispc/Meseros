@@ -457,6 +457,23 @@
                 return;
             }
 
+            var btnVerNotificacionesDian = e.target.closest('.btn-ver-notificaciones-dian');
+            if (btnVerNotificacionesDian) {
+                if (btnVerNotificacionesDian.dataset.loading === '1') return;
+
+                btnVerNotificacionesDian.dataset.loading = '1';
+                btnVerNotificacionesDian.disabled = true;
+
+                var idVentaNotificaciones = btnVerNotificacionesDian.dataset.id;
+
+                if (window.LoaderGlobal) {
+                    LoaderGlobal.mostrar('Consultando notificaciones DIAN...');
+                }
+
+                hvVerNotificacionesDIAN(idVentaNotificaciones);
+                return;
+            }
+
             var btnReenviarCorreoFe = e.target.closest('.btn-reenviar-correo-fe');
             if (btnReenviarCorreoFe) {
                 if (btnReenviarCorreoFe.classList.contains('disabled') || btnReenviarCorreoFe.disabled) return;
@@ -675,6 +692,15 @@
         }
 
         showInfo('Error', 'No se encontró la acción enviar factura.', 'error');
+    };
+
+    window.hvVerNotificacionesDIAN = function (idVenta) {
+        if (window.hvAction && typeof window.hvAction.verNotificacionesDIAN === 'function') {
+            window.hvAction.verNotificacionesDIAN(idVenta);
+            return;
+        }
+
+        showInfo('Error', 'No se encontró la acción consultar notificaciones DIAN.', 'error');
     };
 
     window.hvReenviarCorreoFE = function (idVenta) {

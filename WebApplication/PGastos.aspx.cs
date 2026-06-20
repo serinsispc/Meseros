@@ -109,9 +109,7 @@ namespace WebApplication
                 return;
             }
 
-            var cajon = new AperturarCajon() { estado = true };
-            PuntoDePagoPrinterHelper.Apply(cajon, Session, models);
-            var respCajon = await AperturarCajonControler.CRUD(db, cajon, 0);
+            var respCajon = await AperturarCajonRequestHelper.EnviarAsync(db, Session, models);
 
             LimpiarFormularioGasto();
             //wait CargarCombos();

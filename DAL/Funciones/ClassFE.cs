@@ -31,6 +31,30 @@ namespace DAL.Funciones
         public static async Task<bool> FacturaElectronica(string db,V_TablaVentas v_TablaVentas, List<V_DetalleCaja> dataTable,string TokenFE, [Optional] bool numeroFE)
         {
             int IdCliente_frm = 0;
+            var documento = ObtenerDocumentoNotificacion(v_TablaVentas);
+            int? consecutivoIntentado = v_TablaVentas?.numeroVenta;
+
+            var facturaExistente = await FacturaElectronicaControler.ConsultarIdVenta(db, v_TablaVentas.id);
+            if (VentaYaFacturadaElectronicamente(v_TablaVentas, facturaExistente))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(TokenFE))
+            {
+                await RegistrarNotificacionSeguraAsync(
+                    db,
+                    v_TablaVentas?.id ?? 0,
+                    "ERROR_ENVIO",
+                    "Error al enviar factura a DIAN",
+                    "No se encontro el token de facturacion electronica para enviar la factura.",
+                    "El proceso se detuvo antes de invocar la API de DIAN porque el token estaba vacio o no cargado en sesion.",
+                    documento,
+                    v_TablaVentas?.cufe,
+                    consecutivoIntentado);
+                return false;
+            }
+
             /* declaramos la url del json */
             FacturacionElectronicaDIANFactory.urlJSON = "https://erog.apifacturacionelectronica.xyz/api/ubl2.1/";
             FacturacionElectronicaDIANFactory facturacionElectronica = new FacturacionElectronicaDIANFactory();
@@ -49,6 +73,7 @@ namespace DAL.Funciones
 
 
             facturaNacional.number = numeroFacturaElectronica;
+            consecutivoIntentado = numeroFacturaElectronica > 0 ? numeroFacturaElectronica : consecutivoIntentado;
 
 
 
@@ -99,21 +124,50 @@ namespace DAL.Funciones
             facturaNacional.customer = new Customer();
 
             //en esta parte cargamos los datos del cliente
-            Clientes clientes = new Clientes();
-            clientes = await ClientesControler.Consultar_id(db, v_TablaVentas.idCliente);
-            if (clientes != null)
+            Clientes clientes = await ConsultarClienteFacturacionAsync(db, v_TablaVentas);
+            if (clientes == null)
             {
-                IdCliente_frm = (int)clientes.id;
-                facturaNacional.customer.identification_number = clientes.identificationNumber;
-                facturaNacional.customer.name = clientes.nameCliente;
-                facturaNacional.customer.phone = clientes.phone;
-                facturaNacional.customer.municipality_id = (int)clientes.municipality_id;
-                facturaNacional.customer.address = clientes.adress;
-                facturaNacional.customer.email = clientes.email;
-                facturaNacional.customer.type_document_identification_id = (int)clientes.typeDocumentIdentification_id;
-                facturaNacional.customer.type_organization_id = (int)clientes.typeOrganization_id;
-                facturaNacional.customer.merchant_registration = "No tiene";
+                await RegistrarNotificacionSeguraAsync(
+                    db,
+                    v_TablaVentas?.id ?? 0,
+                    "VALIDACION_CLIENTE",
+                    "Validacion previa de cliente",
+                    "La venta no tiene un cliente asociado para facturacion electronica.",
+                    "Se reviso idCliente en la venta y la relacion R_VentaCliente sin encontrar un cliente valido.",
+                    documento,
+                    v_TablaVentas?.cufe,
+                    consecutivoIntentado);
+                return false;
             }
+
+            var validacionesCliente = ValidarClienteFacturacion(clientes);
+            if (validacionesCliente.Count > 0)
+            {
+                await RegistrarNotificacionSeguraAsync(
+                    db,
+                    v_TablaVentas?.id ?? 0,
+                    "VALIDACION_CLIENTE",
+                    "Validacion previa de cliente",
+                    "La venta no cumple los requisitos minimos del cliente para facturacion electronica.",
+                    string.Join(" ", validacionesCliente),
+                    documento,
+                    v_TablaVentas?.cufe,
+                    consecutivoIntentado);
+                return false;
+            }
+
+            IdCliente_frm = clientes.id;
+            facturaNacional.customer.identification_number = clientes.identificationNumber;
+            facturaNacional.customer.name = clientes.nameCliente;
+            facturaNacional.customer.phone = clientes.phone;
+            facturaNacional.customer.municipality_id = clientes.municipality_id;
+            facturaNacional.customer.address = clientes.adress;
+            facturaNacional.customer.email = clientes.email;
+            facturaNacional.customer.type_document_identification_id = clientes.typeDocumentIdentification_id;
+            facturaNacional.customer.type_organization_id = clientes.typeOrganization_id;
+            facturaNacional.customer.merchant_registration = string.IsNullOrWhiteSpace(clientes.merchantRegistration)
+                ? "No tiene"
+                : clientes.merchantRegistration;
 
             /*agregamos el descuento*/
             if (v_TablaVentas.propina > 0 || v_TablaVentas.descuentoVenta > 0)
@@ -317,8 +371,59 @@ namespace DAL.Funciones
                         string rqfe=await General_qr(dataCode, v_TablaVentas.id);
                         /* guardamos los catos de la factura */
                         var respg=await GestionarFacturaElectronica(db,uuid, numeroFactura, fechaEmisian, fechaVencimiento, dataCode, rqfe, numeroFacturaElectronica, resolucione,v_TablaVentas);
+                        if (!respg)
+                        {
+                            await RegistrarNotificacionSeguraAsync(
+                                db,
+                                v_TablaVentas.id,
+                                "ERROR_ENVIO",
+                                "Factura aceptada por DIAN sin persistencia local",
+                                $"La DIAN devolvio CUFE para la factura {documento}, pero no se pudo guardar localmente el resultado en FacturaElectronica.",
+                                $"CUFE: {uuid}. Numero DIAN: {numeroFactura}. Valide persistencia local de FacturaElectronica y la vista V_TablaVentas.",
+                                documento,
+                                uuid,
+                                numeroFacturaElectronica);
+                            return false;
+                        }
+
+                        await RegistrarNotificacionSeguraAsync(
+                            db,
+                            v_TablaVentas.id,
+                            "ENVIO_OK",
+                            "Factura aceptada por DIAN",
+                            $"La factura {documento} fue enviada correctamente a la DIAN.",
+                            "La validacion se completo sin errores y el CUFE quedo guardado localmente.",
+                            documento,
+                            uuid,
+                            numeroFacturaElectronica);
 
                         var correoEnviado = await EnviarFacturaElectronicaCorreo(db, IdCliente_frm, uuid, TokenFE, clientes?.email);
+                        if (correoEnviado)
+                        {
+                            await RegistrarNotificacionSeguraAsync(
+                                db,
+                                v_TablaVentas.id,
+                                "CORREO_OK",
+                                "Factura enviada por correo",
+                                $"La factura {documento} fue enviada por correo despues de ser aceptada por DIAN.",
+                                clientes?.email,
+                                documento,
+                                uuid,
+                                numeroFacturaElectronica);
+                        }
+                        else
+                        {
+                            await RegistrarNotificacionSeguraAsync(
+                                db,
+                                v_TablaVentas.id,
+                                "CORREO_ERROR",
+                                "No fue posible enviar la factura por correo",
+                                $"La factura {documento} fue aceptada por DIAN, pero no se pudo completar el envio por correo.",
+                                clientes?.email,
+                                documento,
+                                uuid,
+                                numeroFacturaElectronica);
+                        }
                         if (correoEnviado)
                         {
                             return true;
@@ -326,19 +431,58 @@ namespace DAL.Funciones
                     }
                     else
                     {
+                        var detalleError = mensajeError;
+                        if (string.IsNullOrWhiteSpace(detalleError))
+                        {
+                            detalleError = FirstNotEmpty(
+                                facturaNacionalRespuesta.message,
+                                facturaNacionalRespuesta.status_message,
+                                facturaNacionalRespuesta.status_description,
+                                FacturacionElectronicaDIANFactory.ErrorProsesoDian);
+                        }
+
+                        await RegistrarNotificacionSeguraAsync(
+                            db,
+                            v_TablaVentas.id,
+                            "ERROR_ENVIO",
+                            "Error al enviar factura a DIAN",
+                            string.IsNullOrWhiteSpace(detalleError) ? "La DIAN no devolvio CUFE para la factura enviada." : detalleError,
+                            $"Documento: {documento}. Consecutivo intentado: {numeroFacturaElectronica}.",
+                            documento,
+                            v_TablaVentas?.cufe,
+                            numeroFacturaElectronica);
                         return false;
                     }
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    string error = ex.Message;
+                    await RegistrarNotificacionSeguraAsync(
+                        db,
+                        v_TablaVentas?.id ?? 0,
+                        "ERROR_ENVIO",
+                        "Error al procesar respuesta de DIAN",
+                        ex.Message,
+                        ex.ToString(),
+                        documento,
+                        v_TablaVentas?.cufe,
+                        consecutivoIntentado);
                     return false;
                 }
             
             }
             else
             {
+                await RegistrarNotificacionSeguraAsync(
+                    db,
+                    v_TablaVentas?.id ?? 0,
+                    "ERROR_ENVIO",
+                    "Sin respuesta valida de DIAN",
+                    "El proveedor de facturacion no devolvio una respuesta interpretable para esta factura.",
+                    FacturacionElectronicaDIANFactory.ErrorProsesoDian,
+                    documento,
+                    v_TablaVentas?.cufe,
+                    consecutivoIntentado);
                 return false;
             }
         }
@@ -353,6 +497,23 @@ namespace DAL.Funciones
             return row.unidad > 0
                 && row.precioVenta <= 0
                 && row.totalDetalle <= 0;
+        }
+
+        private static bool VentaYaFacturadaElectronicamente(V_TablaVentas venta, FacturaElectronica facturaElectronica)
+        {
+            if (venta != null && !string.IsNullOrWhiteSpace(venta.cufe) && venta.cufe != "--")
+            {
+                return true;
+            }
+
+            if (facturaElectronica == null)
+            {
+                return false;
+            }
+
+            return !string.IsNullOrWhiteSpace(facturaElectronica.cufe)
+                || !string.IsNullOrWhiteSpace(facturaElectronica.numeroFactura)
+                || (facturaElectronica.numero_factura ?? 0) > 0;
         }
 
         private static async Task<decimal> ObtenerPrecioReferenciaCortesiaAsync(string db, V_DetalleCaja row)
@@ -563,33 +724,236 @@ namespace DAL.Funciones
         }
         public static async Task<bool> GestionarFacturaElectronica(string db,string cufe, string numero, string fechaEmisian, string fechaVencimiento, string dataQR, string imagenQR, int numeroFE, V_Resoluciones resolucion, V_TablaVentas v_TablaVentas)
         {
-            int boton = 0;
-            int IdFE = 0;
-            FacturaElectronica fe = new FacturaElectronica();
-            fe = await FacturaElectronicaControler.ConsultarCUfe(db,cufe);
-            if (fe != null)
+            try
             {
-                boton = 1;
-                IdFE = (int)fe.id;
+                string cufeSql = EscapeSql(cufe);
+                string numeroSql = EscapeSql(numero);
+                string fechaEmisionSql = EscapeSql(fechaEmisian);
+                string fechaVencimientoSql = EscapeSql(fechaVencimiento);
+                string dataQrSql = EscapeSql(dataQR);
+                string imagenQrSql = EscapeSql(string.IsNullOrWhiteSpace(imagenQR) ? "--" : imagenQR);
+                string prefijoSql = EscapeSql(v_TablaVentas?.prefijo ?? string.Empty);
+
+                string query = $@"
+DECLARE @idFacturaElectronica int;
+IF EXISTS (
+    SELECT 1
+    FROM dbo.FacturaElectronica
+    WHERE idVenta = {v_TablaVentas.id}
+      AND ISNULL(cufe, '') <> '{cufeSql}'
+)
+BEGIN
+    SELECT CAST(0 AS bit) AS estado, 'La venta ya tiene una factura electronica registrada con otro CUFE.' AS mensaje;
+    RETURN;
+END;
+
+SELECT TOP 1 @idFacturaElectronica = id
+FROM dbo.FacturaElectronica
+WHERE cufe = '{cufeSql}';
+
+IF @idFacturaElectronica IS NULL
+BEGIN
+    INSERT INTO dbo.FacturaElectronica
+    (
+        idVenta,cufe,numeroFactura,fechaEmision,fecahVensimiento,dataQR,imagenQR,resolucion_id,prefijo,numero_factura
+    )
+    VALUES
+    (
+        {v_TablaVentas.id},'{cufeSql}','{numeroSql}','{fechaEmisionSql}','{fechaVencimientoSql}','{dataQrSql}','{imagenQrSql}',{v_TablaVentas.idResolucion},'{prefijoSql}',{numeroFE}
+    );
+END
+ELSE
+BEGIN
+    UPDATE dbo.FacturaElectronica
+    SET
+        idVenta = {v_TablaVentas.id},
+        cufe = '{cufeSql}',
+        numeroFactura = '{numeroSql}',
+        fechaEmision = '{fechaEmisionSql}',
+        fecahVensimiento = '{fechaVencimientoSql}',
+        dataQR = '{dataQrSql}',
+        imagenQR = '{imagenQrSql}',
+        resolucion_id = {v_TablaVentas.idResolucion},
+        prefijo = '{prefijoSql}',
+        numero_factura = {numeroFE}
+    WHERE id = @idFacturaElectronica;
+END;
+
+IF COL_LENGTH('dbo.TablaVentas', 'cufe') IS NOT NULL
+BEGIN
+    EXEC('UPDATE dbo.TablaVentas SET cufe = ''''{0}'''' WHERE id = {1};');
+END;
+
+IF COL_LENGTH('dbo.TablaVentas', 'imagenQR') IS NOT NULL
+BEGIN
+    EXEC('UPDATE dbo.TablaVentas SET imagenQR = ''''{2}'''' WHERE id = {1};');
+END;
+
+SELECT CAST(1 AS bit) AS estado, '' AS mensaje;";
+
+                query = string.Format(query, cufeSql, v_TablaVentas.id, imagenQrSql);
+
+                var cn = new SqlAutoDAL();
+                var resultado = await cn.EjecutarSQLObjeto<SqlResultadoOperacion>(db, query);
+                return resultado != null && resultado.estado;
             }
-            else
+            catch
             {
-                fe = new FacturaElectronica();
-                boton = 0;
-                IdFE = 0;
+                return false;
             }
-            fe.id = IdFE;
-            fe.idVenta = v_TablaVentas.id;
-            fe.cufe = cufe;
-            fe.numeroFactura = numero;
-            fe.fechaEmision = fechaEmisian;
-            fe.fecahVensimiento = fechaVencimiento;
-            fe.dataQR = dataQR;
-            fe.imagenQR = "--";
-            fe.resolucion_id = v_TablaVentas.idResolucion;
-            fe.prefijo = v_TablaVentas.prefijo;
-            fe.numero_factura = numeroFE;
-            return await FacturaElectronicaControler.Crud(db,fe, boton);
+        }
+
+        private static string ObtenerDocumentoNotificacion(V_TablaVentas venta)
+        {
+            if (venta == null)
+            {
+                return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(venta.prefijo) && venta.numeroVenta > 0)
+            {
+                return $"{venta.prefijo.Trim()}-{venta.numeroVenta}";
+            }
+
+            if (venta.numeroVenta > 0)
+            {
+                return venta.numeroVenta.ToString();
+            }
+
+            return venta.aliasVenta ?? string.Empty;
+        }
+
+        private static async Task RegistrarNotificacionSeguraAsync(
+            string db,
+            int idVenta,
+            string tipoNotificacion,
+            string titulo,
+            string mensaje,
+            string detalle,
+            string documento,
+            string cufe,
+            int? consecutivoIntentado)
+        {
+            try
+            {
+                await FacturaElectronicaNotificacionControler.RegistrarAsync(
+                    db,
+                    idVenta,
+                    tipoNotificacion,
+                    titulo,
+                    mensaje,
+                    detalle,
+                    documento,
+                    cufe,
+                    consecutivoIntentado);
+            }
+            catch
+            {
+            }
+        }
+
+        private static string FirstNotEmpty(params string[] values)
+        {
+            if (values == null)
+            {
+                return string.Empty;
+            }
+
+            foreach (var value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value.Trim();
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static async Task<Clientes> ConsultarClienteFacturacionAsync(string db, V_TablaVentas venta)
+        {
+            if (venta == null)
+            {
+                return null;
+            }
+
+            if (venta.idCliente > 0)
+            {
+                var clienteVenta = await ClientesControler.Consultar_id(db, venta.idCliente);
+                if (clienteVenta != null)
+                {
+                    return clienteVenta;
+                }
+            }
+
+            if (venta.id > 0)
+            {
+                var relacion = await R_VentaCliente_Controler.ConsultarRelacion(db, venta.id);
+                if (relacion != null && relacion.idCliente > 0)
+                {
+                    return await ClientesControler.Consultar_id(db, relacion.idCliente);
+                }
+            }
+
+            return null;
+        }
+
+        private static List<string> ValidarClienteFacturacion(Clientes cliente)
+        {
+            var errores = new List<string>();
+            if (cliente == null)
+            {
+                errores.Add("No fue posible cargar el cliente.");
+                return errores;
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.identificationNumber))
+            {
+                errores.Add("El cliente no tiene identificacion configurada.");
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.nameCliente))
+            {
+                errores.Add("El cliente no tiene nombre o razon social configurada.");
+            }
+
+            if (cliente.municipality_id <= 0)
+            {
+                errores.Add("El cliente no tiene municipio DIAN configurado.");
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.adress))
+            {
+                errores.Add("El cliente no tiene direccion configurada.");
+            }
+
+            if (string.IsNullOrWhiteSpace(cliente.email))
+            {
+                errores.Add("El cliente no tiene correo configurado.");
+            }
+
+            if (cliente.typeDocumentIdentification_id <= 0)
+            {
+                errores.Add("El cliente no tiene tipo de documento configurado.");
+            }
+
+            if (cliente.typeOrganization_id <= 0)
+            {
+                errores.Add("El cliente no tiene tipo de organizacion configurado.");
+            }
+
+            return errores;
+        }
+
+        private static string EscapeSql(string value)
+        {
+            return (value ?? string.Empty).Replace("'", "''");
+        }
+
+        private class SqlResultadoOperacion
+        {
+            public bool estado { get; set; }
+            public string mensaje { get; set; }
         }
     }
 }

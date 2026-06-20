@@ -18,48 +18,59 @@ namespace DAL.Funciones
             {
                 /* consultamos el producto con el id presentación */
                 var producto =await v_productoVentaControler.Consultar_idpresentacion(db,idpresentacion);
-                if (producto != null)
-                {
-                    /* llamamos el objeto detalle venta */
-                    var dv = new DetalleVenta
-                    {
-                        id = 0,
-                        idVenta = idventa,
-                        idPresentacion = idpresentacion,
-                        nombreProducto = producto.nombreProducto,
-                        costoUnidad = (decimal)producto.costo_mas_impuesto,
-                        precioVenta = producto.precioVenta,
-                        estadoDetalle = 1,
-                        ivaDetalle = producto.porcentaje_impuesto,
-                        cantidadDetalle = cantidad,
-                        codigoProducto = producto.codigoProducto,
-                        observacion = "--",
-                        guidDetalle = Guid.NewGuid(),
-                        opciones = "--",
-                        adiciones = "--",
-                        impuesto_id = producto.impuesto_id
-                    };
-                    string data = JsonConvert.SerializeObject(dv);
-                    /* llamamos el crud para guardar */
-                    var respCRUD =await DetalleVentaControler.CRUD(db,dv,0);
-                    if (respCRUD.estado) 
-                    {
-                        return new Respuesta_DAL { data=respCRUD.data, estado= respCRUD.estado, mensaje=$"Producto ({producto.nombreProducto}) agregado." };
-                    }
-                    else
-                    {
-                        return new Respuesta_DAL { data = respCRUD.data, estado = respCRUD.estado, mensaje = $"Producto ({producto.nombreProducto}) no fue agregado." };
-                    }
-                }
-                else
+                if (producto == null)
                 {
                     return new Respuesta_DAL { data = null, estado = false, mensaje = "El producto no se encontro." };
                 }
+
+                return await AgregarProducto(db, producto, cantidad, idventa);
             }
             catch(Exception ex)
             {
                 string msg = ex.Message;
                 return new Respuesta_DAL { data=null, estado=false, mensaje=msg };
+            }
+        }
+
+        public static async Task<Respuesta_DAL> AgregarProducto(string db, v_productoVenta producto, decimal cantidad, int idventa)
+        {
+            try
+            {
+                if (producto == null)
+                {
+                    return new Respuesta_DAL { data = null, estado = false, mensaje = "El producto no se encontro." };
+                }
+
+                var dv = new DetalleVenta
+                {
+                    id = 0,
+                    idVenta = idventa,
+                    idPresentacion = producto.idPresentacion,
+                    nombreProducto = producto.nombreProducto,
+                    costoUnidad = (decimal)producto.costo_mas_impuesto,
+                    precioVenta = producto.precioVenta,
+                    estadoDetalle = 1,
+                    ivaDetalle = producto.porcentaje_impuesto,
+                    cantidadDetalle = cantidad,
+                    codigoProducto = producto.codigoProducto,
+                    observacion = "--",
+                    guidDetalle = Guid.NewGuid(),
+                    opciones = "--",
+                    adiciones = "--",
+                    impuesto_id = producto.impuesto_id
+                };
+
+                var respCRUD = await DetalleVentaControler.CRUD(db, dv, 0);
+                if (respCRUD.estado)
+                {
+                    return new Respuesta_DAL { data = respCRUD.data, estado = respCRUD.estado, mensaje = $"Producto ({producto.nombreProducto}) agregado." };
+                }
+
+                return new Respuesta_DAL { data = respCRUD.data, estado = respCRUD.estado, mensaje = $"Producto ({producto.nombreProducto}) no fue agregado." };
+            }
+            catch (Exception ex)
+            {
+                return new Respuesta_DAL { data = null, estado = false, mensaje = ex.Message };
             }
         }
 

@@ -56,5 +56,32 @@ namespace DAL.Controler
                 return null;
             }
         }
+
+        public static async Task<FacturaElectronica> ConsultarPorIdVentaOCufe(string db, int idVenta, string cufe)
+        {
+            try
+            {
+                var facturaPorVenta = idVenta > 0
+                    ? await ConsultarIdVenta(db, idVenta)
+                    : null;
+
+                if (facturaPorVenta != null)
+                {
+                    return facturaPorVenta;
+                }
+
+                if (string.IsNullOrWhiteSpace(cufe))
+                {
+                    return null;
+                }
+
+                return await ConsultarCUfe(db, cufe);
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
     }
 }
