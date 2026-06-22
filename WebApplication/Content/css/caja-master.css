@@ -1766,6 +1766,18 @@ body {
     color: #fff;
 }
 
+.btn-aperturar-cajon {
+    background: rgba(245,158,11,.12);
+    border: 1px solid rgba(245,158,11,.35);
+    color: #b45309;
+    box-shadow: none;
+}
+
+    .btn-aperturar-cajon:hover {
+        background: rgba(245,158,11,.20);
+        color: #92400e;
+    }
+
 /* Domicilio - verde suave elegante */
 .btn-domicilio {
     background: rgba(34,197,94,.12);

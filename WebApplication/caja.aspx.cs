@@ -593,6 +593,14 @@ namespace WebApplication
 
             return "Sin punto seleccionado";
         }
+
+        protected bool MostrarAperturarCajon()
+        {
+            return ajustes != null
+                && ajustes.MostrarCierreCaja
+                && models?.vendedor?.cajaMovil == 1;
+        }
+
         protected async void Page_Load(object sender, EventArgs e)
         {
             await CargarAjustesDbEnContextoAsync();
@@ -946,6 +954,10 @@ namespace WebApplication
                     await NuevoServicio();
                     break;
 
+                case "AperturarCajon":
+                    await AperturarCajonMonedero();
+                    break;
+
                 case "EliminarServicio":
                     await EliminarServicio();
                     break;
@@ -1126,6 +1138,19 @@ namespace WebApplication
                 AlertModerno.Error(this, "Error", $"Servicio #{idVenta} creado con \u00e9xito, pero no se amarr\u00f3 al vendedor.", true, 2000);
             }
 
+        }
+
+        private async Task AperturarCajonMonedero()
+        {
+            var respCajon = await AperturarCajonRequestHelper.EnviarAsync(models.db, Session, models);
+
+            if (!respCajon)
+            {
+                AlertModerno.Error(this, "Error", "No fue posible aperturar el cajón monedero.", true, 1800);
+                return;
+            }
+
+            AlertModerno.Success(this, "OK", "Cajón abierto correctamente.", true, 1600);
         }
 
         private async Task EliminarServicio()

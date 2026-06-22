@@ -60,6 +60,13 @@
                                 Actualizar
                             </button>
 
+                            <% if (MostrarAperturarCajon()) { %>
+                            <button type="button" class="btn-top btn-aperturar-cajon" onclick="EjecutarAccion('AperturarCajon','',this)">
+                                <i class="bi bi-safe"></i>
+                                Aperturar Cajón
+                            </button>
+                            <% } %>
+
                             <button type="button" class="btn-top btn-nuevo" onclick="EjecutarAccion('NuevoServicio','',this)">
                                 <i class="bi bi-plus-circle-fill"></i>
                                 Nuevo Servicio
