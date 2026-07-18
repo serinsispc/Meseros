@@ -480,8 +480,8 @@
                                         <tr>
                                             <td><span class="ventas-badge gray"><i class="bi bi-hash"></i><%= venta.id %></span></td>
                                             <td>
-                                                <div><%= venta.fechaVenta.ToString("yyyy-MM-dd") %></div>
-                                                <div class="text-muted small"><%= venta.fechaVenta.ToString("hh:mm tt") %></div>
+                                                <div><%= venta.fechaVenta.Year > 1900 ? venta.fechaVenta.ToString("yyyy-MM-dd") : "Pendiente" %></div>
+                                                <div class="text-muted small"><%= venta.fechaVenta.Year > 1900 ? venta.fechaVenta.ToString("hh:mm tt") : "--" %></div>
                                             </td>
                                             <td>
                                                 <div><strong><%= FacturaLabelVista(venta) %></strong></div>
@@ -551,6 +551,7 @@
                                         <div class="precio-value"><%: FormatearMoneda(ResumenTotal1()) %></div>
                                     </div>
 
+                                    <% if (MostrarResumenPropina()) { %>
                                     <div class="precio-row precio-servicio">
                                         <div class="precio-label">SERVICIO (<%: ResumenPorcentajePropina().ToString("0.##") %>%)</div>
                                         <div class="precio-servicio-acciones">
@@ -579,9 +580,11 @@
                                         <div class="precio-label">TOTAL 2:</div>
                                         <div class="precio-value"><%: FormatearMoneda(ResumenTotal2()) %></div>
                                     </div>
+                                    <% } %>
                                 </div>
 
                                 <div class="precios-acciones">
+                                    <% if (MostrarBotonesComandas()) { %>
                                     <button type="button" class="accion-btn accion-comandar" onclick="EjecutarAccion('Comandar','',this)">
                                         <i class="bi bi-send-fill me-1"></i>Comandar
                                     </button>
@@ -590,6 +593,7 @@
                                         <i class="bi bi-chat-square-text-fill me-1"></i>Solicitar<br />
                                         Cuenta
                                     </button>
+                                    <% } %>
                                     <% if (models.vendedor.cajaMovil == 1)
                                         {%>
                                     <button type="button" class="accion-btn accion-cobrar" onclick="EjecutarAccion('Cobrar','',this)">
@@ -600,6 +604,7 @@
                             </div>
                         </div>
 
+                        <% if (MostrarBotonesComandas()) { %>
                         <div id="bloqueCuentasDetalle" class="col-12">
                             <div class="box h-nueva-cuenta">
                                 <div class="cuentas-header col-12">
@@ -626,6 +631,7 @@
                                 </div>
                             </div>
                         </div>
+                        <% } %>
 
                         <div id="bloqueDetalleProductos" class="col-12">
                             <div class="box h-lista">
@@ -633,7 +639,7 @@
                                     <asp:Repeater runat="server" ID="rpDetalleCaja">
                                         <ItemTemplate>
                                             <div class="col-6 col-xl-12 item-col">
-                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>" data-detalle-nombre="<%# Eval("nombreProducto") %>" data-detalle-nota="<%# Eval("adiciones") %>" data-detalle-categoria-id="<%# Eval("idCategoria") %>" data-detalle-cantidad="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" data-detalle-precio="<%# Convert.ToDecimal(Eval("precioVenta")).ToString(System.Globalization.CultureInfo.InvariantCulture) %>">
+                                                <div class="producto-item-detalle" data-detalle-id="<%# Eval("id") %>" data-detalle-idpresentacion="<%# Eval("idPresentacion") %>" data-detalle-nombre="<%# Eval("nombreProducto") %>" data-detalle-nota="<%# Eval("adiciones") %>" data-detalle-categoria-id="<%# Eval("idCategoria") %>" data-detalle-cantidad="<%# FormatearCantidadDetalleInput(Eval("unidad"), Eval("idPresentacion")) %>" data-detalle-gramera="<%# ObtenerGrameraDetalleData(Eval("idPresentacion")) %>" data-detalle-precio="<%# Convert.ToDecimal(Eval("precioVenta")).ToString(System.Globalization.CultureInfo.InvariantCulture) %>" data-detalle-precios="<%# ObtenerPreciosDetalleData(Eval("idPresentacion")) %>">
                                                     <div class="detalle-chip-cortesia <%# EsCortesiaDetalle(Eval("precioVenta")) ? string.Empty : "d-none" %>">
                                                         <i class="bi bi-gift"></i>
                                                         <span>Cortesía</span>
@@ -647,7 +653,7 @@
                                                     <div class="prod-mid-detalle">
                                                         <div class="prod-cantidad">
                                                             <button type="button" class="qty-btn js-detalle-restar" aria-label="Disminuir">-</button>
-                                                            <input type="text" class="qty-input js-detalle-cantidad" value="<%# Convert.ToDecimal(Eval("unidad")).ToString("0") %>" inputmode="numeric" />
+                                                            <input type="text" class="qty-input js-detalle-cantidad" value="<%# FormatearCantidadDetalleInput(Eval("unidad"), Eval("idPresentacion")) %>" inputmode="decimal" />
                                                             <button type="button" class="qty-btn js-detalle-sumar" aria-label="Aumentar">+</button>
                                                         </div>
 
@@ -663,27 +669,21 @@
                                                         <button type="button" class="act-btn" aria-label="Anclar a cuenta" title="<%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("nombreCuenta"))) ? "Anclar a cuenta" : Eval("nombreCuenta") %>" onclick="return anclarDetalleCuenta(this);">
                                                             <i class="bi bi-link-45deg"></i>
                                                         </button>
-                                                        <% if (PuedeEliminarDetalleCaja()) { %>
                                                         <button type="button" class="act-btn act-danger" aria-label="Eliminar" title="Eliminar producto" onclick="return confirmarEliminarDetalle(this);">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
-                                                        <% } %>
                                                         <button type="button" class="act-btn" aria-label="Dividir" title="Dividir producto" onclick="return dividirDetalle(this);">
                                                             <i class="bi bi-scissors"></i>
                                                         </button>
 
-                                                        <% if (PuedeEditarDetalleCaja()) { %>
-
                                                         <button type="button" class="act-btn" aria-label="Descuento" title="Editar valor o descuento" onclick="return editarValorDetalle(this);">
                                                             <i class="bi bi-cash-coin"></i>
                                                         </button>
+                                                        <% if (PuedeEditarDetalleCaja()) { %>
                                                         <button type="button" class="act-btn" aria-label="Editar" title="Editar producto" onclick="return editarNombreDetalle(this);">
                                                             <i class="bi bi-pencil-square"></i>
                                                         </button>
-
                                                         <% } %>
-
-
                                                     </div>
 
                                                     <div class="cuenta-detalle-chip <%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("nombreCuenta"))) ? "d-none" : string.Empty %>">
@@ -760,10 +760,12 @@
             <span>Resumen</span>
         </button>
 
+        <% if (MostrarBotonesComandas()) { %>
         <button type="button" class="mobile-quick-nav__link" data-target="bloqueCuentasDetalle">
             <i class="bi bi-people"></i>
             <span>Cuentas</span>
         </button>
+        <% } %>
 
         <button type="button" class="mobile-quick-nav__link" data-target="bloqueDetalleProductos">
             <i class="bi bi-list-ul"></i>
@@ -784,6 +786,20 @@
             background: #b91c1c;
             border-color: #b91c1c;
             color: #fff;
+        }
+
+        .producto-item.producto-keyboard-selected {
+            border-radius: 20px;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.32), 0 18px 32px rgba(37, 99, 235, 0.18);
+            background: linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+            transition: box-shadow .15s ease, background .15s ease;
+        }
+
+        .producto-item-detalle.producto-detalle-keyboard-selected {
+            border-radius: 22px;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.26), 0 18px 34px rgba(15, 23, 42, 0.14);
+            background: linear-gradient(180deg, #f7fffb 0%, #ecfdf5 100%);
+            transition: box-shadow .15s ease, background .15s ease;
         }
     </style>
 
@@ -1131,11 +1147,14 @@
         window.CajaConfig = {
             autoFocusBusquedaDesktop: true,
             desktopMinWidth: 992,
-            preservarPosicionEnMobile: true
+            preservarPosicionEnMobile: true,
+            listadoItemVentasUnico: <%= MostrarListadoPreciosDetalle() ? "true" : "false" %>,
+            editarPrecioSinAutorizacion: <%= PuedeEditarDetalleCaja() ? "true" : "false" %>,
+            eliminarDetalleSinAutorizacion: <%= PuedeEliminarDetalleCaja() ? "true" : "false" %>
         };
     </script>
 
-    <script src="Scripts/js/caja.js"></script>
+    <script src="Scripts/js/caja.js?v=20260718-enter-editar-precio"></script>
     <script src="Scripts/js/app-modal.js"></script>
 </asp:Content>
 

@@ -15,7 +15,18 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                return await cn.ConsultarLista<V_TablaVentas>(db, x => x.idBaseCaja == idbase);
+                var sql = $@"
+SELECT id, fechaVenta, aliasVenta, tipoFactura, prefijo, numeroVenta, descuentoVenta, idMedioDePago,
+       idResolucion, idFormaDePago, subtotalVenta, basesIva, basesIva_5, basesIva_19, IVA, IVA_5, IVA_19,
+       INC, INCBolsas, otrosImpuestos, ivaVenta, totalVenta, total_A_Pagar, efectivoVenta, cambioVenta,
+       formaDePago, abonoEfectivo, abonoTarjeta, totalPagadoVenta, totalPendienteVenta, estadoVenta,
+       medioDePago, numeroReferenciaPago, diasCredito, fechaVencimiento, observacionVenta, IdSede, guidVenta,
+       costoTotalVenta, utilidadTotalVenta, idCliente, nit, nombreCliente, propina, cufe, estadoFE, imagenQR,
+       idBaseCaja, razonDescuento, por_propina, eliminada
+FROM V_TablaVentas
+WHERE idBaseCaja = {idbase}
+ORDER BY id DESC;";
+                return await cn.EjecutarSQLLista<V_TablaVentas>(db, sql);
             }
             catch (Exception ex)
             {

@@ -21,23 +21,22 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
+                var sql = $@"
+SELECT id, fecha, idVenta, nombreCuenta, preCuenta, eliminada, subtotalVenta, ivaVenta, totalVenta,
+       por_propina, propina, total_A_Pagar
+FROM V_CuentaCliente
+WHERE eliminada = {(eliminada ? 1 : 0)}";
 
                 if (IdVenta > 0)
                 {
-                    // filtrando por eliminada + idVenta
-                    return await cn.ConsultarLista<V_CuentaCliente>(
-                        db,
-                        x => x.eliminada == eliminada && x.idVenta == IdVenta
-                    );
+                    sql += $@"
+  AND idVenta = {IdVenta}";
                 }
-                else
-                {
-                    // solo por eliminada
-                    return await cn.ConsultarLista<V_CuentaCliente>(
-                        db,
-                        x => x.eliminada == eliminada
-                    );
-                }
+
+                sql += @"
+ORDER BY id;";
+
+                return await cn.EjecutarSQLLista<V_CuentaCliente>(db, sql);
             }
             catch (Exception ex)
             {

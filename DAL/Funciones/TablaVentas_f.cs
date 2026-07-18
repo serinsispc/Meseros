@@ -16,6 +16,18 @@ namespace DAL.Funciones
         /// </summary>
         public static async Task<int> NuevaVenta(string db, int porpro)
         {
+            var resp = await NuevaVentaDetallada(db, porpro, 0, 0);
+            if (resp == null || !resp.estado || resp.data == null)
+            {
+                return 0;
+            }
+
+            int idVenta;
+            return int.TryParse(resp.data.ToString(), out idVenta) ? idVenta : 0;
+        }
+
+        public static async Task<Respuesta_DAL> NuevaVentaDetallada(string db, int porpro, int idSede, int idBaseCaja)
+        {
             try
             {
                 for (int intento = 0; intento < MaxIntentosNuevaVenta; intento++)
@@ -34,7 +46,7 @@ namespace DAL.Funciones
                         numeroReferenciaPago = "-",
                         diasCredito = 0,
                         observacionVenta = "-",
-                        IdSede = 0,
+                        IdSede = idSede,
                         guidVenta = guid,
                         abonoTarjeta = 0,
                         propina = 0,
@@ -43,7 +55,7 @@ namespace DAL.Funciones
                         idResolucion = 0,
                         idFormaDePago = 1,
                         razonDescuento = "-",
-                        idBaseCaja = 0,
+                        idBaseCaja = idBaseCaja,
                         aliasVenta = "--",
                         porpropina = Convert.ToDecimal(porpro) / 100m,
                         eliminada = false
@@ -51,10 +63,24 @@ namespace DAL.Funciones
 
                     var respInsert = await TablaVentasControler.CRUD(db, tablaVentas, 0);
                     if (respInsert == null || !respInsert.estado || respInsert.data == null)
-                        return 0;
+                    {
+                        return respInsert ?? new Respuesta_DAL
+                        {
+                            data = 0,
+                            estado = false,
+                            mensaje = "No fue posible insertar la nueva venta."
+                        };
+                    }
 
                     if (!int.TryParse(respInsert.data.ToString(), out int idVenta))
-                        return 0;
+                    {
+                        return new Respuesta_DAL
+                        {
+                            data = 0,
+                            estado = false,
+                            mensaje = "La base devolvió un identificador inválido para la nueva venta."
+                        };
+                    }
 
                     tablaVentas.id = idVenta;
                     tablaVentas.aliasVenta = idVenta.ToString();
@@ -67,16 +93,40 @@ namespace DAL.Funciones
                         continue;
                     }
 
-                    await TablaVentasControler.CRUD(db, tablaVentas, 1);
-                    return idVenta;
+                    var respUpdate = await TablaVentasControler.CRUD(db, tablaVentas, 1);
+                    if (respUpdate == null || !respUpdate.estado)
+                    {
+                        return respUpdate ?? new Respuesta_DAL
+                        {
+                            data = idVenta,
+                            estado = false,
+                            mensaje = "La venta se insertó, pero no se pudo actualizar el alias."
+                        };
+                    }
+
+                    return new Respuesta_DAL
+                    {
+                        data = idVenta,
+                        estado = true,
+                        mensaje = "Venta creada correctamente."
+                    };
                 }
 
-                return 0;
+                return new Respuesta_DAL
+                {
+                    data = 0,
+                    estado = false,
+                    mensaje = "No fue posible generar una nueva venta sin cruce con FacturaElectronica."
+                };
             }
             catch (Exception ex)
             {
-                string msg = ex.Message;
-                return 0;
+                return new Respuesta_DAL
+                {
+                    data = 0,
+                    estado = false,
+                    mensaje = ex.Message
+                };
             }
         }
     }

@@ -303,10 +303,15 @@ namespace WebApplication
                         esExitoso = true;
                     }
 
+                    if (!esExitoso && accion == 2 && int.TryParse((respCrud.idAfectado ?? string.Empty), out var idEliminado) && idEliminado > 0)
+                    {
+                        esExitoso = true;
+                    }
+
                     if (!esExitoso && !string.IsNullOrWhiteSpace(respCrud.mensaje))
                     {
                         var mensaje = respCrud.mensaje.ToLowerInvariant();
-                        esExitoso = mensaje.Contains("correct") || mensaje.Contains("guard") || mensaje.Contains("actualiz") || mensaje.Contains("elimin");
+                        esExitoso = mensaje.Contains("correct") || mensaje.Contains("guard") || mensaje.Contains("actualiz") || mensaje.Contains("elimin") || mensaje.Contains("insert");
                     }
 
                     return new Respuesta_DAL

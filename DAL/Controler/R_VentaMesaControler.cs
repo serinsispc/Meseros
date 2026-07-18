@@ -23,6 +23,10 @@ namespace DAL.Controler
                 // Llama al helper genérico:
                 // EXEC [dbo].[CRUD_R_VentaMesa] @json = N'...', @funcion = {funcion}
                 var resp = await helper.CrudAsync(db, rvm, funcion);
+                if (funcion == 2 && rvm != null)
+                {
+                    return await ResolverEliminacionRelacion(db, rvm, resp);
+                }
 
                 return resp ?? new Respuesta_DAL
                 {
@@ -41,6 +45,63 @@ namespace DAL.Controler
                     mensaje = "Error en CRUD_R_VentaMesa: " + msg
                 };
             }
+        }
+
+        private static async Task<Respuesta_DAL> ResolverEliminacionRelacion(string db, R_VentaMesa rvm, Respuesta_DAL respSp)
+        {
+            var relacionSigueExistiendo = await ExisteRelacionAsync(db, rvm);
+            if (respSp != null && respSp.estado && !relacionSigueExistiendo)
+            {
+                return respSp;
+            }
+
+            var auto = new SqlAutoDAL();
+            var filtro = rvm.id > 0
+                ? $"id = {rvm.id}"
+                : $"idVenta = {rvm.idVenta} AND idMesa = {rvm.idMesa}";
+
+            var sql = $@"
+DELETE FROM dbo.R_VentaMesa
+WHERE {filtro};
+
+SELECT
+    CAST(CASE WHEN EXISTS (SELECT 1 FROM dbo.R_VentaMesa WHERE {filtro}) THEN 0 ELSE 1 END AS bit) AS estado,
+    CASE WHEN EXISTS (SELECT 1 FROM dbo.R_VentaMesa WHERE {filtro})
+        THEN 'No fue posible eliminar la relación en R_VentaMesa.'
+        ELSE 'Relación eliminada correctamente.'
+    END AS mensaje,
+    {(rvm.id > 0 ? rvm.id : rvm.idVenta)} AS data;";
+
+            var respDirecto = await auto.EjecutarSQLObjeto<Respuesta_DAL>(db, sql);
+            if (respDirecto != null)
+            {
+                return respDirecto;
+            }
+
+            return respSp ?? new Respuesta_DAL
+            {
+                data = 0,
+                estado = false,
+                mensaje = "No fue posible eliminar la relación en R_VentaMesa."
+            };
+        }
+
+        private static async Task<bool> ExisteRelacionAsync(string db, R_VentaMesa rvm)
+        {
+            if (rvm == null)
+            {
+                return false;
+            }
+
+            var auto = new SqlAutoDAL();
+            if (rvm.id > 0)
+            {
+                var relacionPorId = await auto.ConsultarUno<R_VentaMesa>(db, x => x.id == rvm.id);
+                return relacionPorId != null;
+            }
+
+            var relacion = await auto.ConsultarUno<R_VentaMesa>(db, x => x.idVenta == rvm.idVenta && x.idMesa == rvm.idMesa);
+            return relacion != null;
         }
 
         /// <summary>
@@ -75,11 +136,8 @@ namespace DAL.Controler
             try
             {
                 var auto = new SqlAutoDAL();
-
-                // Genera y ejecuta:
-                // SELECT * FROM R_VentaMesa WHERE idVenta = idventa
-                var relacion = await auto.ConsultarLista<R_VentaMesa>(db,x=>x.idVenta==idventa);
-
+                var sql = $"SELECT id, idVenta, idMesa FROM R_VentaMesa WHERE idVenta = {idventa} ORDER BY id;";
+                var relacion = await auto.EjecutarSQLLista<R_VentaMesa>(db, sql);
                 return relacion; // puede ser null si no existe
             }
             catch (Exception ex)
@@ -94,7 +152,8 @@ namespace DAL.Controler
             try
             {
                 var auto = new SqlAutoDAL();
-                var relaciones = await auto.ConsultarLista<R_VentaMesa>(db, x => x.idMesa == idmesa);
+                var sql = $"SELECT id, idVenta, idMesa FROM R_VentaMesa WHERE idMesa = {idmesa} ORDER BY id;";
+                var relaciones = await auto.EjecutarSQLLista<R_VentaMesa>(db, sql);
                 return relaciones;
             }
             catch (Exception ex)

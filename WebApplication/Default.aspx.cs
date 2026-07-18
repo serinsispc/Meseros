@@ -280,10 +280,8 @@ namespace WebApplication
             var baseNueva = await BaseCajaControler.AperturarBase(db, new BaseCaja
             {
                 id = 0,
-                fechaApertura = DateTime.Now,
                 idUsuarioApertura = usuarioCaja.idUSuario,
                 valorBase = Convert.ToInt32(valorBase),
-                fechaCierre = DateTime.Now,
                 idUsuarioCierre = usuarioCaja.idUSuario,
                 estadoBase = "ACTIVA",
                 idSedeBAse = models.Sede?.id ?? 1

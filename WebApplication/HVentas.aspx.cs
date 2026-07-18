@@ -26,6 +26,14 @@ namespace WebApplication
 {
     public partial class HVentas : Page
     {
+        private const string SessionHVentasTiposDocumentoKey = "HVentas_TiposDocumento";
+        private const string SessionHVentasTiposOrganizacionKey = "HVentas_TiposOrganizacion";
+        private const string SessionHVentasMunicipiosKey = "HVentas_Municipios";
+        private const string SessionHVentasTiposRegimenKey = "HVentas_TiposRegimen";
+        private const string SessionHVentasTiposResponsabilidadKey = "HVentas_TiposResponsabilidad";
+        private const string SessionHVentasDetallesImpuestoKey = "HVentas_DetallesImpuesto";
+        private const string SessionHVentasClientesKey = "HVentas_Clientes";
+
         public class Valores
         {
             public decimal total { get; set; }
@@ -894,7 +902,7 @@ namespace WebApplication
 
                 await MostrarMensaje(TipoMensaje.Success, "OK", "Cliente guardado correctamente.");
 
-                await CargarClientes();
+                await CargarClientes(true);
 
                 _mdlClienteVenta = true;
             }
@@ -924,10 +932,9 @@ namespace WebApplication
             _mdlClienteVenta = true;
             await Task.CompletedTask;
         }
-        private async Task CargarClientes()
+        private async Task CargarClientes(bool forceRefresh = false)
         {
-            //cargamos el listado de los clientes
-            var clientes = await ClientesControler.ListaClientes(Session["db"].ToString());
+            var clientes = await ObtenerClientesAsync(forceRefresh);
             if (clientes == null) return;
 
             listaClientes = new List<Clientes>();
@@ -980,41 +987,145 @@ namespace WebApplication
 
         private async Task CargarDDL()
         {
-            ddlTipoDocumentoHv.DataSource = await type_document_identificationsControler.ListaTiposDocumento(Session["db"].ToString());
+            var tiposDocumentoTask = ObtenerTiposDocumentoAsync();
+            var tiposOrganizacionTask = ObtenerTiposOrganizacionAsync();
+            var municipiosTask = ObtenerMunicipiosAsync();
+            var tiposRegimenTask = ObtenerTiposRegimenAsync();
+            var tiposResponsabilidadTask = ObtenerTiposResponsabilidadAsync();
+            var detallesImpuestoTask = ObtenerDetallesImpuestoAsync();
+
+            await Task.WhenAll(
+                tiposDocumentoTask,
+                tiposOrganizacionTask,
+                municipiosTask,
+                tiposRegimenTask,
+                tiposResponsabilidadTask,
+                detallesImpuestoTask);
+
+            ddlTipoDocumentoHv.DataSource = tiposDocumentoTask.Result;
             ddlTipoDocumentoHv.DataTextField = "name";
             ddlTipoDocumentoHv.DataValueField = "id";
             ddlTipoDocumentoHv.DataBind();
             ddlTipoDocumentoHv.Items.Insert(0, new ListItem("Seleccionar", ""));
 
-            ddlTipoOrganizacionHv.DataSource = await type_organizationsControler.ListaTiposOrganizacion(Session["db"].ToString());
+            ddlTipoOrganizacionHv.DataSource = tiposOrganizacionTask.Result;
             ddlTipoOrganizacionHv.DataTextField = "name";
             ddlTipoOrganizacionHv.DataValueField = "id";
             ddlTipoOrganizacionHv.DataBind();
             ddlTipoOrganizacionHv.Items.Insert(0, new ListItem("Seleccionar", ""));
 
-            ddlMunicipioHv.DataSource = await V_MunicipiosControler.ListaMunicipios(Session["db"].ToString());
+            ddlMunicipioHv.DataSource = municipiosTask.Result;
             ddlMunicipioHv.DataTextField = "name";
             ddlMunicipioHv.DataValueField = "id";
             ddlMunicipioHv.DataBind();
             ddlMunicipioHv.Items.Insert(0, new ListItem("Seleccionar", ""));
 
-            ddlTipoRegimenHv.DataSource = await type_regimesControler.ListaTiposRegimen(Session["db"].ToString());
+            ddlTipoRegimenHv.DataSource = tiposRegimenTask.Result;
             ddlTipoRegimenHv.DataTextField = "name";
             ddlTipoRegimenHv.DataValueField = "id";
             ddlTipoRegimenHv.DataBind();
             ddlTipoRegimenHv.Items.Insert(0, new ListItem("Seleccionar", ""));
 
-            ddlTipoResponsabilidadHv.DataSource = await type_liabilitiesControler.ListaTiposResponsabilidad(Session["db"].ToString());
+            ddlTipoResponsabilidadHv.DataSource = tiposResponsabilidadTask.Result;
             ddlTipoResponsabilidadHv.DataTextField = "name";
             ddlTipoResponsabilidadHv.DataValueField = "id";
             ddlTipoResponsabilidadHv.DataBind();
             ddlTipoResponsabilidadHv.Items.Insert(0, new ListItem("Seleccionar", ""));
 
-            ddlDetalleImpuestoHv.DataSource = await tax_detailsControler.ListaDetallesImpuesto(Session["db"].ToString());
+            ddlDetalleImpuestoHv.DataSource = detallesImpuestoTask.Result;
             ddlDetalleImpuestoHv.DataTextField = "name";
             ddlDetalleImpuestoHv.DataValueField = "id";
             ddlDetalleImpuestoHv.DataBind();
             ddlDetalleImpuestoHv.Items.Insert(0, new ListItem("Seleccionar", ""));
+        }
+
+        private async Task<List<type_document_identifications>> ObtenerTiposDocumentoAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionHVentasTiposDocumentoKey] is List<type_document_identifications> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_document_identificationsControler.ListaTiposDocumento(Session["db"].ToString()) ?? new List<type_document_identifications>();
+            Session[SessionHVentasTiposDocumentoKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_organizations>> ObtenerTiposOrganizacionAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionHVentasTiposOrganizacionKey] is List<type_organizations> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_organizationsControler.ListaTiposOrganizacion(Session["db"].ToString()) ?? new List<type_organizations>();
+            Session[SessionHVentasTiposOrganizacionKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<V_Municipios>> ObtenerMunicipiosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionHVentasMunicipiosKey] is List<V_Municipios> cache)
+            {
+                return cache;
+            }
+
+            var lista = await V_MunicipiosControler.ListaMunicipios(Session["db"].ToString()) ?? new List<V_Municipios>();
+            Session[SessionHVentasMunicipiosKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_regimes>> ObtenerTiposRegimenAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionHVentasTiposRegimenKey] is List<type_regimes> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_regimesControler.ListaTiposRegimen(Session["db"].ToString()) ?? new List<type_regimes>();
+            Session[SessionHVentasTiposRegimenKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_liabilities>> ObtenerTiposResponsabilidadAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionHVentasTiposResponsabilidadKey] is List<type_liabilities> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_liabilitiesControler.ListaTiposResponsabilidad(Session["db"].ToString()) ?? new List<type_liabilities>();
+            Session[SessionHVentasTiposResponsabilidadKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<tax_details>> ObtenerDetallesImpuestoAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionHVentasDetallesImpuestoKey] is List<tax_details> cache)
+            {
+                return cache;
+            }
+
+            var lista = await tax_detailsControler.ListaDetallesImpuesto(Session["db"].ToString()) ?? new List<tax_details>();
+            Session[SessionHVentasDetallesImpuestoKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<Clientes>> ObtenerClientesAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && listaClientes != null && listaClientes.Any())
+            {
+                return listaClientes;
+            }
+
+            if (!forceRefresh && Session[SessionHVentasClientesKey] is List<Clientes> cache)
+            {
+                return cache;
+            }
+
+            var lista = await ClientesControler.ListaClientes(Session["db"].ToString()) ?? new List<Clientes>();
+            Session[SessionHVentasClientesKey] = lista;
+            return lista;
         }
 
         private async Task btnEnviarDIAN(string id)

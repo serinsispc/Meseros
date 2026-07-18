@@ -276,6 +276,7 @@
     </Compile>
     <Compile Include="Helpers\EmailAperturaCajaHelper.cs" />
     <Compile Include="Helpers\EmailCierreCajaHelper.cs" />
+    <Compile Include="Helpers\EmailAutorizacionCajaHelper.cs" />
     <Compile Include="Helpers\BrandingImageHelper.cs" />
     <Compile Include="Helpers\AdminControlAccessHelper.cs" />
     <Compile Include="Helpers\EventArgumentParser.cs" />

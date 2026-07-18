@@ -12,26 +12,18 @@ namespace DAL.Controler
             try
             {
                 var auto = new SqlAutoDAL();
+                var filtroCuenta = idCuenta > 0 ? $" AND idCuentaCliente = {idCuenta}" : string.Empty;
+                var sql = $@"
+SELECT id, guidDetalle, idVenta, idPresentacion, codigoProducto, nombreProducto, impuesto_id, presentacion,
+       unidad, descuentoDetalle, preVentaNeto, precioVenta, porImpuesto, baseImpuesto, valorImpuesto,
+       subTotalDetalleNeto, subTotalDetalle, totalDetalle, costoUnidad, contenido, costoTotal, observacion,
+       opciones, adiciones, estadoDetalle, idCategoria, idCuentaCliente, nombreCuenta, itemComandado
+FROM V_DetalleCaja
+WHERE idVenta = {idVenta}
+  AND estadoDetalle = 1{filtroCuenta}
+ORDER BY id;";
 
-                if (idCuenta > 0)
-                {
-                    // WHERE idVenta = @idVenta AND idCuentaCliente = @idCuenta AND estadoDetalle = 1
-                    return await auto.ConsultarLista<V_DetalleCaja>(
-                        db,
-                        x => x.idVenta == idVenta &&
-                             x.idCuentaCliente == idCuenta &&
-                             x.estadoDetalle == 1
-                    );
-                }
-                else
-                {
-                    // WHERE idVenta = @idVenta AND estadoDetalle = 1
-                    return await auto.ConsultarLista<V_DetalleCaja>(
-                        db,
-                        x => x.idVenta == idVenta &&
-                             x.estadoDetalle == 1
-                    );
-                }
+                return await auto.EjecutarSQLLista<V_DetalleCaja>(db, sql);
             }
             catch (Exception ex)
             {

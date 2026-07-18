@@ -74,7 +74,7 @@ namespace DAL.Funciones
             }
         }
 
-        public static async Task<Respuesta_DAL> ActualizarCantidadDetalle(string db, int iddetalle,int cantidad)
+        public static async Task<Respuesta_DAL> ActualizarCantidadDetalle(string db, int iddetalle, decimal cantidad)
         {
             try
             {

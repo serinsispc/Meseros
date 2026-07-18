@@ -422,6 +422,7 @@ function guardarCuentaDirecto(btn) {
         }
 
         configurarBuscadorCaja();
+        configurarAtajosCaja();
         configurarCantidadProductos();
         configurarDetalleCaja();
         configurarMenuFlotanteMovil();
@@ -533,6 +534,7 @@ function configurarBuscadorCaja() {
     const input = document.getElementById("btnbuscar");
     const categoriaBtns = Array.from(document.querySelectorAll(".categoria-btn[data-categoria-id]"));
     const productoItems = Array.from(document.querySelectorAll(".producto-item[data-categoria-id]"));
+    const claseProductoSeleccionado = "producto-keyboard-selected";
 
     if (!input || !categoriaBtns.length || !productoItems.length) {
         return;
@@ -547,6 +549,74 @@ function configurarBuscadorCaja() {
             return btn.classList.contains("categoria-activa");
         });
         return activa ? activa.dataset.categoriaId : "";
+    };
+
+    const obtenerPrimerProductoVisible = function () {
+        return productoItems.find(function (item) {
+            return !item.classList.contains("producto-hidden");
+        }) || null;
+    };
+
+    const obtenerProductosVisibles = function () {
+        return productoItems.filter(function (item) {
+            return !item.classList.contains("producto-hidden");
+        });
+    };
+
+    const limpiarSeleccionProducto = function () {
+        productoItems.forEach(function (item) {
+            item.classList.remove(claseProductoSeleccionado);
+        });
+    };
+
+    const obtenerProductoSeleccionado = function () {
+        return productoItems.find(function (item) {
+            return item.classList.contains(claseProductoSeleccionado) && !item.classList.contains("producto-hidden");
+        }) || null;
+    };
+
+    const seleccionarProducto = function (item) {
+        limpiarSeleccionProducto();
+
+        if (!item) {
+            return null;
+        }
+
+        item.classList.add(claseProductoSeleccionado);
+        try {
+            item.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        } catch (e) {
+            item.scrollIntoView();
+        }
+
+        return item;
+    };
+
+    const moverSeleccionProducto = function (direccion) {
+        const visibles = obtenerProductosVisibles();
+        if (!visibles.length) {
+            limpiarSeleccionProducto();
+            return null;
+        }
+
+        const actual = obtenerProductoSeleccionado();
+        let indiceActual = visibles.findIndex(function (item) {
+            return item === actual;
+        });
+
+        if (indiceActual < 0) {
+            indiceActual = direccion > 0 ? -1 : visibles.length;
+        }
+
+        let nuevoIndice = indiceActual + direccion;
+        if (nuevoIndice < 0) {
+            nuevoIndice = 0;
+        }
+        if (nuevoIndice >= visibles.length) {
+            nuevoIndice = visibles.length - 1;
+        }
+
+        return seleccionarProducto(visibles[nuevoIndice]);
     };
 
     const aplicarFiltro = function (texto) {
@@ -585,6 +655,11 @@ function configurarBuscadorCaja() {
             btn.classList.toggle("categoria-hidden", !mostrarCategoria);
             btn.classList.toggle("categoria-search-hit", !!resaltar && (!btn.classList.contains("categoria-activa") || !!termino));
         });
+
+        const seleccionActual = obtenerProductoSeleccionado();
+        if (seleccionActual && seleccionActual.classList.contains("producto-hidden")) {
+            limpiarSeleccionProducto();
+        }
     };
 
     input.addEventListener("input", function () {
@@ -592,6 +667,20 @@ function configurarBuscadorCaja() {
     });
 
     input.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            e.stopPropagation();
+            moverSeleccionProducto(1);
+            return;
+        }
+
+        if (e.key === "ArrowUp") {
+            e.preventDefault();
+            e.stopPropagation();
+            moverSeleccionProducto(-1);
+            return;
+        }
+
         if (e.key !== "Enter") {
             return;
         }
@@ -604,21 +693,146 @@ function configurarBuscadorCaja() {
             return;
         }
 
+        const productosVisibles = obtenerProductosVisibles();
+        const productoSeleccionado = obtenerProductoSeleccionado();
+        const primerVisible = productosVisibles.length ? productosVisibles[0] : obtenerPrimerProductoVisible();
+        const productoObjetivo = productoSeleccionado || primerVisible;
+        const debeAgregarPrimerVisible = !!productoObjetivo;
+
+        if (debeAgregarPrimerVisible) {
+            const botonAgregar = productoObjetivo.querySelector(".prod-cart");
+            if (botonAgregar) {
+                agregarProductoDesdeCard(botonAgregar);
+                return;
+            }
+        }
+
         EjecutarAccion("BuscarCodigoProducto", texto, input);
     });
 
     window.CajaBuscador = {
         apply: aplicarFiltro,
+        focus: function () {
+            try {
+                input.focus({ preventScroll: true });
+            } catch (e) {
+                input.focus();
+            }
+
+            try {
+                const len = (input.value || "").length;
+                input.setSelectionRange(len, len);
+            } catch (e) {
+            }
+        },
         clear: function (focus) {
             input.value = "";
+            limpiarSeleccionProducto();
             aplicarFiltro("");
             if (focus !== false) {
-                input.focus();
+                this.focus();
             }
         }
     };
 
     aplicarFiltro(input.value || "");
+}
+
+function configurarAtajosCaja() {
+    if (window.__cajaShortcutsBound) {
+        return;
+    }
+
+    const esElementoEditable = function (elemento) {
+        if (!elemento) {
+            return false;
+        }
+
+        const tag = (elemento.tagName || "").toUpperCase();
+        return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || elemento.isContentEditable === true;
+    };
+
+    document.addEventListener("keydown", function (e) {
+        // Los modales tienen prioridad sobre los atajos del detalle. Sin esta
+        // salida, Enter llegaba al listado que permanecía seleccionado detrás
+        // de SweetAlert y activaba la edición de cantidad.
+        if (e.target && typeof e.target.closest === "function" && e.target.closest(".swal2-container")) {
+            return;
+        }
+
+        if (e.key === "F1") {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (window.CajaDetalleLista && typeof window.CajaDetalleLista.clearSelection === "function") {
+                window.CajaDetalleLista.clearSelection();
+            }
+
+            if (window.CajaBuscador && typeof window.CajaBuscador.focus === "function") {
+                window.CajaBuscador.focus();
+                return;
+            }
+
+            const input = document.getElementById("btnbuscar");
+            if (!input) {
+                return;
+            }
+
+            try {
+                input.focus({ preventScroll: true });
+            } catch (err) {
+                input.focus();
+            }
+
+            if (!esElementoEditable(document.activeElement)) {
+                input.click();
+            }
+            return;
+        }
+
+        if (e.key === "F2") {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (window.CajaDetalleLista && typeof window.CajaDetalleLista.focus === "function") {
+                window.CajaDetalleLista.focus();
+            }
+            return;
+        }
+
+        if ((e.key === "ArrowDown" || e.key === "ArrowUp") &&
+            window.CajaDetalleLista &&
+            typeof window.CajaDetalleLista.isActive === "function" &&
+            window.CajaDetalleLista.isActive()) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.CajaDetalleLista.move(e.key === "ArrowDown" ? 1 : -1);
+            return;
+        }
+
+        if (e.key === "Enter" &&
+            e.target &&
+            e.target.id === "swalNotaDetalle") {
+            return;
+        }
+
+        if (e.key === "Enter" &&
+            window.CajaDetalleLista &&
+            typeof window.CajaDetalleLista.isActive === "function" &&
+            window.CajaDetalleLista.isActive()) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (typeof window.CajaDetalleLista.isEditingQuantity === "function" &&
+                window.CajaDetalleLista.isEditingQuantity()) {
+                window.CajaDetalleLista.saveQuantity();
+            } else if (typeof window.CajaDetalleLista.editQuantity === "function") {
+                window.CajaDetalleLista.editQuantity();
+            }
+        }
+    }, true);
+
+    window.__cajaShortcutsBound = true;
 }
 
 function configurarCantidadProductos() {
@@ -691,13 +905,197 @@ function agregarProductoDesdeCard(btn) {
 
 function configurarDetalleCaja() {
     const contenedor = document.querySelector(".lista-productos") || document;
+    const claseDetalleSeleccionado = "producto-detalle-keyboard-selected";
+    let modoDetalleActivo = false;
+
+    const obtenerDetalles = function () {
+        return Array.from(contenedor.querySelectorAll(".producto-item-detalle"));
+    };
+
+    const limpiarSeleccionDetalle = function () {
+        obtenerDetalles().forEach(function (card) {
+            card.classList.remove(claseDetalleSeleccionado);
+        });
+    };
+
+    const obtenerDetalleSeleccionado = function () {
+        return obtenerDetalles().find(function (card) {
+            return card.classList.contains(claseDetalleSeleccionado);
+        }) || null;
+    };
+
+    const seleccionarDetalle = function (card) {
+        limpiarSeleccionDetalle();
+
+        if (!card) {
+            modoDetalleActivo = false;
+            return null;
+        }
+
+        modoDetalleActivo = true;
+        card.classList.add(claseDetalleSeleccionado);
+
+        try {
+            card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        } catch (e) {
+            card.scrollIntoView();
+        }
+
+        return card;
+    };
+
+    const moverSeleccionDetalle = function (direccion) {
+        const detalles = obtenerDetalles();
+        if (!detalles.length) {
+            limpiarSeleccionDetalle();
+            modoDetalleActivo = false;
+            return null;
+        }
+
+        const actual = obtenerDetalleSeleccionado();
+        let indiceActual = detalles.findIndex(function (card) {
+            return card === actual;
+        });
+
+        if (indiceActual < 0) {
+            indiceActual = direccion > 0 ? -1 : detalles.length;
+        }
+
+        let nuevoIndice = indiceActual + direccion;
+        if (nuevoIndice < 0) {
+            nuevoIndice = 0;
+        }
+        if (nuevoIndice >= detalles.length) {
+            nuevoIndice = detalles.length - 1;
+        }
+
+        return seleccionarDetalle(detalles[nuevoIndice]);
+    };
+
+    const obtenerInputCantidadDetalle = function (card) {
+        return card ? card.querySelector(".js-detalle-cantidad") : null;
+    };
+
+    const obtenerBotonGuardarDetalle = function (card) {
+        return card ? card.querySelector(".save-btn") : null;
+    };
+
+    const esDetalleGramera = function (elemento) {
+        const card = elemento && typeof elemento.closest === "function"
+            ? elemento.closest(".producto-item-detalle")
+            : null;
+
+        return !!(card && card.dataset && card.dataset.detalleGramera === "1");
+    };
+
+    const sanitizarCantidadTexto = function (valor, permitirDecimal) {
+        let limpio = String(valor || "");
+        limpio = permitirDecimal ? limpio.replace(/[^\d.,]/g, "") : limpio.replace(/[^\d]/g, "");
+
+        if (!permitirDecimal) {
+            return limpio;
+        }
+
+        let separadorEncontrado = false;
+        let resultado = "";
+        for (let i = 0; i < limpio.length; i += 1) {
+            const ch = limpio.charAt(i);
+            const esSeparador = ch === "." || ch === ",";
+            if (!esSeparador) {
+                resultado += ch;
+                continue;
+            }
+
+            if (!separadorEncontrado) {
+                resultado += ch;
+                separadorEncontrado = true;
+            }
+        }
+
+        return resultado;
+    };
+
+    const parsearCantidad = function (valor, permitirDecimal) {
+        const limpio = sanitizarCantidadTexto(valor, permitirDecimal);
+        if (!limpio) {
+            return permitirDecimal ? 0.001 : 1;
+        }
+
+        if (permitirDecimal) {
+            const numero = parseFloat(limpio.replace(",", "."));
+            if (!isFinite(numero) || numero <= 0) {
+                return 0.001;
+            }
+
+            return numero;
+        }
+
+        const entero = parseInt(limpio, 10);
+        if (!isFinite(entero) || entero < 1) {
+            return 1;
+        }
+
+        return entero;
+    };
+
+    const formatearCantidad = function (valor, permitirDecimal) {
+        if (!permitirDecimal) {
+            return String(Math.max(1, parseInt(valor, 10) || 1));
+        }
+
+        const numero = parsearCantidad(valor, true);
+        return numero.toLocaleString("es-CO", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3,
+            useGrouping: false
+        });
+    };
+
+    const enfocarCantidadDetalle = function (card) {
+        const input = obtenerInputCantidadDetalle(card);
+        if (!input) {
+            return false;
+        }
+
+        seleccionarDetalle(card);
+        try {
+            input.focus({ preventScroll: true });
+        } catch (e) {
+            input.focus();
+        }
+
+        try {
+            input.select();
+        } catch (e) {
+        }
+
+        return true;
+    };
+
+    const guardarCantidadDetalleSeleccionado = function () {
+        const card = obtenerDetalleSeleccionado();
+        const btnGuardar = obtenerBotonGuardarDetalle(card);
+        if (!card || !btnGuardar) {
+            return false;
+        }
+
+        guardarCantidadDetalle(btnGuardar);
+        return true;
+    };
 
     function normalizar(input) {
-        let v = parseInt(input.value, 10);
-        if (isNaN(v) || v < 1) v = 1;
-        input.value = v;
+        const permitirDecimal = esDetalleGramera(input);
+        const v = parsearCantidad(input.value, permitirDecimal);
+        input.value = formatearCantidad(v, permitirDecimal);
         return v;
     }
+
+    contenedor.addEventListener("click", function (e) {
+        const card = e.target.closest(".producto-item-detalle");
+        if (!card) return;
+
+        seleccionarDetalle(card);
+    });
 
     contenedor.addEventListener("click", function (e) {
         const restar = e.target.closest(".js-detalle-restar");
@@ -710,17 +1108,68 @@ function configurarDetalleCaja() {
         const input = card.querySelector(".js-detalle-cantidad");
         if (!input) return;
 
+        const paso = esDetalleGramera(card) ? 0.001 : 1;
         let cantidad = normalizar(input);
-        cantidad = restar ? Math.max(1, cantidad - 1) : cantidad + 1;
-        input.value = cantidad;
+        cantidad = restar ? Math.max(paso, cantidad - paso) : cantidad + paso;
+        input.value = formatearCantidad(cantidad, esDetalleGramera(card));
     });
 
     contenedor.addEventListener("input", function (e) {
         const input = e.target.closest(".js-detalle-cantidad");
         if (!input) return;
+
+        if (esDetalleGramera(input)) {
+            input.value = sanitizarCantidadTexto(input.value, true);
+            return;
+        }
+
         input.value = input.value.replace(/[^\d]/g, "");
         normalizar(input);
     });
+
+    contenedor.addEventListener("blur", function (e) {
+        const input = e.target.closest(".js-detalle-cantidad");
+        if (!input) return;
+
+        normalizar(input);
+    }, true);
+
+    window.CajaDetalleLista = {
+        focus: function () {
+            const detalles = obtenerDetalles();
+            if (!detalles.length) {
+                modoDetalleActivo = false;
+                return null;
+            }
+
+            return seleccionarDetalle(obtenerDetalleSeleccionado() || detalles[0]);
+        },
+        move: function (direccion) {
+            return moverSeleccionDetalle(direccion);
+        },
+        editQuantity: function () {
+            const card = obtenerDetalleSeleccionado() || this.focus();
+            if (!card) {
+                return false;
+            }
+
+            return enfocarCantidadDetalle(card);
+        },
+        saveQuantity: function () {
+            return guardarCantidadDetalleSeleccionado();
+        },
+        clearSelection: function () {
+            modoDetalleActivo = false;
+            limpiarSeleccionDetalle();
+        },
+        isActive: function () {
+            return modoDetalleActivo;
+        },
+        isEditingQuantity: function () {
+            const activo = document.activeElement;
+            return !!(activo && activo.classList && activo.classList.contains("js-detalle-cantidad"));
+        }
+    };
 }
 
 function guardarCantidadDetalle(btn) {
@@ -728,14 +1177,27 @@ function guardarCantidadDetalle(btn) {
     if (!card) return false;
 
     const input = card.querySelector(".js-detalle-cantidad");
-    const cantidad = input ? Math.max(1, parseInt(input.value || "1", 10) || 1) : 1;
+    const permiteDecimal = card.dataset.detalleGramera === "1";
+    const valorCrudo = input ? String(input.value || "") : "1";
+    const valorNormalizado = permiteDecimal
+        ? valorCrudo.replace(",", ".")
+        : String(Math.max(1, parseInt(valorCrudo, 10) || 1));
+    const cantidad = permiteDecimal
+        ? Math.max(0.001, parseFloat(valorNormalizado) || 0.001)
+        : Math.max(1, parseInt(valorNormalizado, 10) || 1);
     const id = card.dataset.detalleId || "";
 
     if (!id) return false;
 
+    if (input) {
+        input.value = permiteDecimal
+            ? cantidad.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 3, useGrouping: false })
+            : String(cantidad);
+    }
+
     EjecutarAccion("ActualizarCantidadDetalle", BuildArgs({
         ID: id,
-        CANTIDAD: cantidad
+        CANTIDAD: permiteDecimal ? cantidad.toString() : String(cantidad)
     }), btn);
     return false;
 }
@@ -746,17 +1208,29 @@ function confirmarEliminarDetalle(btn) {
 
     const id = card.dataset.detalleId || "";
     if (!id) return false;
+    const requiereAutorizacion = !(window.CajaConfig && window.CajaConfig.eliminarDetalleSinAutorizacion === true);
 
     mostrarConfirmacion({
-        title: "Eliminar producto",
-        text: "¿Seguro que desea eliminar este producto del servicio activo?",
-        confirmText: "Sí, eliminar",
+        title: requiereAutorizacion ? "Autorización requerida" : "Eliminar producto",
+        text: requiereAutorizacion
+            ? "Su usuario no está autorizado para eliminar productos. ¿Desea pedir autorización al supervisor?"
+            : "¿Seguro que desea eliminar este producto del servicio activo?",
+        confirmText: requiereAutorizacion ? "Sí, solicitar" : "Sí, eliminar",
         confirmColor: "#dc3545"
     }, function () {
-        EjecutarAccion("EliminarDetalle", BuildArgs({
-            ID: id,
-            NOTA: ""
-        }), btn);
+        const ejecutar = function (codigo) {
+            EjecutarAccion("EliminarDetalle", BuildArgs({
+                ID: id,
+                NOTA: "",
+                CODIGO: codigo || ""
+            }), btn);
+        };
+
+        if (window.CajaConfig && window.CajaConfig.eliminarDetalleSinAutorizacion === true) {
+            ejecutar("");
+        } else {
+            solicitarAutorizacionServidor('ELIMINAR', id, '', btn);
+        }
     });
 
     return false;
@@ -916,6 +1390,12 @@ function editarNotaDetalle(btn) {
             });
 
             if (textarea) {
+                textarea.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.stopPropagation();
+                    }
+                });
+
                 textarea.focus();
                 textarea.setSelectionRange(textarea.value.length, textarea.value.length);
             }
@@ -1029,16 +1509,155 @@ function anclarDetalleCuenta(btn) {
     return false;
 }
 
-function editarValorDetalle(btn) {
+function editarValorDetalle(btn, preciosConsultados) {
     const card = obtenerCardDetalle(btn);
     if (!card) return false;
     const id = card.dataset.detalleId || '';
+    const idPresentacion = parseInt(card.dataset.detalleIdpresentacion || '0', 10);
     const valorActual = card.dataset.detallePrecio || '0';
+    const usarListaPrecios = (window.CajaConfig && window.CajaConfig.listadoItemVentasUnico === true);
+    let listaPrecios = [];
+
+    if (usarListaPrecios && typeof preciosConsultados === 'undefined' && idPresentacion > 0) {
+        fetch('caja.aspx/ConsultarListaPreciosDetalle', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ idPresentacion: idPresentacion })
+        })
+            .then(function (response) {
+                if (!response.ok) throw new Error('No fue posible consultar la lista de precios.');
+                return response.json();
+            })
+            .then(function (payload) {
+                const data = payload && payload.d ? payload.d : null;
+                editarValorDetalle(btn, data && data.Habilitada ? (data.Precios || []) : []);
+            })
+            .catch(function (error) {
+                const mensaje = error.message || 'No fue posible validar la lista de precios.';
+                if (window.Swal && typeof window.Swal.fire === 'function') {
+                    window.Swal.fire({ icon: 'error', title: 'Lista de precios', text: mensaje });
+                } else {
+                    alert(mensaje);
+                }
+            });
+        return false;
+    }
+
+    if (Array.isArray(preciosConsultados)) {
+        listaPrecios = preciosConsultados;
+    } else if (usarListaPrecios) {
+        try {
+            listaPrecios = JSON.parse(card.dataset.detallePrecios || '[]');
+        } catch (e) {
+            listaPrecios = [];
+        }
+    }
+
+    if (usarListaPrecios && listaPrecios && listaPrecios.length) {
+        if (!window.Swal) {
+            const texto = listaPrecios
+                .map(function (item, index) {
+                    return (index + 1) + '. ' + (item.nombrePrecio || 'Precio') + ' - $ ' + Number(item.valorPrecio || 0).toLocaleString('es-CO');
+                })
+                .join('\n');
+            const elegido = prompt('Seleccione un precio:\n' + texto, '1');
+            if (elegido === null) return false;
+
+            const indice = parseInt(elegido, 10) - 1;
+            if (Number.isNaN(indice) || indice < 0 || indice >= listaPrecios.length) {
+                return false;
+            }
+
+            EjecutarAccion('EditarValorDetalle', BuildArgs({ ID: id, VALOR: listaPrecios[indice].valorPrecio }), btn);
+            return false;
+        }
+        const valorActualNumero = parseFloat(valorActual || '0');
+        const money = new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            maximumFractionDigits: 0
+        });
+
+        const html = [
+            '<div id="precioSelectorGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:8px;">',
+            listaPrecios.map(function (item, index) {
+                const valorNumero = parseFloat(item.valorPrecio || 0);
+                const activo = !Number.isNaN(valorActualNumero) && valorNumero === valorActualNumero;
+                return ''
+                    + '<button type="button"'
+                    + ' class="precio-selector-option' + (activo ? ' activo' : '') + '"'
+                    + ' data-index="' + index + '"'
+                    + ' style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:16px 18px;border-radius:16px;cursor:pointer;text-align:left;transition:all .18s ease;">'
+                    + '<span style="font-size:.82rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#64748b;">' + escapeHtml(item.nombrePrecio || 'Precio') + '</span>'
+                    + '<span style="font-size:1.18rem;font-weight:900;color:#0f172a;">' + money.format(valorNumero) + '</span>'
+                    + '</button>';
+            }).join(''),
+            '</div>',
+            '<style>',
+            '.swal2-popup .precio-selector-option{border:2px solid #dbe4f0;background:#ffffff;box-shadow:0 8px 18px rgba(15,23,42,.08);}',
+            '.swal2-popup .precio-selector-option:hover{transform:translateY(-2px);border-color:#2563eb;box-shadow:0 14px 28px rgba(37,99,235,.16);}',
+            '.swal2-popup .precio-selector-option.activo{border-color:#2563eb !important;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%) !important;box-shadow:0 14px 28px rgba(37,99,235,.18) !important;}',
+            '</style>'
+        ].join('');
+
+        Swal.fire({
+            title: 'Seleccionar precio',
+            html: html,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#2563eb',
+            width: 760,
+            didOpen: function () {
+                let selectedIndex = -1;
+                const botones = Array.from(document.querySelectorAll('.precio-selector-option'));
+                botones.forEach(function (option) {
+                    option.addEventListener('click', function () {
+                        botones.forEach(function (btnItem) { btnItem.classList.remove('activo'); });
+                        option.classList.add('activo');
+                        selectedIndex = parseInt(option.getAttribute('data-index') || '-1', 10);
+                        Swal.__precioSeleccionadoIndex = selectedIndex;
+                    });
+
+                    if (option.classList.contains('activo')) {
+                        selectedIndex = parseInt(option.getAttribute('data-index') || '-1', 10);
+                    }
+                });
+
+                Swal.__precioSeleccionadoIndex = selectedIndex;
+            },
+            preConfirm: function (value) {
+                const selectedIndex = typeof Swal.__precioSeleccionadoIndex === 'number'
+                    ? Swal.__precioSeleccionadoIndex
+                    : -1;
+
+                if (selectedIndex < 0 || selectedIndex >= listaPrecios.length) {
+                    Swal.showValidationMessage('Seleccione un precio de la lista.');
+                    return false;
+                }
+
+                const elegido = listaPrecios[selectedIndex];
+                if (!elegido) {
+                    Swal.showValidationMessage('El precio seleccionado no es válido.');
+                    return false;
+                }
+
+                return elegido.valorPrecio;
+            }
+        }).then(function (result) {
+            Swal.__precioSeleccionadoIndex = -1;
+            if (result.isConfirmed) {
+                EjecutarAccion('EditarValorDetalle', BuildArgs({ ID: id, VALOR: result.value }), btn);
+            }
+        });
+        return false;
+    }
 
     if (!window.Swal) {
         const valor = prompt('Nuevo valor del detalle', valorActual);
         if (valor === null) return false;
-        EjecutarAccion('EditarValorDetalle', BuildArgs({ ID: id, VALOR: valor }), btn);
+        guardarPrecioManual(id, valor, btn);
         return false;
     }
 
@@ -1052,6 +1671,17 @@ function editarValorDetalle(btn) {
         confirmButtonText: 'Guardar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#2563eb',
+        didOpen: function () {
+            const inputPrecio = Swal.getInput();
+            if (!inputPrecio) return;
+
+            inputPrecio.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                e.stopPropagation();
+                Swal.clickConfirm();
+            });
+        },
         preConfirm: function (value) {
             const numero = parseFloat(value);
             if (Number.isNaN(numero) || numero < 0) {
@@ -1062,10 +1692,123 @@ function editarValorDetalle(btn) {
         }
     }).then(function (result) {
         if (result.isConfirmed) {
-            EjecutarAccion('EditarValorDetalle', BuildArgs({ ID: id, VALOR: result.value }), btn);
+            guardarPrecioManual(id, result.value, btn);
         }
     });
     return false;
+}
+
+function solicitarCodigoSupervisor(titulo, continuar) {
+    if (!window.Swal || typeof window.Swal.fire !== 'function') {
+        const codigo = prompt('Ingrese el código del supervisor:');
+        if (codigo !== null && String(codigo).trim()) {
+            continuar(String(codigo).trim());
+        }
+        return;
+    }
+
+    Swal.fire({
+        icon: 'warning',
+        title: titulo || 'Autorización del supervisor',
+        text: 'Esta operación requiere autorización.',
+        input: 'password',
+        inputLabel: 'Código del supervisor',
+        inputAttributes: { autocomplete: 'off', autocapitalize: 'characters' },
+        showCancelButton: true,
+        confirmButtonText: 'Autorizar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#2563eb',
+        allowOutsideClick: false,
+        preConfirm: function (value) {
+            const codigo = String(value || '').trim();
+            if (!codigo) {
+                Swal.showValidationMessage('Ingrese el código del supervisor.');
+                return false;
+            }
+            return codigo;
+        }
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            continuar(result.value);
+        }
+    });
+}
+
+function solicitarAutorizacionServidor(tipo, id, valor, btn) {
+    EjecutarAccion('SolicitarAutorizacionDetalle', BuildArgs({
+        TIPO: tipo,
+        ID: id,
+        VALOR: valor || ''
+    }), btn);
+}
+
+function esperarAprobacionSupervisor(continuar) {
+    const inicio = Date.now();
+    const vigenciaMs = 10 * 60 * 1000;
+    let finalizado = false;
+
+    const consultar = function () {
+        if (finalizado || Date.now() - inicio >= vigenciaMs) return;
+
+        fetch('caja.aspx/ConsultarAutorizacionSupervisor', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: '{}'
+        })
+            .then(function (response) {
+                if (!response.ok) throw new Error('No fue posible consultar la autorización.');
+                return response.json();
+            })
+            .then(function (payload) {
+                if (payload && payload.d === true) {
+                    finalizado = true;
+                    if (window.Swal && typeof window.Swal.close === 'function') {
+                        window.Swal.close();
+                    }
+                    continuar('__APROBADO_REMOTO__');
+                    return;
+                }
+                window.setTimeout(consultar, 2000);
+            })
+            .catch(function () {
+                window.setTimeout(consultar, 3000);
+            });
+    };
+
+    window.setTimeout(consultar, 1500);
+}
+
+function guardarPrecioManual(id, valor, btn) {
+    const ejecutar = function (codigo) {
+        EjecutarAccion('EditarValorDetalle', BuildArgs({
+            ID: id,
+            VALOR: valor,
+            CODIGO: codigo || ''
+        }), btn);
+    };
+
+    if (window.CajaConfig && window.CajaConfig.editarPrecioSinAutorizacion === true) {
+        ejecutar('');
+    } else {
+        mostrarConfirmacion({
+            title: 'Autorización requerida',
+            text: 'Su usuario no está autorizado para editar manualmente el precio. ¿Desea pedir autorización al supervisor?',
+            confirmText: 'Sí, solicitar',
+            confirmColor: '#2563eb'
+        }, function () {
+            solicitarAutorizacionServidor('EDITAR_PRECIO', id, valor, btn);
+        });
+    }
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function editarNombreDetalle(btn) {

@@ -396,22 +396,17 @@
     </div>
 
     <!-- MODAL: Medios de pago internos -->
-    <div class="modal fade" id="mdlMediosInternos" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="mdlMediosInternos" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius:16px;">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-list-check"></i> Medios internos</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
 
                 <div class="modal-body">
                     <div class="text-muted mb-2" id="lblMedioSeleccionado"></div>
                     <div class="list-group" id="listMediosInternos"></div>
                     <div class="text-muted mt-2" style="font-size:12px;">Selecciona uno para continuar.</div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btnx" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>

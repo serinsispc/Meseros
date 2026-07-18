@@ -48,7 +48,11 @@ namespace DAL.Controler
             try
             {
                 var auto = new SqlAutoDAL();
-                return await auto.ConsultarLista<Mesas>(db);
+                var sql = @"
+SELECT id, nombreMesa, estadoMesa, idZona, guidMesa, widthMesa
+FROM Mesas
+ORDER BY idZona, id;";
+                return await auto.EjecutarSQLLista<Mesas>(db, sql);
             }
             catch
             {

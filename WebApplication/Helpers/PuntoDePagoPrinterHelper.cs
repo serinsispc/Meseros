@@ -1,7 +1,9 @@
+using DAL.Controler;
 using DAL.Model;
 using Newtonsoft.Json;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web.SessionState;
 using WebApplication.ViewModels;
 
@@ -69,6 +71,45 @@ namespace WebApplication.Helpers
                     }
                 }
             }
+        }
+
+        public static async Task<PuntosDePago> ResolveSelectedPuntoDePagoAsync(string db, HttpSessionState session, MenuViewModels model = null)
+        {
+            var resolvedModel = ResolveModel(session, model);
+            EnsureSelectedPuntoDePago(session, resolvedModel);
+
+            var selected = resolvedModel?.PuntoDePagoSeleccionado;
+            var selectedId = selected?.id ?? 0;
+            if (selectedId <= 0 || string.IsNullOrWhiteSpace(db))
+            {
+                return selected;
+            }
+
+            var needsHydration = string.IsNullOrWhiteSpace(selected.impresoraPredeterminada) || selected.ancho <= 0;
+            if (!needsHydration)
+            {
+                return selected;
+            }
+
+            var puntoDesdeDb = await PuntosDePagoControler.Consultar(db, selectedId);
+            if (puntoDesdeDb == null)
+            {
+                return selected;
+            }
+
+            resolvedModel.PuntoDePagoSeleccionado = puntoDesdeDb;
+
+            if (resolvedModel.puntosDePago != null)
+            {
+                var index = resolvedModel.puntosDePago.FindIndex(x => x != null && x.id == puntoDesdeDb.id);
+                if (index >= 0)
+                {
+                    resolvedModel.puntosDePago[index] = puntoDesdeDb;
+                }
+            }
+
+            SessionContextHelper.ApplyOperationalContext(session, resolvedModel);
+            return puntoDesdeDb;
         }
 
         public static string ResolvePrinterName(HttpSessionState session, MenuViewModels model = null)

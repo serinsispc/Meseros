@@ -60,6 +60,20 @@ namespace DAL
             }
         }
 
+        public async Task<List<T>> EjecutarSQLLista<T>(string db, string sql)
+            where T : class, new()
+        {
+            using (var cn = new Conection_SQL(db))
+            {
+                string json = await cn.EjecutarConsulta(sql, true);
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return new List<T>();
+
+                return JsonConvert.DeserializeObject<List<T>>(json) ?? new List<T>();
+            }
+        }
+
         public async Task<T> EjecutarSQLObjeto<T>(string db, string sql) where T : class, new()
         {
             using (var cn = new Conection_SQL(db))

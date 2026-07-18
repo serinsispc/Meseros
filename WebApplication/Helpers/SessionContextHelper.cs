@@ -75,6 +75,16 @@ namespace WebApplication.Helpers
             session[ModelsJsonAltKey] = json;
         }
 
+        public static void SaveModelsReferenceOnly(HttpSessionState session, MenuViewModels model)
+        {
+            if (session == null || model == null)
+            {
+                return;
+            }
+
+            session[ModelsKey] = model;
+        }
+
         public static void ApplyOperationalContext(HttpSessionState session, MenuViewModels model)
         {
             if (session == null || model == null)

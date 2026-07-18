@@ -14,7 +14,16 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x => x.idvendedor == idvendedor && x.numeroVenta == 0 && x.eliminada == false);
+                var sql = $@"
+SELECT id, aliasVenta, efectivoVenta, numeroVenta, eliminada, total, idbase, idusuario, numbreUnuario,
+       idvendedor, nombrevendedor, idcliente, nombrecliente, idVehiculo, placa, responsable,
+       telefonoResponsable, nombremesa, nombreCD
+FROM V_CuentasVenta
+WHERE idvendedor = {idvendedor}
+  AND numeroVenta = 0
+  AND eliminada = 0
+ORDER BY id DESC;";
+                var resp = await cn.EjecutarSQLLista<V_CuentasVenta>(db, sql);
                 return resp;
             }
             catch (Exception ex)
@@ -29,8 +38,30 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                var resp = await cn.ConsultarLista<V_CuentasVenta>(db, x => x.numeroVenta == 0 && x.eliminada == false);
+                var sql = @"
+SELECT id, aliasVenta, efectivoVenta, numeroVenta, eliminada, total, idbase, idusuario, numbreUnuario,
+       idvendedor, nombrevendedor, idcliente, nombrecliente, idVehiculo, placa, responsable,
+       telefonoResponsable, nombremesa, nombreCD
+FROM V_CuentasVenta
+WHERE numeroVenta = 0
+  AND eliminada = 0
+ORDER BY id DESC;";
+                var resp = await cn.EjecutarSQLLista<V_CuentasVenta>(db, sql);
                 return resp;
+            }
+            catch (Exception ex)
+            {
+                string msg = ex.Message;
+                return null;
+            }
+        }
+
+        public static async Task<V_CuentasVenta> Consultar_Id(string db, int idVenta)
+        {
+            try
+            {
+                var cn = new SqlAutoDAL();
+                return await cn.ConsultarUno<V_CuentasVenta>(db, x => x.id == idVenta);
             }
             catch (Exception ex)
             {

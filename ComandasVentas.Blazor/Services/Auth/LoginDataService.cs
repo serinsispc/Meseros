@@ -183,10 +183,8 @@ public sealed class LoginDataService(IConfiguration configuration)
             var baseNueva = new BaseCajaCrudPayload
             {
                 id = 0,
-                fechaApertura = DateTime.Now,
                 idUsuarioApertura = usuarioCaja.IdUsuario,
                 valorBase = valorBase,
-                fechaCierre = DateTime.Now,
                 idUsuarioCierre = usuarioCaja.IdUsuario,
                 estadoBase = "ACTIVA",
                 idSedeBAse = sede?.Id ?? 1
@@ -254,10 +252,8 @@ public sealed class LoginDataService(IConfiguration configuration)
             var baseActualizada = new BaseCajaCrudPayload
             {
                 id = baseCaja.Id,
-                fechaApertura = baseCaja.FechaApertura,
                 idUsuarioApertura = baseCaja.IdUsuarioApertura,
                 valorBase = baseCaja.ValorBase,
-                fechaCierre = DateTime.Now,
                 idUsuarioCierre = vendedor?.Id ?? baseCaja.IdUsuarioCierre ?? baseCaja.IdUsuarioApertura,
                 estadoBase = "CERRADA",
                 idSedeBAse = baseCaja.IdSedeBase
@@ -655,7 +651,7 @@ public sealed class LoginDataService(IConfiguration configuration)
     private sealed class BaseCajaCrudPayload
     {
         public int id { get; init; }
-        public DateTime fechaApertura { get; init; }
+        public DateTime? fechaApertura { get; init; }
         public int idUsuarioApertura { get; init; }
         public decimal valorBase { get; init; }
         public DateTime? fechaCierre { get; init; }

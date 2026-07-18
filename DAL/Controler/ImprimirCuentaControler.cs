@@ -1,6 +1,8 @@
 ﻿using DAL;
 using DAL.Model;
 using System;
+using System.Data;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace DAL.Controler
@@ -16,6 +18,11 @@ namespace DAL.Controler
         {
             try
             {
+                if (boton == 0)
+                {
+                    return await InsertAsync(db, cuenta).ConfigureAwait(false);
+                }
+
                 var helper = new CrudSpHelper();
 
                 // Llama al helper genérico que construye:
@@ -37,6 +44,33 @@ namespace DAL.Controler
                     data = 0,
                     estado = false,
                     mensaje = "Error en CRUD_ImprimirCuenta: " + msg
+                };
+            }
+        }
+
+        private static async Task<Respuesta_DAL> InsertAsync(string db, ImprimirCuenta cuenta)
+        {
+            using (var connection = new SqlConnection(RuntimeSettings.BuildSqlConnectionString(db)))
+            using (var command = new SqlCommand(@"
+INSERT INTO dbo.ImprimirCuenta (idVenta, namePrinter, ancho)
+VALUES (@idVenta, @namePrinter, @ancho);
+SELECT CAST(SCOPE_IDENTITY() AS int);", connection))
+            {
+                command.Parameters.Add("@idVenta", SqlDbType.Int).Value = cuenta.idVenta;
+                command.Parameters.Add("@namePrinter", SqlDbType.NVarChar, 500).Value =
+                    string.IsNullOrWhiteSpace(cuenta.namePrinter)
+                        ? (object)DBNull.Value
+                        : cuenta.namePrinter.Trim();
+                command.Parameters.Add("@ancho", SqlDbType.Int).Value = cuenta.ancho;
+
+                await connection.OpenAsync().ConfigureAwait(false);
+                var id = Convert.ToInt32(await command.ExecuteScalarAsync().ConfigureAwait(false));
+
+                return new Respuesta_DAL
+                {
+                    data = id,
+                    estado = id > 0,
+                    mensaje = id > 0 ? "Cuenta enviada correctamente." : "No se pudo encolar la cuenta."
                 };
             }
         }

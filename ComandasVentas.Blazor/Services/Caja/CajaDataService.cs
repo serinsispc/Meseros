@@ -512,11 +512,10 @@ public sealed class CajaDataService(IConfiguration configuration)
         const string sql = """
             INSERT INTO CuentaCliente (fecha, idVenta, nombreCuenta, preCuenta, eliminada, por_propina, propina)
             OUTPUT INSERTED.id
-            VALUES (@fecha, @idVenta, @nombreCuenta, 0, 0, @porPropina, 0)
+            VALUES (SYSDATETIME(), @idVenta, @nombreCuenta, 0, 0, @porPropina, 0)
             """;
 
         await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@fecha", DateTime.Now);
         command.Parameters.AddWithValue("@idVenta", idVenta);
         command.Parameters.AddWithValue("@nombreCuenta", nombreCuenta);
         command.Parameters.AddWithValue("@porPropina", (sede?.PorcentajePropina ?? 0) / 100m);
@@ -737,7 +736,7 @@ public sealed class CajaDataService(IConfiguration configuration)
             OUTPUT INSERTED.id
             VALUES
             (
-                @fechaVenta,
+                NULL,
                 0,
                 0,
                 0,
@@ -763,7 +762,6 @@ public sealed class CajaDataService(IConfiguration configuration)
             """;
 
         await using var command = new SqlCommand(insertVentaSql, connection, (SqlTransaction)transaction);
-        command.Parameters.AddWithValue("@fechaVenta", DateTime.Now);
         command.Parameters.AddWithValue("@idSede", sede?.Id ?? 0);
         command.Parameters.AddWithValue("@guidVenta", Guid.NewGuid());
         command.Parameters.AddWithValue("@idBaseCaja", baseCaja?.Id ?? 0);

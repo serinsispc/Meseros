@@ -166,8 +166,8 @@
 
                                         <td><span class="hv-badge gray"><i class="bi bi-hash"></i><%# Item.aliasVenta %></span></td>
                                         <td>
-                                            <div class="fw-bold"><%# Item.fechaVenta.ToShortDateString() %></div>
-                                            <div class="hv-muted"><%# Item.fechaVenta.ToShortTimeString() %></div>
+                                            <div class="fw-bold"><%# Item.fechaVenta.Year > 1900 ? Item.fechaVenta.ToShortDateString() : "Pendiente" %></div>
+                                            <div class="hv-muted"><%# Item.fechaVenta.Year > 1900 ? Item.fechaVenta.ToShortTimeString() : "--" %></div>
                                         </td>
                                         <td>
                                             <div class="fw-bold"><%# Item.prefijo %>-<%# Item.numeroVenta %></div>
@@ -307,7 +307,7 @@
                         <div class="col-md-3">
                             <div class="hv-muted mb-1">Fecha</div>
                             <div class="fw-bold" id="hvDetalleFecha">
-                                <%: venta != null ? venta.fechaVenta.ToShortDateString() + " - " + venta.fechaVenta.ToShortTimeString() : "" %>
+                                <%: venta != null ? (venta.fechaVenta.Year > 1900 ? venta.fechaVenta.ToShortDateString() + " - " + venta.fechaVenta.ToShortTimeString() : "Pendiente") : "" %>
                             </div>
                         </div>
                         <div class="col-md-3">

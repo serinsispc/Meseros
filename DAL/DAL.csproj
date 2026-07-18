@@ -135,6 +135,7 @@
     <Compile Include="Controler\type_regimesControler.cs" />
     <Compile Include="Controler\tax_detailsControler.cs" />
     <Compile Include="Controler\V_CorreosClienteControler.cs" />
+    <Compile Include="Controler\V_PreciosControler.cs" />
     <Compile Include="Controler\V_R_PermisoCajeroControler.cs" />
     <Compile Include="Controler\V_MunicipiosControler.cs" />
     <Compile Include="Controler\VendedorControler.cs" />
@@ -203,6 +204,7 @@
     <Compile Include="Model\type_regimes.cs" />
     <Compile Include="Model\tax_details.cs" />
     <Compile Include="Model\V_CorreosCliente.cs" />
+    <Compile Include="Model\V_Precios.cs" />
     <Compile Include="Model\V_DetalleComandas.cs" />
     <Compile Include="Model\V_Municipios.cs" />
     <Compile Include="Model\Vendedor.cs" />

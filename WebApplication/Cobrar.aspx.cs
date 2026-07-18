@@ -31,6 +31,16 @@ namespace WebApplication
         private const string SessionIdVendedorKey = "idvendedor";
         private const string SessionTipoVentaCobroKey = "cobro_tipo_venta";
         private const string SessionFacturaElectronicaKey = "fe";
+        private const string SessionCobrarMediosPagoKey = "Cobrar_MediosPago";
+        private const string SessionCobrarTiposDocumentoKey = "Cobrar_TiposDocumento";
+        private const string SessionCobrarTiposOrganizacionKey = "Cobrar_TiposOrganizacion";
+        private const string SessionCobrarMunicipiosKey = "Cobrar_Municipios";
+        private const string SessionCobrarTiposRegimenKey = "Cobrar_TiposRegimen";
+        private const string SessionCobrarTiposResponsabilidadKey = "Cobrar_TiposResponsabilidad";
+        private const string SessionCobrarDetallesImpuestoKey = "Cobrar_DetallesImpuesto";
+        private const string SessionCajaMesasKey = "Caja_Mesas";
+        private const string SessionCobrarClientesKey = "Cobrar_Clientes";
+        private const string SessionCobrarRelMediosInternosKey = "Cobrar_RelMediosInternos";
         #endregion
 
         private List<type_document_identifications> _tiposDocumento;
@@ -104,20 +114,47 @@ namespace WebApplication
 
         private async Task InicializarPantalla()
         {
-            await CargarMediosPago();
-            await btnSeleccionarPagoInterno("1|10");
-            await CargarTiposDocumento();
-            await CargarTiposOrganizacion();
-            await CargarMunicipios();
-            await CargarTiposRegimen();
-            await CargarTiposResponsabilidad();
-            await CargarDetallesImpuesto();
-            await CargarClientesModal();
+            var mediosPagoTask = ObtenerMediosPagoAsync();
+            var tiposDocumentoTask = ObtenerTiposDocumentoAsync();
+            var tiposOrganizacionTask = ObtenerTiposOrganizacionAsync();
+            var municipiosTask = ObtenerMunicipiosAsync();
+            var tiposRegimenTask = ObtenerTiposRegimenAsync();
+            var tiposResponsabilidadTask = ObtenerTiposResponsabilidadAsync();
+            var detallesImpuestoTask = ObtenerDetallesImpuestoAsync();
+            var clientesTask = ObtenerClientesCobroAsync();
+            var cargoDescuentoTask = CargoDescuentoVentasControler.ObtenerPorVenta(DbActual, ModelSesion.venta.id);
+            var ventaTask = V_TablaVentasControler.Consultar_Id(DbActual, ModelSesion.venta.id);
+            var relMediosInternosTask = ObtenerRelMediosInternosAsync();
 
-            ModelSesion.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(DbActual, ModelSesion.venta.id);
+            await Task.WhenAll(
+                mediosPagoTask,
+                tiposDocumentoTask,
+                tiposOrganizacionTask,
+                municipiosTask,
+                tiposRegimenTask,
+                tiposResponsabilidadTask,
+                detallesImpuestoTask,
+                clientesTask,
+                cargoDescuentoTask,
+                ventaTask,
+                relMediosInternosTask);
+
+            BindMediosPago(mediosPagoTask.Result ?? new List<payment_methods>());
+            _tiposDocumento = tiposDocumentoTask.Result ?? new List<type_document_identifications>();
+            BindTiposDocumento(_tiposDocumento);
+            BindTiposOrganizacion(tiposOrganizacionTask.Result ?? new List<type_organizations>());
+            BindMunicipios(municipiosTask.Result ?? new List<V_Municipios>());
+            BindTiposRegimen(tiposRegimenTask.Result ?? new List<type_regimes>());
+            BindTiposResponsabilidad(tiposResponsabilidadTask.Result ?? new List<type_liabilities>());
+            BindDetallesImpuesto(detallesImpuestoTask.Result ?? new List<tax_details>());
+
+            ModelSesion.clientes = clientesTask.Result ?? new List<Clientes>();
+            BindClientesModal();
+
+            ModelSesion.cargoDescuentoVentas = cargoDescuentoTask.Result;
             await SincronizarPropinaDesdeVista();
 
-            ModelSesion.venta = await V_TablaVentasControler.Consultar_Id(DbActual, ModelSesion.venta.id) ?? ModelSesion.venta;
+            ModelSesion.venta = ventaTask.Result ?? ModelSesion.venta;
             var descuento = (ModelSesion.cargoDescuentoVentas ?? new List<CargoDescuentoVentas>()).FirstOrDefault(x => x.tipo == false);
             Session["descuento_valor"] = descuento?.valor ?? 0;
             Session["descuento_razon"] = descuento?.razon ?? "";
@@ -127,8 +164,8 @@ namespace WebApplication
             Session["propina_pct"] = Convert.ToInt32(Math.Round((ModelSesion.venta?.por_propina ?? 0m) * 100m, 0));
 
             CargarDatosVenta();
-            await CargarRelMediosInternos();
-            await AsegurarPagoJsonInicial();
+            hfRelMediosInternos.Value = JsonConvert.SerializeObject(relMediosInternosTask.Result ?? new List<V_R_MediosDePago_MediosDePagoInternos>());
+            await AsegurarPagoJsonInicial(true);
 
             var clienteIdInicial = await ObtenerClienteSeleccionadoIdAsync();
             var cliente = clienteIdInicial > 0
@@ -371,22 +408,12 @@ namespace WebApplication
 
                 if (payload.idFormaDePago != 2)
                 {
-                    if (Session["PagoVentaJSON"] == null)
-                    {
-                        await AsegurarPagoJsonInicial();
-                    }
-
-                    if (Session["PagoVentaJSON"] == null)
+                    Pagos = await ObtenerPagosCobroAsync(payload.idMetodoPago);
+                    if (Pagos.Count == 0)
                     {
                         AlertModerno.Warning(this, "Atención", "No se especificó el medio de pago.", true, 2000);
                         return;
                     }
-
-                    string pagojson = Session["PagoVentaJSON"]?.ToString() ?? "";
-                    if (!pagojson.Contains("[") && !pagojson.Contains("]"))
-                        pagojson = $"[{pagojson}]";
-
-                    Pagos = JsonConvert.DeserializeObject<List<PagosVenta>>(pagojson) ?? new List<PagosVenta>();
 
                     abonoEfectivo = Pagos.Where(x => x.payment_methods_id == 10).Sum(x => x.valorPago);
                     abonoBanco = Pagos.Where(x => x.payment_methods_id != 10).Sum(x => x.valorPago);
@@ -485,8 +512,8 @@ namespace WebApplication
                 // ==========================================================
                 var venta = await TablaVentasControler.ConsultarIdVenta(db, ModelSesion.IdCuentaActiva);
 
-                venta.fechaVenta = DateTime.Now;
                 venta.numeroVenta = await TablaVentasControler.Consecutivo(db, resolucion.idResolucion);
+                venta.fechaVenta = DateTime.Now;
 
                 venta.descuentoVenta = ModelSesion.venta.descuentoVenta;
                 venta.efectivoVenta = ModelSesion.venta.efectivoVenta;
@@ -494,12 +521,13 @@ namespace WebApplication
 
                 venta.estadoVenta = "CANCELADO";
 
-                // ?? OJO: mantengo tu lógica: FirstOrDefault() como estaba
+                var pagoPrincipal = Pagos.FirstOrDefault();
+
                 venta.numeroReferenciaPago = payload.idFormaDePago == 2
                     ? "-"
                     : await MediosDePagoInternos_Controler.ConsultarReferencia(
                         db,
-                        Pagos.FirstOrDefault().idMedioDePagointerno
+                        pagoPrincipal != null ? pagoPrincipal.idMedioDePagointerno : 0
                     );
 
                 venta.diasCredito = payload.idFormaDePago == 2
@@ -515,7 +543,7 @@ namespace WebApplication
 
                 venta.idMedioDePago = payload.idFormaDePago == 2
                     ? 0
-                    : Pagos.FirstOrDefault().payment_methods_id;
+                    : (payload.idMetodoPago > 0 ? payload.idMetodoPago : (pagoPrincipal != null ? pagoPrincipal.payment_methods_id : 0));
                 venta.idResolucion = resolucion.idResolucion;
                 venta.idFormaDePago = payload.idFormaDePago == 2 ? 2 : 1;
 
@@ -533,6 +561,7 @@ namespace WebApplication
                 venta.aliasVenta = ModelSesion.venta.aliasVenta;
                 venta.porpropina = ModelSesion.venta.por_propina;
                 venta.eliminada = ModelSesion.venta.eliminada;
+                ModelSesion.venta.fechaVenta = venta.fechaVenta;
 
                 // ==========================================================
                 // 8) Guardar venta
@@ -560,10 +589,11 @@ namespace WebApplication
 
                 if (payload.idFormaDePago != 2 && Pagos.Count > 0)
                 {
-                    bool respPagos = await PagosVenta_controler.CRUD(db, Pagos, 0);
+                    bool respPagos = await GuardarPagosVentaDirectoAsync(db, ModelSesion.IdCuentaActiva, Pagos);
                     if (!respPagos)
                     {
-
+                        AlertModerno.Error(this, "Error", "No fue posible registrar los pagos internos en la tabla PagosVenta.", true, 2200);
+                        return;
                     }
                 }
 
@@ -625,29 +655,23 @@ namespace WebApplication
                 //cargamos orden para abrir el cajon
                 var respCajon = await AperturarCajonRequestHelper.EnviarAsync(Session["db"].ToString(), Session, ModelSesion);
 
-                //antes de terminar liberamos las mesas que est\u00e1n ancladas a esta cuenta
-                var relaciones = await R_VentaMesaControler.ListaRelacion(db,venta.id);
-                if (relaciones.Count > 0)
-                {
-                    foreach (var rec in relaciones) 
-                    {
-                        //recorremos la lista de las relaciones y vamos liberando las mesas
-                        var mesa = await MesasControler.Consultar_id(db,rec.idMesa);
-                        if (mesa != null)
-                        {
-                            mesa.estadoMesa = 0;
-                            var respCRUD = await MesasControler.CRUD(db,mesa,1);
-                        }
-                    }
-                }
+                var liberacionMesas = await LiberarMesasDeLaVenta(db, venta.id);
 
                 // ==========================================================
                 // 12) Final OK
                 // ==========================================================
                 Session[SessionFacturaElectronicaKey] = false;
                 hfFacturaElectronica.Value = "false";
+                Session.Remove(SessionCajaMesasKey);
 
-                AlertModerno.Success(this, "OK", "Datos de cobro recibidos correctamente.", true, 1200);
+                if (liberacionMesas.estado)
+                {
+                    AlertModerno.Success(this, "OK", "Datos de cobro recibidos correctamente.", true, 1200);
+                }
+                else
+                {
+                    AlertModerno.Warning(this, "Atenci\u00f3n", $"El cobro fue registrado, pero hubo novedades al liberar la mesa: {liberacionMesas.mensaje}", true, 2200);
+                }
 
                 ScriptManager.RegisterStartupScript(
                     this,
@@ -670,6 +694,42 @@ namespace WebApplication
             await Task.CompletedTask;
         }
 
+        private async Task<(bool estado, string mensaje)> LiberarMesasDeLaVenta(string db, int idVenta)
+        {
+            var relaciones = await R_VentaMesaControler.ListaRelacion(db, idVenta) ?? new List<R_VentaMesa>();
+            if (relaciones.Count == 0)
+            {
+                return (true, string.Empty);
+            }
+
+            foreach (var relacion in relaciones)
+            {
+                if (relacion == null)
+                {
+                    continue;
+                }
+
+                var mesa = await MesasControler.Consultar_id(db, relacion.idMesa);
+                if (mesa != null)
+                {
+                    mesa.estadoMesa = 0;
+                    var actualizarMesa = await MesasControler.CRUD(db, mesa, 1);
+                    if (!actualizarMesa.estado)
+                    {
+                        return (false, $"No fue posible liberar la mesa #{mesa.id}.");
+                    }
+                }
+
+                var eliminarRelacion = await R_VentaMesaControler.CRUD(db, relacion, 2);
+                if (!eliminarRelacion.estado)
+                {
+                    return (false, $"No fue posible eliminar la relaci\u00f3n de la venta #{idVenta} con la mesa #{relacion.idMesa}.");
+                }
+            }
+
+            return (true, string.Empty);
+        }
+
         public class GuardarCobroPayload
         {
             public int efectivo { get; set; }
@@ -678,6 +738,8 @@ namespace WebApplication
             public bool imprimirFactura { get; set; }
             public int idFormaDePago { get; set; }
             public bool esCredito { get; set; }
+            public int idMetodoPago { get; set; }
+            public int idVenta { get; set; }
         }
 
         private void GuardarModelsEnSesion()
@@ -934,7 +996,7 @@ namespace WebApplication
                     int.TryParse(respuesta.data.ToString(), out idClienteGuardado);
                 }
 
-                ModelSesion.clientes = await ClientesControler.ListaClientes(db);
+                ModelSesion.clientes = await ObtenerClientesCobroAsync(true);
                 await CargarClientesModal();
                 GuardarModelsEnSesion();
 
@@ -1268,23 +1330,18 @@ namespace WebApplication
                     }
                 }
 
-                //borramos los pagos que tenga el id venta
-                var pagosventas = await PagosVenta_controler.ConsultarListaPagos(Session["db"].ToString(), Models.IdCuentaActiva);
-                if (pagosventas.Count > 0)
+                if (idMedioInterno <= 0 || idMetodoPago <= 0)
                 {
-                    await PagosVenta_controler.CRUD(Session["db"].ToString(), pagosventas, 2);
+                    return;
                 }
 
-                var pagoventa = new PagosVenta { 
-                    id = 0, 
-                    idMedioDePagointerno = idMedioInterno, 
-                    idVenta = VentaActual.id, 
-                    payment_methods_id = idMetodoPago, 
-                    valorPago = Convert.ToInt32(VentaActual.total_A_Pagar) };
+                var pagoventa = CrearPagoVenta(
+                    VentaActual.id,
+                    idMedioInterno,
+                    idMetodoPago,
+                    Convert.ToDecimal(VentaActual.total_A_Pagar));
 
-                var pagosJSON = JsonConvert.SerializeObject(pagoventa);
-
-                Session["PagoVentaJSON"] = pagosJSON;
+                GuardarPagoVentaEnSesion(new List<PagosVenta> { pagoventa });
             }
             catch (Exception ex)
             {
@@ -1294,168 +1351,54 @@ namespace WebApplication
 
         private async Task CargarMediosPago()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            var payment_Methods = await payment_methodsControler.ListaMetodosDePago(db);
-
-            var listaActivos = (payment_Methods ?? new List<payment_methods>())
-                .Where(x => x != null && x.state)
-                .ToList();
-
-            ddlMedioPago.DataSource = listaActivos;
-            ddlMedioPago.DataTextField = "name";
-            ddlMedioPago.DataValueField = "id";
-            ddlMedioPago.DataBind();
-
-            // 1) Si la venta ya trae medio, resp\u00e9talo
-            if (VentaActual != null && VentaActual.idMedioDePago > 0)
-            {
-                var valor = VentaActual.idMedioDePago.ToString();
-                var item = ddlMedioPago.Items.FindByValue(valor);
-                if (item != null)
-                {
-                    ddlMedioPago.ClearSelection();
-                    item.Selected = true;
-                    return;
-                }
-            }
-
-            // 2) Si NO trae, dejar EFECTIVO como predeterminado (por texto)
-            var efectivoItem = ddlMedioPago.Items.Cast<System.Web.UI.WebControls.ListItem>()
-                .FirstOrDefault(i => (i.Text ?? "").Trim().ToLower().Contains("efectivo"));
-
-            if (efectivoItem != null)
-            {
-                ddlMedioPago.ClearSelection();
-                efectivoItem.Selected = true;
-                return;
-            }
-
-            // 3) Fallback: primer item
-            if (ddlMedioPago.Items.Count > 0)
-                ddlMedioPago.SelectedIndex = 0;
+            BindMediosPago(await ObtenerMediosPagoAsync());
         }
 
         private async Task CargarTiposDocumento()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            _tiposDocumento = await type_document_identificationsControler.ListaTiposDocumento(db);
-
-            ddlTipoDocumento.DataSource = _tiposDocumento;
-            ddlTipoDocumento.DataTextField = "name";
-            ddlTipoDocumento.DataValueField = "id";
-            ddlTipoDocumento.DataBind();
-
-            if (ddlTipoDocumento.Items.Count == 0)
-            {
-                ddlTipoDocumento.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
-            }
+            _tiposDocumento = await ObtenerTiposDocumentoAsync();
+            BindTiposDocumento(_tiposDocumento);
         }
 
         private async Task CargarMunicipios()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            var municipios = await V_MunicipiosControler.ListaMunicipios(db);
-
-            ddlMunicipio.DataSource = municipios;
-            ddlMunicipio.DataTextField = "name";
-            ddlMunicipio.DataValueField = "idMunicipio";
-            ddlMunicipio.DataBind();
-
-            if (ddlMunicipio.Items.Count == 0)
-            {
-                ddlMunicipio.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
-            }
+            BindMunicipios(await ObtenerMunicipiosAsync());
         }
 
         private async Task CargarTiposRegimen()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            var tipos = await type_regimesControler.ListaTiposRegimen(db);
-
-            ddlTipoRegimen.DataSource = tipos;
-            ddlTipoRegimen.DataTextField = "name";
-            ddlTipoRegimen.DataValueField = "id";
-            ddlTipoRegimen.DataBind();
-
-            if (ddlTipoRegimen.Items.Count == 0)
-            {
-                ddlTipoRegimen.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
-            }
+            BindTiposRegimen(await ObtenerTiposRegimenAsync());
         }
 
         private async Task CargarTiposResponsabilidad()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            var tipos = await type_liabilitiesControler.ListaTiposResponsabilidad(db);
-
-            ddlTipoResponsabilidad.DataSource = tipos;
-            ddlTipoResponsabilidad.DataTextField = "name";
-            ddlTipoResponsabilidad.DataValueField = "id";
-            ddlTipoResponsabilidad.DataBind();
-
-            if (ddlTipoResponsabilidad.Items.Count == 0)
-            {
-                ddlTipoResponsabilidad.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
-            }
+            BindTiposResponsabilidad(await ObtenerTiposResponsabilidadAsync());
         }
 
         private async Task CargarDetallesImpuesto()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            var detalles = await tax_detailsControler.ListaDetallesImpuesto(db);
-
-            ddlDetalleImpuesto.DataSource = detalles;
-            ddlDetalleImpuesto.DataTextField = "name";
-            ddlDetalleImpuesto.DataValueField = "id";
-            ddlDetalleImpuesto.DataBind();
-
-            if (ddlDetalleImpuesto.Items.Count == 0)
-            {
-                ddlDetalleImpuesto.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
-            }
+            BindDetallesImpuesto(await ObtenerDetallesImpuestoAsync());
         }
 
         private async Task CargarTiposOrganizacion()
         {
-            var db = Session["db"]?.ToString();
-            if (string.IsNullOrWhiteSpace(db)) return;
-
-            var tipos = await type_organizationsControler.ListaTiposOrganizacion(db);
-
-            ddlTipoOrganizacion.DataSource = tipos;
-            ddlTipoOrganizacion.DataTextField = "name";
-            ddlTipoOrganizacion.DataValueField = "id";
-            ddlTipoOrganizacion.DataBind();
-
-            if (ddlTipoOrganizacion.Items.Count == 0)
-            {
-                ddlTipoOrganizacion.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
-            }
+            BindTiposOrganizacion(await ObtenerTiposOrganizacionAsync());
         }
 
         private async Task CargarClientesModal()
         {
-            var clientes = ModelSesion?.clientes ?? new List<Clientes>();
-
+            ModelSesion.clientes = await ObtenerClientesCobroAsync();
             if (_tiposDocumento == null)
             {
-                var db = Session["db"]?.ToString();
-                _tiposDocumento = string.IsNullOrWhiteSpace(db)
-                    ? new List<type_document_identifications>()
-                    : await type_document_identificationsControler.ListaTiposDocumento(db);
+                _tiposDocumento = await ObtenerTiposDocumentoAsync();
             }
+
+            BindClientesModal();
+        }
+
+        private void BindClientesModal()
+        {
+            var clientes = ModelSesion?.clientes ?? new List<Clientes>();
 
             var tipoDocumentoPorId = (_tiposDocumento ?? new List<type_document_identifications>())
                 .Where(t => t != null && t.id.HasValue)
@@ -1529,12 +1472,12 @@ namespace WebApplication
             public string MatriculaMercantil { get; set; }
         }
 
-        private Task btnGuardarPagoMixto(string eventArgument)
+        private async Task btnGuardarPagoMixto(string eventArgument)
         {
             try
             {
-                if (VentaActual == null) return Task.CompletedTask;
-                if (string.IsNullOrWhiteSpace(eventArgument)) return Task.CompletedTask;
+                if (VentaActual == null) return;
+                if (string.IsNullOrWhiteSpace(eventArgument)) return;
 
                 string json;
                 try
@@ -1548,7 +1491,7 @@ namespace WebApplication
                 }
 
                 var payload = JsonConvert.DeserializeObject<PagoMixtoPayload>(json);
-                if (payload?.pagos == null || payload.pagos.Count == 0) return Task.CompletedTask;
+                if (payload?.pagos == null || payload.pagos.Count == 0) return;
 
                 int idMetodoPago = payload.idMetodoPago;
 
@@ -1577,39 +1520,38 @@ namespace WebApplication
                     });
                 }
 
-                if (listaPagos.Count == 0) return Task.CompletedTask;
+                if (listaPagos.Count == 0) return;
 
                 decimal totalAPagar = Convert.ToDecimal(VentaActual.total_A_Pagar);
                 decimal saldo = totalAPagar - sumaInternos;
                 if (saldo < 0) saldo = 0;
 
-                int idMedioInternoEfectivo = 0;
-                if (Session["idMedioInternoEfectivo"] != null)
-                    int.TryParse(Session["idMedioInternoEfectivo"].ToString(), out idMedioInternoEfectivo);
-
                 if (saldo > 0)
                 {
+                    var idMedioInternoSaldo = await ObtenerIdMedioInternoPorMetodoAsync(idMetodoPago);
+                    if (idMedioInternoSaldo <= 0)
+                    {
+                        return;
+                    }
+
                     Session["saldo"] = Convert.ToInt32(Math.Round(saldo));
                     listaPagos.Add(new PagosVenta
                     {
                         id = 0,
-                        idMedioDePagointerno = 1,
+                        idMedioDePagointerno = idMedioInternoSaldo,
                         idVenta = VentaActual.id,
                         payment_methods_id = idMetodoPago,
                         valorPago = Convert.ToInt32(Math.Round(saldo))
                     });
                 }
 
-                var pagosJSON = JsonConvert.SerializeObject(listaPagos);
-
-                Session["PagoVentaJSON"] = pagosJSON;
-
-                return Task.CompletedTask;
+                GuardarPagoVentaEnSesion(listaPagos);
+                return;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Error btnGuardarPagoMixto: " + ex.Message);
-                return Task.CompletedTask;
+                return;
             }
         }
 
@@ -1655,49 +1597,421 @@ namespace WebApplication
 
         private async Task CargarRelMediosInternos()
         {
-            List<V_R_MediosDePago_MediosDePagoInternos> rel =
-                await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(DbActual);
-
-            hfRelMediosInternos.Value = JsonConvert.SerializeObject(rel ?? new List<V_R_MediosDePago_MediosDePagoInternos>());
+            hfRelMediosInternos.Value = JsonConvert.SerializeObject(await ObtenerRelMediosInternosAsync());
         }
 
-        private async Task AsegurarPagoJsonInicial()
+        private async Task<List<payment_methods>> ObtenerMediosPagoAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarMediosPagoKey] is List<payment_methods> cache)
+            {
+                return cache;
+            }
+
+            var lista = await payment_methodsControler.ListaMetodosDePago(DbActual) ?? new List<payment_methods>();
+            Session[SessionCobrarMediosPagoKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_document_identifications>> ObtenerTiposDocumentoAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarTiposDocumentoKey] is List<type_document_identifications> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_document_identificationsControler.ListaTiposDocumento(DbActual) ?? new List<type_document_identifications>();
+            Session[SessionCobrarTiposDocumentoKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_organizations>> ObtenerTiposOrganizacionAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarTiposOrganizacionKey] is List<type_organizations> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_organizationsControler.ListaTiposOrganizacion(DbActual) ?? new List<type_organizations>();
+            Session[SessionCobrarTiposOrganizacionKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<V_Municipios>> ObtenerMunicipiosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarMunicipiosKey] is List<V_Municipios> cache)
+            {
+                return cache;
+            }
+
+            var lista = await V_MunicipiosControler.ListaMunicipios(DbActual) ?? new List<V_Municipios>();
+            Session[SessionCobrarMunicipiosKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_regimes>> ObtenerTiposRegimenAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarTiposRegimenKey] is List<type_regimes> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_regimesControler.ListaTiposRegimen(DbActual) ?? new List<type_regimes>();
+            Session[SessionCobrarTiposRegimenKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<type_liabilities>> ObtenerTiposResponsabilidadAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarTiposResponsabilidadKey] is List<type_liabilities> cache)
+            {
+                return cache;
+            }
+
+            var lista = await type_liabilitiesControler.ListaTiposResponsabilidad(DbActual) ?? new List<type_liabilities>();
+            Session[SessionCobrarTiposResponsabilidadKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<tax_details>> ObtenerDetallesImpuestoAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarDetallesImpuestoKey] is List<tax_details> cache)
+            {
+                return cache;
+            }
+
+            var lista = await tax_detailsControler.ListaDetallesImpuesto(DbActual) ?? new List<tax_details>();
+            Session[SessionCobrarDetallesImpuestoKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<Clientes>> ObtenerClientesCobroAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && ModelSesion?.clientes != null && ModelSesion.clientes.Any())
+            {
+                return ModelSesion.clientes;
+            }
+
+            if (!forceRefresh && Session[SessionCobrarClientesKey] is List<Clientes> cache)
+            {
+                return cache;
+            }
+
+            var lista = await ClientesControler.ListaClientes(DbActual) ?? new List<Clientes>();
+            Session[SessionCobrarClientesKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<V_R_MediosDePago_MediosDePagoInternos>> ObtenerRelMediosInternosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCobrarRelMediosInternosKey] is List<V_R_MediosDePago_MediosDePagoInternos> cache)
+            {
+                return cache;
+            }
+
+            var lista = await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(DbActual) ?? new List<V_R_MediosDePago_MediosDePagoInternos>();
+            Session[SessionCobrarRelMediosInternosKey] = lista;
+            return lista;
+        }
+
+        private void BindMediosPago(List<payment_methods> paymentMethods)
+        {
+            var listaActivos = (paymentMethods ?? new List<payment_methods>())
+                .Where(x => x != null && x.state)
+                .ToList();
+
+            ddlMedioPago.DataSource = listaActivos;
+            ddlMedioPago.DataTextField = "name";
+            ddlMedioPago.DataValueField = "id";
+            ddlMedioPago.DataBind();
+
+            if (VentaActual != null && VentaActual.idMedioDePago > 0)
+            {
+                var valor = VentaActual.idMedioDePago.ToString();
+                var item = ddlMedioPago.Items.FindByValue(valor);
+                if (item != null)
+                {
+                    ddlMedioPago.ClearSelection();
+                    item.Selected = true;
+                    return;
+                }
+            }
+
+            var efectivoItem = ddlMedioPago.Items.Cast<System.Web.UI.WebControls.ListItem>()
+                .FirstOrDefault(i => (i.Text ?? "").Trim().ToLower().Contains("efectivo"));
+
+            if (efectivoItem != null)
+            {
+                ddlMedioPago.ClearSelection();
+                efectivoItem.Selected = true;
+                return;
+            }
+
+            if (ddlMedioPago.Items.Count > 0)
+            {
+                ddlMedioPago.SelectedIndex = 0;
+            }
+        }
+
+        private void BindTiposDocumento(List<type_document_identifications> tipos)
+        {
+            ddlTipoDocumento.DataSource = tipos;
+            ddlTipoDocumento.DataTextField = "name";
+            ddlTipoDocumento.DataValueField = "id";
+            ddlTipoDocumento.DataBind();
+
+            if (ddlTipoDocumento.Items.Count == 0)
+            {
+                ddlTipoDocumento.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private void BindMunicipios(List<V_Municipios> municipios)
+        {
+            ddlMunicipio.DataSource = municipios;
+            ddlMunicipio.DataTextField = "name";
+            ddlMunicipio.DataValueField = "idMunicipio";
+            ddlMunicipio.DataBind();
+
+            if (ddlMunicipio.Items.Count == 0)
+            {
+                ddlMunicipio.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private void BindTiposRegimen(List<type_regimes> tipos)
+        {
+            ddlTipoRegimen.DataSource = tipos;
+            ddlTipoRegimen.DataTextField = "name";
+            ddlTipoRegimen.DataValueField = "id";
+            ddlTipoRegimen.DataBind();
+
+            if (ddlTipoRegimen.Items.Count == 0)
+            {
+                ddlTipoRegimen.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private void BindTiposResponsabilidad(List<type_liabilities> tipos)
+        {
+            ddlTipoResponsabilidad.DataSource = tipos;
+            ddlTipoResponsabilidad.DataTextField = "name";
+            ddlTipoResponsabilidad.DataValueField = "id";
+            ddlTipoResponsabilidad.DataBind();
+
+            if (ddlTipoResponsabilidad.Items.Count == 0)
+            {
+                ddlTipoResponsabilidad.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private void BindDetallesImpuesto(List<tax_details> detalles)
+        {
+            ddlDetalleImpuesto.DataSource = detalles;
+            ddlDetalleImpuesto.DataTextField = "name";
+            ddlDetalleImpuesto.DataValueField = "id";
+            ddlDetalleImpuesto.DataBind();
+
+            if (ddlDetalleImpuesto.Items.Count == 0)
+            {
+                ddlDetalleImpuesto.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private void BindTiposOrganizacion(List<type_organizations> tipos)
+        {
+            ddlTipoOrganizacion.DataSource = tipos;
+            ddlTipoOrganizacion.DataTextField = "name";
+            ddlTipoOrganizacion.DataValueField = "id";
+            ddlTipoOrganizacion.DataBind();
+
+            if (ddlTipoOrganizacion.Items.Count == 0)
+            {
+                ddlTipoOrganizacion.Items.Add(new System.Web.UI.WebControls.ListItem("Sin datos", ""));
+            }
+        }
+
+        private async Task AsegurarPagoJsonInicial(bool forceRefresh = false)
         {
             try
             {
                 if (VentaActual == null) return;
 
                 // Si ya existe, no hacer nada
-                if (Session["PagoVentaJSON"] != null) return;
+                if (!forceRefresh && Session["PagoVentaJSON"] != null) return;
 
                 int idMetodoPago = 0;
                 int.TryParse(ddlMedioPago.SelectedValue, out idMetodoPago);
                 if (idMetodoPago <= 0) return;
 
-                var rel = await V_R_MediosDePago_MediosDePagoInternosControler
-                    .GetAll(DbActual);
-
-                var r = (rel ?? new List<V_R_MediosDePago_MediosDePagoInternos>())
-                    .FirstOrDefault(x => x.idMedioDePago == idMetodoPago);
-
-                if (r == null) return;
-
-                int idMedioInterno = r.idMediosDePagoInternos;
+                int idMedioInterno = await ObtenerIdMedioInternoPorMetodoAsync(idMetodoPago);
                 if (idMedioInterno <= 0) return;
 
-                var pagoventa = new PagosVenta
-                {
-                    id = 0,
-                    idMedioDePagointerno = idMedioInterno,
-                    idVenta = VentaActual.id,
-                    payment_methods_id = idMetodoPago,
-                    valorPago = Convert.ToDecimal(VentaActual.total_A_Pagar)
-                };
+                var pagoventa = CrearPagoVenta(
+                    VentaActual.id,
+                    idMedioInterno,
+                    idMetodoPago,
+                    Convert.ToDecimal(VentaActual.total_A_Pagar));
 
-                Session["PagoVentaJSON"] = JsonConvert.SerializeObject(pagoventa);
+                GuardarPagoVentaEnSesion(new List<PagosVenta> { pagoventa });
             }
             catch
             {
+            }
+        }
+
+        private async Task<List<PagosVenta>> ObtenerPagosCobroAsync(int idMetodoPago)
+        {
+            if (VentaActual == null)
+            {
+                return new List<PagosVenta>();
+            }
+
+            if (idMetodoPago <= 0)
+            {
+                int.TryParse(ddlMedioPago.SelectedValue, out idMetodoPago);
+            }
+
+            var pagos = DeserializarPagosVenta(Session["PagoVentaJSON"]?.ToString())
+                .Where(x => x != null && x.idMedioDePagointerno > 0 && x.valorPago > 0)
+                .Select(x => new PagosVenta
+                {
+                    id = x.id,
+                    idVenta = VentaActual.id,
+                    idMedioDePagointerno = x.idMedioDePagointerno,
+                    payment_methods_id = x.payment_methods_id,
+                    valorPago = x.valorPago
+                })
+                .ToList();
+
+            if (idMetodoPago > 0 && pagos.Count > 0 && pagos.All(x => x.payment_methods_id != idMetodoPago))
+            {
+                pagos.Clear();
+            }
+
+            if (pagos.Count > 0)
+            {
+                return pagos;
+            }
+
+            await AsegurarPagoJsonInicial(true);
+
+            return DeserializarPagosVenta(Session["PagoVentaJSON"]?.ToString())
+                .Where(x => x != null && x.idMedioDePagointerno > 0 && x.valorPago > 0)
+                .Select(x => new PagosVenta
+                {
+                    id = x.id,
+                    idVenta = VentaActual.id,
+                    idMedioDePagointerno = x.idMedioDePagointerno,
+                    payment_methods_id = x.payment_methods_id,
+                    valorPago = x.valorPago
+                })
+                .ToList();
+        }
+
+        private List<PagosVenta> DeserializarPagosVenta(string pagojson)
+        {
+            if (string.IsNullOrWhiteSpace(pagojson))
+            {
+                return new List<PagosVenta>();
+            }
+
+            try
+            {
+                var trimmed = pagojson.Trim();
+                if (trimmed.StartsWith("["))
+                {
+                    return JsonConvert.DeserializeObject<List<PagosVenta>>(trimmed) ?? new List<PagosVenta>();
+                }
+
+                var item = JsonConvert.DeserializeObject<PagosVenta>(trimmed);
+                return item != null ? new List<PagosVenta> { item } : new List<PagosVenta>();
+            }
+            catch
+            {
+                return new List<PagosVenta>();
+            }
+        }
+
+        private void GuardarPagoVentaEnSesion(List<PagosVenta> pagos)
+        {
+            Session["PagoVentaJSON"] = JsonConvert.SerializeObject(pagos ?? new List<PagosVenta>());
+        }
+
+        private PagosVenta CrearPagoVenta(int idVenta, int idMedioInterno, int idMetodoPago, decimal valorPago)
+        {
+            return new PagosVenta
+            {
+                id = 0,
+                idVenta = idVenta,
+                idMedioDePagointerno = idMedioInterno,
+                payment_methods_id = idMetodoPago,
+                valorPago = valorPago
+            };
+        }
+
+        private async Task<int> ObtenerIdMedioInternoPorMetodoAsync(int idMetodoPago)
+        {
+            if (idMetodoPago <= 0)
+            {
+                return 0;
+            }
+
+            var rel = await ObtenerRelMediosInternosAsync();
+            return (rel ?? new List<V_R_MediosDePago_MediosDePagoInternos>())
+                .Where(x => x != null && x.idMedioDePago == idMetodoPago && x.idMediosDePagoInternos > 0)
+                .Select(x => x.idMediosDePagoInternos)
+                .FirstOrDefault();
+        }
+
+        private async Task<bool> GuardarPagosVentaDirectoAsync(string db, int idVenta, List<PagosVenta> pagos)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(db) || idVenta <= 0 || pagos == null || pagos.Count == 0)
+                {
+                    return false;
+                }
+
+                var pagosValidos = pagos
+                    .Where(x => x != null && x.idMedioDePagointerno > 0 && x.payment_methods_id > 0 && x.valorPago > 0)
+                    .ToList();
+
+                if (pagosValidos.Count == 0)
+                {
+                    return false;
+                }
+
+                var valores = string.Join(",",
+                    pagosValidos.Select(x =>
+                        string.Format(
+                            CultureInfo.InvariantCulture,
+                            "({0}, {1}, {2}, {3})",
+                            idVenta,
+                            x.idMedioDePagointerno,
+                            x.valorPago,
+                            x.payment_methods_id)));
+
+                var sql = $@"
+BEGIN TRY
+    BEGIN TRANSACTION;
+    DELETE FROM PagosVenta WHERE idVenta = {idVenta};
+    INSERT INTO PagosVenta (idVenta, idMedioDePagointerno, valorPago, payment_methods_id)
+    VALUES {valores};
+    COMMIT TRANSACTION;
+    SELECT CAST(1 AS bit) AS estado, 'OK' AS mensaje;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+    SELECT CAST(0 AS bit) AS estado, ERROR_MESSAGE() AS mensaje;
+END CATCH";
+
+                var dal = new SqlAutoDAL();
+                var resp = await dal.EjecutarSQLObjeto<RespuestaCRUD>(db, sql);
+                return resp != null && resp.estado;
+            }
+            catch
+            {
+                return false;
             }
         }
     }

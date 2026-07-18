@@ -325,7 +325,6 @@ WHERE id = {baseCaja.id}";
             var observacion = ObtenerArgumento(eventArgument, "OBS");
 
             baseCaja.estadoBase = "CERRADA";
-            baseCaja.fechaCierre = DateTime.Now;
             baseCaja.idUsuarioCierre = models.vendedor?.id;
 
             var resp = await BaseCajaControler.CRUD(db, baseCaja, 1);
@@ -543,7 +542,101 @@ WHERE id = {baseCaja.id}";
                         });
                     }
 
+                    if (DebeRecalcularPagosInternos(lista))
+                    {
+                        var recalculado = await RecalcularPagosInternosTurnoFallbackAsync();
+                        if (recalculado.Count > 0)
+                        {
+                            return recalculado;
+                        }
+                    }
+
                     return lista;
+                }
+            }
+            catch
+            {
+                return await RecalcularPagosInternosTurnoFallbackAsync();
+            }
+        }
+
+        private bool DebeRecalcularPagosInternos(List<InformePagoInternoTurnoItem> lista)
+        {
+            return lista == null || lista.Count == 0 || lista.All(x => x == null || x.total <= 0m);
+        }
+
+        private async Task<List<InformePagoInternoTurnoItem>> RecalcularPagosInternosTurnoFallbackAsync()
+        {
+            try
+            {
+                var ventasTurno = (ventas ?? new List<V_TablaVentas>())
+                    .Where(x => x != null && !EsVentaAnulada(x))
+                    .ToList();
+
+                if (ventasTurno.Count == 0)
+                {
+                    return new List<InformePagoInternoTurnoItem>();
+                }
+
+                var idsVenta = ventasTurno
+                    .Select(x => x.id)
+                    .Where(x => x > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (idsVenta.Count == 0)
+                {
+                    return new List<InformePagoInternoTurnoItem>();
+                }
+
+                var idsSql = string.Join(",", idsVenta);
+                using (var cn = new Conection_SQL(db))
+                {
+                    var sql = $"select id, idVenta, idMedioDePagointerno, valorPago, payment_methods_id from PagosVenta where idVenta in ({idsSql})";
+                    var json = await cn.EjecutarConsulta(sql, true);
+                    var pagosVenta = string.IsNullOrWhiteSpace(json)
+                        ? new List<PagosVenta>()
+                        : JsonConvert.DeserializeObject<List<PagosVenta>>(json) ?? new List<PagosVenta>();
+
+                    if (pagosVenta.Count == 0)
+                    {
+                        return new List<InformePagoInternoTurnoItem>();
+                    }
+
+                    var medios = await MediosDePagoInternos_Controler.Lista(db) ?? new List<MediosDePagoInternos>();
+                    medios = medios
+                        .Where(x => x != null && x.id > 0)
+                        .ToList();
+
+                    if (ajustes != null && ajustes.ConsecutivoCaja)
+                    {
+                        medios = medios.Where(x => x.reporteDIAN > 0).ToList();
+                    }
+
+                    if (medios.Count == 0)
+                    {
+                        return new List<InformePagoInternoTurnoItem>();
+                    }
+
+                    var mediosPorId = medios.ToDictionary(x => x.id, x => x);
+
+                    return pagosVenta
+                        .Where(x => x != null && x.idMedioDePagointerno > 0 && mediosPorId.ContainsKey(x.idMedioDePagointerno))
+                        .GroupBy(x => x.idMedioDePagointerno)
+                        .Select(g =>
+                        {
+                            var medio = mediosPorId[g.Key];
+                            return new InformePagoInternoTurnoItem
+                            {
+                                id = medio.id,
+                                nombreMPI = medio.nombreMPI ?? string.Empty,
+                                estado = medio.estado,
+                                reporteDIAN = medio.reporteDIAN,
+                                total = g.Sum(x => x.valorPago)
+                            };
+                        })
+                        .OrderBy(x => x.nombreMPI)
+                        .ToList();
                 }
             }
             catch

@@ -8,6 +8,9 @@ namespace DAL.Controler
 {
     public class TablaVentasControler
     {
+        private static readonly DateTime SqlDateTimeMinValue = new DateTime(1753, 1, 1);
+        private static readonly DateTime SqlDateTimeMaxValue = new DateTime(9999, 12, 31, 23, 59, 59, 997);
+
         /// <summary>
         /// CRUD para TablaVentas usando SP:
         /// EXEC CRUD_TablaVentas @json, @funcion
@@ -17,6 +20,8 @@ namespace DAL.Controler
         {
             try
             {
+                NormalizarCamposSql(venta);
+
                 var helper = new CrudSpHelper();
 
                 // Llama al helper genérico que arma:
@@ -39,6 +44,26 @@ namespace DAL.Controler
                     mensaje = "Error en CRUD_TablaVentas: " + ex.GetBaseException().Message
                 };
             }
+        }
+
+        private static void NormalizarCamposSql(TablaVentas venta)
+        {
+            if (venta == null)
+            {
+                return;
+            }
+
+            venta.fechaVenta = NormalizarSqlDateTime(venta.fechaVenta);
+        }
+
+        private static DateTime NormalizarSqlDateTime(DateTime fecha)
+        {
+            if (fecha < SqlDateTimeMinValue || fecha > SqlDateTimeMaxValue)
+            {
+                return DateTime.Now;
+            }
+
+            return fecha;
         }
 
         /// <summary>

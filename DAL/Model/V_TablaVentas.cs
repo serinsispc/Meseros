@@ -9,7 +9,7 @@ namespace DAL.Model
     public class V_TablaVentas
     {
         public int id { get; set; } = 0;
-        public DateTime fechaVenta { get; set; }= DateTime.Now;
+        public DateTime fechaVenta { get; set; } = DateTime.MinValue;
         public string aliasVenta { get; set; } = "";
         public string tipoFactura { get; set; } = string.Empty;
         public string prefijo { get; set; }= string.Empty;

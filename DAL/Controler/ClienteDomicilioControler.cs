@@ -16,7 +16,11 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                return await cn.ConsultarLista<ClienteDomicilio>(db);
+                var sql = @"
+SELECT id, celularCliente, nombreCliente, direccionCliente
+FROM ClienteDomicilio
+ORDER BY nombreCliente, direccionCliente;";
+                return await cn.EjecutarSQLLista<ClienteDomicilio>(db, sql);
             }
             catch(Exception ex)
             {

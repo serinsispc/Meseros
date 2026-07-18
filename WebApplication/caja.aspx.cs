@@ -7,9 +7,13 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Web;
+using System.Web.Services;
 using System.Web.UI;
 using WebApplication.Class;
 using WebApplication.Helpers;
@@ -36,6 +40,21 @@ namespace WebApplication
         private const string SessionModelsJson = "ModelsJson";
         private const string SessionPuedeEditarDetalleVenta = "Caja_PuedeEditarDetalleVenta";
         private const string SessionPuedeEliminarDetalleVenta = "Caja_PuedeEliminarDetalleVenta";
+        private const string SessionCodigoAutorizacion = "Caja_CodigoAutorizacion";
+        private const string SessionTipoAutorizacion = "Caja_TipoAutorizacion";
+        private const string SessionDetalleAutorizacion = "Caja_DetalleAutorizacion";
+        private const string SessionVenceAutorizacion = "Caja_VenceAutorizacion";
+        private const string SessionAutorizacionRemotaAprobada = "Caja_AutorizacionRemotaAprobada";
+        private const string CodigoAutorizacionRemota = "__APROBADO_REMOTO__";
+        private const string SessionCajaZonasKey = "Caja_Zonas";
+        private const string SessionCajaCategoriasKey = "Caja_Categorias";
+        private const string SessionCajaMesasKey = "Caja_Mesas";
+        private const string SessionCajaProductosKey = "Caja_Productos";
+        private const string SessionCajaMetodosPagoKey = "Caja_MetodosPago";
+        private const string SessionCajaMediosPagoInternosKey = "Caja_MediosPagoInternos";
+        private const string SessionCajaRelMediosPagoInternosKey = "Caja_RelMediosPagoInternos";
+        private const string SessionCajaAdicionesKey = "Caja_Adiciones";
+        private const string SessionCajaClienteDomiciliosKey = "Caja_ClienteDomicilios";
         private const string PermisoEditarDetalleVenta = "EDITAR DETALLE VENTA";
         private const string PermisoEliminarDetalleVenta = "ELIMINAR DETALLE VENTA";
         protected MenuViewModels models = new MenuViewModels();
@@ -45,6 +64,7 @@ namespace WebApplication
         protected decimal VentasCajaPendiente;
         protected int VentasCajaAnuladas;
         protected DBConexion ajustes = new DBConexion();
+        private readonly Dictionary<int, List<V_Precios>> _preciosDetallePorPresentacion = new Dictionary<int, List<V_Precios>>();
         private bool _puedeEditarDetalleVentaCajero;
         private bool _puedeEliminarDetalleVentaCajero;
 
@@ -441,22 +461,166 @@ namespace WebApplication
 
         protected bool PuedeEliminarDetalleCaja()
         {
-            if (UsuarioActualEsCajero())
-            {
-                return _puedeEliminarDetalleVentaCajero;
-            }
-
             return ajustes?.EliminarDetalleCaja == true;
         }
 
         protected bool PuedeEditarDetalleCaja()
         {
-            if (UsuarioActualEsCajero())
+            return ajustes?.DecuentoVendedorJSON == true;
+        }
+
+        private bool CodigoSupervisorValido(string codigo, string tipo, int idDetalle)
+        {
+            var esperado = (ajustes?.ClaveSupervisorCaja ?? string.Empty).Trim();
+            var ingresado = (codigo ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(esperado)
+                && !string.Equals(esperado, "-", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(esperado, ingresado, StringComparison.OrdinalIgnoreCase))
             {
-                return _puedeEditarDetalleVentaCajero;
+                return true;
             }
 
-            return ajustes?.DecuentoVendedorJSON == true;
+            var codigoTemporal = Convert.ToString(Session[SessionCodigoAutorizacion] ?? string.Empty);
+            var tipoTemporal = Convert.ToString(Session[SessionTipoAutorizacion] ?? string.Empty);
+            var detalleTemporal = Convert.ToInt32(Session[SessionDetalleAutorizacion] ?? 0);
+            var vence = Session[SessionVenceAutorizacion] as DateTime?;
+            var contextoValido = vence.HasValue && vence.Value >= DateTime.UtcNow
+                && detalleTemporal == idDetalle
+                && string.Equals(tipoTemporal, tipo, StringComparison.OrdinalIgnoreCase);
+            var aprobadoRemotamente = string.Equals(ingresado, CodigoAutorizacionRemota, StringComparison.Ordinal)
+                && Convert.ToBoolean(Session[SessionAutorizacionRemotaAprobada] ?? false);
+            var valido = contextoValido && (aprobadoRemotamente
+                || string.Equals(codigoTemporal, ingresado, StringComparison.OrdinalIgnoreCase));
+
+            if (valido)
+            {
+                LimpiarAutorizacionTemporal();
+            }
+            return valido;
+        }
+
+        private void LimpiarAutorizacionTemporal()
+        {
+            Session.Remove(SessionCodigoAutorizacion);
+            Session.Remove(SessionTipoAutorizacion);
+            Session.Remove(SessionDetalleAutorizacion);
+            Session.Remove(SessionVenceAutorizacion);
+            Session.Remove(SessionAutorizacionRemotaAprobada);
+        }
+
+        [WebMethod(EnableSession = true)]
+        public static bool ConsultarAutorizacionSupervisor()
+        {
+            var context = HttpContext.Current;
+            var session = context?.Session;
+            if (session == null)
+            {
+                return false;
+            }
+
+            var codigo = Convert.ToString(session[SessionCodigoAutorizacion] ?? string.Empty).Trim();
+            var vence = session[SessionVenceAutorizacion] as DateTime?;
+            if (string.IsNullOrWhiteSpace(codigo) || !vence.HasValue || vence.Value < DateTime.UtcNow)
+            {
+                return false;
+            }
+
+            var desde = vence.Value.AddMinutes(-10).ToLocalTime();
+            const string sql = @"
+select top (1) 1
+from dbo.AprobarNotificacionMovil
+where codigo = @codigo
+  and fecha >= @desde
+order by fecha desc;";
+
+            try
+            {
+                using (var cn = new SqlConnection(RuntimeSettings.BuildSqlConnectionString("DBNotificacionesMovil")))
+                using (var cmd = new SqlCommand(sql, cn))
+                {
+                    cmd.Parameters.Add("@codigo", SqlDbType.VarChar, 100).Value = codigo;
+                    cmd.Parameters.Add("@desde", SqlDbType.DateTime).Value = desde;
+                    cn.Open();
+                    var aprobado = cmd.ExecuteScalar() != null;
+                    if (aprobado)
+                    {
+                        session[SessionAutorizacionRemotaAprobada] = true;
+                    }
+                    return aprobado;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [WebMethod(EnableSession = true)]
+        public static ListaPreciosDetalleResponse ConsultarListaPreciosDetalle(int idPresentacion)
+        {
+            var response = new ListaPreciosDetalleResponse();
+            var session = HttpContext.Current?.Session;
+            if (session == null || idPresentacion <= 0)
+            {
+                return response;
+            }
+
+            var ajustesJson = Convert.ToString(session["DBConexion"] ?? string.Empty);
+            var configuracion = string.IsNullOrWhiteSpace(ajustesJson)
+                ? null
+                : JsonConvert.DeserializeObject<DBConexion>(ajustesJson);
+            response.Habilitada = configuracion != null && configuracion.PrecioLT == 1m;
+            if (!response.Habilitada)
+            {
+                return response;
+            }
+
+            var model = SessionContextHelper.LoadModels(session);
+            var db = model?.db ?? Convert.ToString(session[SessionContextHelper.DbKey] ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(db))
+            {
+                throw new InvalidOperationException("No existe una base de datos activa para consultar la lista de precios.");
+            }
+
+            const string sql = @"
+select id, idPresentacion, isnull(nombrePrecio, '') nombrePrecio, isnull(valorPrecio, 0) valorPrecio
+from dbo.V_Precios
+where idPresentacion = @idPresentacion
+order by nombrePrecio, id;";
+
+            using (var cn = new SqlConnection(RuntimeSettings.BuildSqlConnectionString(db)))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.Add("@idPresentacion", SqlDbType.Int).Value = idPresentacion;
+                cn.Open();
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        response.Precios.Add(new PrecioDetalleResponse
+                        {
+                            id = Convert.ToInt32(reader["id"]),
+                            nombrePrecio = Convert.ToString(reader["nombrePrecio"] ?? string.Empty),
+                            valorPrecio = Convert.ToDecimal(reader["valorPrecio"])
+                        });
+                    }
+                }
+            }
+
+            return response;
+        }
+
+        public sealed class ListaPreciosDetalleResponse
+        {
+            public bool Habilitada { get; set; }
+            public List<PrecioDetalleResponse> Precios { get; set; } = new List<PrecioDetalleResponse>();
+        }
+
+        public sealed class PrecioDetalleResponse
+        {
+            public int id { get; set; }
+            public string nombrePrecio { get; set; }
+            public decimal valorPrecio { get; set; }
         }
 
         protected IEnumerable<V_CuentaCliente> CuentasClienteActivas()
@@ -601,6 +765,73 @@ namespace WebApplication
                 && models?.vendedor?.cajaMovil == 1;
         }
 
+        protected bool MostrarBotonesComandas()
+        {
+            return ajustes?.ComandasCaja == true;
+        }
+
+        protected bool MostrarResumenPropina()
+        {
+            return ajustes != null && ajustes.Propina > 0;
+        }
+
+        protected bool MostrarListadoPreciosDetalle()
+        {
+            return ajustes != null && ajustes.PrecioLT == 1m;
+        }
+
+        protected bool EsProductoGramera(object idPresentacionObj)
+        {
+            if (!int.TryParse(Convert.ToString(idPresentacionObj), out var idPresentacion) || idPresentacion <= 0)
+            {
+                return false;
+            }
+
+            var producto = (models?.productosLista ?? models?.productos ?? new List<v_productoVenta>())
+                .FirstOrDefault(x => x != null && x.idPresentacion == idPresentacion);
+
+            return producto != null && producto.gramera == 1;
+        }
+
+        protected string ObtenerGrameraDetalleData(object idPresentacionObj)
+        {
+            return EsProductoGramera(idPresentacionObj) ? "1" : "0";
+        }
+
+        protected string FormatearCantidadDetalleInput(object unidadObj, object idPresentacionObj)
+        {
+            var cantidad = Convert.ToDecimal(unidadObj ?? 0m);
+            var formato = EsProductoGramera(idPresentacionObj) ? "0.###" : "0";
+            return cantidad.ToString(formato, System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        protected string ObtenerPreciosDetalleData(object idPresentacionObj)
+        {
+            if (!MostrarListadoPreciosDetalle())
+            {
+                return "[]";
+            }
+
+            if (!int.TryParse(Convert.ToString(idPresentacionObj), out var idPresentacion) || idPresentacion <= 0)
+            {
+                return "[]";
+            }
+
+            if (!_preciosDetallePorPresentacion.TryGetValue(idPresentacion, out var lista) || lista == null || lista.Count == 0)
+            {
+                return "[]";
+            }
+
+            var payload = lista.Select(x => new
+            {
+                id = x.id,
+                nombrePrecio = x.nombrePrecio ?? string.Empty,
+                valorPrecio = x.valorPrecio
+            }).ToList();
+
+            return HttpUtility.HtmlAttributeEncode(JsonConvert.SerializeObject(payload).Replace("</", "<\\/"));
+        }
+
         protected async void Page_Load(object sender, EventArgs e)
         {
             await CargarAjustesDbEnContextoAsync();
@@ -687,8 +918,9 @@ namespace WebApplication
         private async Task CargarDATA()
         {
             await CargarPermisosDetalleCajeroAsync();
-            await Cargar_RP();
-            SessionContextHelper.SaveModels(Session, models);
+            await CargarListadoPreciosDetalleAsync();
+            Cargar_RP();
+            SessionContextHelper.SaveModelsReferenceOnly(Session, models);
 
             ScriptManager.RegisterStartupScript(
                 this,
@@ -699,6 +931,9 @@ namespace WebApplication
         window.CajaConfig.autoFocusBusquedaDesktop = {(AutoFocusBusquedaDesktop() ? "true" : "false")};
         window.CajaConfig.desktopMinWidth = {DesktopMinWidth()};
         window.CajaConfig.preservarPosicionEnMobile = true;
+        window.CajaConfig.listadoItemVentasUnico = {(MostrarListadoPreciosDetalle() ? "true" : "false")};
+        window.CajaConfig.editarPrecioSinAutorizacion = {(PuedeEditarDetalleCaja() ? "true" : "false")};
+        window.CajaConfig.eliminarDetalleSinAutorizacion = {(PuedeEliminarDetalleCaja() ? "true" : "false")};
 
         if (window.CajaViewport) {{
             if (typeof window.CajaViewport.restaurarEstadoScroll === 'function') {{
@@ -712,8 +947,9 @@ namespace WebApplication
                 true
             );
         }
-        private async Task Cargar_RP()
+        private void Cargar_RP()
         {
+            SincronizarEstadoVisualMesas();
             rpCuentas.DataSource = models.cuentas;
             rpCuentasModal.DataSource = models.cuentas;
             rpCuentasCliente.DataSource = CuentasClienteActivas();
@@ -725,16 +961,76 @@ namespace WebApplication
             DataBind();
         }
 
-        private async Task<bool> VerificarSession()
+        private void SincronizarEstadoVisualMesas()
         {
-            if (models.vendedor.id != null)
+            if (models?.MesasLista == null || !models.MesasLista.Any())
             {
-                return true;
+                return;
             }
-            else
+
+            var mesasOcupadas = new HashSet<string>(
+                (models?.cuentasMesasVista ?? new List<V_CuentasVenta>())
+                    .Where(x => x != null && !x.eliminada && !string.IsNullOrWhiteSpace(x.nombremesa))
+                    .Select(x => x.nombremesa.Trim()),
+                StringComparer.OrdinalIgnoreCase);
+
+            foreach (var mesa in models.MesasLista)
             {
-                return false;
+                if (mesa == null)
+                {
+                    continue;
+                }
+
+                mesa.estadoMesa = mesasOcupadas.Contains((mesa.nombreMesa ?? string.Empty).Trim()) ? 1 : 0;
             }
+
+            if (models.Mesas != null)
+            {
+                foreach (var mesa in models.Mesas)
+                {
+                    if (mesa == null)
+                    {
+                        continue;
+                    }
+
+                    mesa.estadoMesa = mesasOcupadas.Contains((mesa.nombreMesa ?? string.Empty).Trim()) ? 1 : 0;
+                }
+            }
+        }
+
+        private async Task CargarListadoPreciosDetalleAsync()
+        {
+            _preciosDetallePorPresentacion.Clear();
+
+            if (!MostrarListadoPreciosDetalle())
+            {
+                return;
+            }
+
+            var idsPresentacion = (models?.detalleCaja ?? new List<V_DetalleCaja>())
+                .Where(x => x != null && x.idPresentacion > 0)
+                .Select(x => x.idPresentacion)
+                .Distinct()
+                .ToList();
+
+            if (!idsPresentacion.Any())
+            {
+                return;
+            }
+
+            var lista = await V_PreciosControler.ListaPorPresentaciones(models.db, idsPresentacion);
+            foreach (var grupo in (lista ?? new List<V_Precios>()).GroupBy(x => x.idPresentacion))
+            {
+                _preciosDetallePorPresentacion[grupo.Key] = grupo
+                    .OrderBy(x => x.nombrePrecio)
+                    .ThenBy(x => x.id)
+                    .ToList();
+            }
+        }
+
+        private Task<bool> VerificarSession()
+        {
+            return Task.FromResult(models?.vendedor?.id > 0);
         }
 
         private bool UsuarioActualEsCajero()
@@ -808,7 +1104,40 @@ namespace WebApplication
             }
 
             // Cargar colecciones base
-            var zonas = await ZonasControler.Lista(models.db) ?? new List<Zonas>();
+            var zonasTask = ObtenerZonasAsync();
+            var categoriasTask = ObtenerCategoriasAsync();
+            var mesasTask = ObtenerMesasAsync();
+            var productosTask = ObtenerProductosAsync();
+            var metodosPagoTask = ObtenerMetodosPagoAsync();
+            var mediosPagoInternosTask = ObtenerMediosPagoInternosAsync();
+            var relMediosPagoInternosTask = ObtenerRelMediosPagoInternosAsync();
+            var cuentasClienteTask = V_CuentaClienteCotroler.Lista(models.db, false, idVenta);
+            var cuentasVistaTask = CargarCuentasMesasVista();
+            var ventaTask = V_TablaVentasControler.Consultar_Id(models.db, idVenta);
+            var ventaCuentaTask = V_CuentaClienteCotroler.Consultar(models.db, 0);
+            var detalleTask = V_DetalleCajaControler.Lista_IdVenta(models.db, idVenta, 0);
+            var adicionesTask = ObtenerAdicionesAsync();
+            var clienteDomiciliosTask = ObtenerClienteDomiciliosAsync();
+            var cargoDescuentoTask = CargoDescuentoVentasControler.ObtenerPorVenta(models.db, idVenta);
+
+            await Task.WhenAll(
+                zonasTask,
+                categoriasTask,
+                mesasTask,
+                productosTask,
+                metodosPagoTask,
+                mediosPagoInternosTask,
+                relMediosPagoInternosTask,
+                cuentasClienteTask,
+                cuentasVistaTask,
+                ventaTask,
+                ventaCuentaTask,
+                detalleTask,
+                adicionesTask,
+                clienteDomiciliosTask,
+                cargoDescuentoTask);
+
+            var zonas = zonasTask.Result ?? new List<Zonas>();
             if (!zonas.Any())
             {
                 divZonas.Attributes["class"] = "d-none";
@@ -819,23 +1148,23 @@ namespace WebApplication
                 divZonas.Attributes["class"] = "col-12 col-lg-5 d-flex";
                 divProductos.Attributes["class"] = "col-12 col-lg-7";
             }
-            var categorias = await V_CategoriaControler.lista(models.db) ?? new List<V_Categoria>();
-            var mesas = await MesasControler.Lista(models.db) ?? new List<Mesas>();
-            var productos = await v_productoVentaControler.Lista(models.db) ?? new List<v_productoVenta>();
-            var metodosPago = (await payment_methodsControler.ListaMetodosDePago(models.db) ?? new List<payment_methods>())
+            var categorias = categoriasTask.Result ?? new List<V_Categoria>();
+            var mesas = mesasTask.Result ?? new List<Mesas>();
+            var productos = productosTask.Result ?? new List<v_productoVenta>();
+            var metodosPago = (metodosPagoTask.Result ?? new List<payment_methods>())
                 .Where(x => x != null && x.state)
                 .ToList();
-            var mediosPagoInternos = (await MediosDePagoInternos_Controler.Lista(models.db) ?? new List<MediosDePagoInternos>())
+            var mediosPagoInternos = (mediosPagoInternosTask.Result ?? new List<MediosDePagoInternos>())
                 .Where(x => x != null && x.estado == 1)
                 .ToList();
-            var relMediosPagoInternos = await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(models.db) ?? new List<V_R_MediosDePago_MediosDePagoInternos>();
+            var relMediosPagoInternos = relMediosPagoInternosTask.Result ?? new List<V_R_MediosDePago_MediosDePagoInternos>();
             if (!productos.Any())
             {
                 AlertModerno.Error(this, "Error", "No fue posible cargar la lista de productos.", true);
             }
             int idZonaActiva = zonas.FirstOrDefault()?.id ?? 0;
             int idCategoriaActiva = categorias.FirstOrDefault()?.id ?? 0;
-            var listacc = await V_CuentaClienteCotroler.Lista(models.db, false);
+            var listacc = cuentasClienteTask.Result ?? new List<V_CuentaCliente>();
 
             // Construir ViewModel
             models.IdCuentaActiva = idVenta;
@@ -864,24 +1193,23 @@ namespace WebApplication
                 models.IdCategoriaActiva = 0;
             }
             models.IdCuenteClienteActiva = 0;
-            models.cuentas = cuentas;
-            await ActualizarColeccionesDeCuentasAsync();
+            models.cuentasMesasVista = cuentasVistaTask.Result ?? new List<V_CuentasVenta>();
+            models.cuentas = FiltrarCuentasActivasPorVendedor(models.cuentasMesasVista);
             models.zonas = zonas;
             models.MesasLista = mesas;
-            models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
+            models.Mesas = ConstruirMesasVisibles(mesas, models.IdZonaActiva);
             models.categorias = categorias;
             models.productosLista = productos;
             models.productos = productos;
-            models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idVenta);
-            models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
-            models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, idVenta, 0);
+            models.venta = ventaTask.Result;
+            models.ventaCuenta = ventaCuentaTask.Result;
+            models.detalleCaja = detalleTask.Result;
             models.v_CuentaClientes = listacc;
-            models.adiciones = await V_CatagoriaAdicionControler.Lista(models.db);
-            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            models.adiciones = adicionesTask.Result;
+            models.clienteDomicilios = clienteDomiciliosTask.Result;
             models.clienteDomicilioActivo = await CargarClienteDomicilioActivo(idVenta);
             models.AbrirModalDomicilio = false;
-            models.cargoDescuentoVentas = await CargoDescuentoVentasControler.ObtenerPorVenta(models.db, idVenta);
-            models.clientes = await ClientesControler.ListaClientes(models.db);
+            models.cargoDescuentoVentas = cargoDescuentoTask.Result;
             models.metodosPago = metodosPago;
             models.mediosPagoInternos = mediosPagoInternos;
             models.relMediosPagoInternos = relMediosPagoInternos;
@@ -920,6 +1248,36 @@ namespace WebApplication
             return visibles.Where(x => x.idvendedor == idVendedor).ToList();
         }
 
+        private List<Mesas> ConstruirMesasVisibles(IEnumerable<Mesas> mesas, int idZonaActiva)
+        {
+            var lista = (mesas ?? Enumerable.Empty<Mesas>())
+                .Where(x => x != null)
+                .ToList();
+
+            if (!lista.Any())
+            {
+                return new List<Mesas>();
+            }
+
+            var mesasZonaActiva = lista.Where(x => x.idZona == idZonaActiva).ToList();
+            if (!UsuarioActualEsCajero())
+            {
+                return mesasZonaActiva;
+            }
+
+            var ocupadasFueraZona = lista
+                .Where(x => x.estadoMesa == 1 && x.idZona != idZonaActiva)
+                .OrderBy(x => x.idZona)
+                .ThenBy(x => x.nombreMesa)
+                .ToList();
+
+            return mesasZonaActiva
+                .Concat(ocupadasFueraZona)
+                .GroupBy(x => x.id)
+                .Select(x => x.First())
+                .ToList();
+        }
+
         private async Task<List<V_CuentasVenta>> CargarCuentasMesasVista()
         {
             var cuentas = await V_CuentasVentaControler.Lista_Cajero(models.db) ?? new List<V_CuentasVenta>();
@@ -931,6 +1289,253 @@ namespace WebApplication
             var cuentasVista = await CargarCuentasMesasVista();
             models.cuentasMesasVista = cuentasVista;
             models.cuentas = FiltrarCuentasActivasPorVendedor(cuentasVista);
+        }
+
+        private async Task ActualizarCuentaEnColeccionesAsync(int idVenta)
+        {
+            if (idVenta <= 0)
+            {
+                return;
+            }
+
+            var cuentaActualizada = await V_CuentasVentaControler.Consultar_Id(models.db, idVenta);
+            if (cuentaActualizada == null || cuentaActualizada.eliminada)
+            {
+                models?.cuentas?.RemoveAll(x => x != null && x.id == idVenta);
+                models?.cuentasMesasVista?.RemoveAll(x => x != null && x.id == idVenta);
+                return;
+            }
+
+            if (models.cuentasMesasVista == null)
+            {
+                models.cuentasMesasVista = new List<V_CuentasVenta>();
+            }
+
+            ActualizarCuentaEnColeccion(models.cuentasMesasVista, cuentaActualizada);
+
+            var visibleParaUsuarioActual = models.vendedor.cajaMovil == 1
+                || ajustes?.meserosCompartidos == true
+                || cuentaActualizada.idvendedor == models.vendedor.id;
+
+            if (visibleParaUsuarioActual)
+            {
+                if (models.cuentas == null)
+                {
+                    models.cuentas = new List<V_CuentasVenta>();
+                }
+
+                ActualizarCuentaEnColeccion(models.cuentas, cuentaActualizada);
+            }
+            else
+            {
+                models?.cuentas?.RemoveAll(x => x != null && x.id == idVenta);
+            }
+        }
+
+        private void ActualizarCuentaEnColeccion(List<V_CuentasVenta> cuentas, V_CuentasVenta cuenta)
+        {
+            if (cuentas == null || cuenta == null || cuenta.id <= 0)
+            {
+                return;
+            }
+
+            cuentas.RemoveAll(x => x != null && x.id == cuenta.id);
+            cuentas.Insert(0, cuenta);
+        }
+
+        private void MarcarMesaComoOcupadaEnModelos(int idMesa)
+        {
+            ActualizarEstadoMesaEnModelos(idMesa, 1);
+        }
+
+        private void MarcarMesaComoLibreEnModelos(int idMesa)
+        {
+            ActualizarEstadoMesaEnModelos(idMesa, 0);
+        }
+
+        private void ActualizarEstadoMesaEnModelos(int idMesa, int estadoMesa)
+        {
+            if (idMesa <= 0 || models?.MesasLista == null)
+            {
+                return;
+            }
+
+            var mesaLista = models.MesasLista.FirstOrDefault(x => x.id == idMesa);
+            if (mesaLista != null)
+            {
+                mesaLista.estadoMesa = estadoMesa;
+            }
+
+            var mesaVista = models.Mesas?.FirstOrDefault(x => x.id == idMesa);
+            if (mesaVista != null)
+            {
+                mesaVista.estadoMesa = estadoMesa;
+            }
+        }
+
+        private async Task<List<Zonas>> ObtenerZonasAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaZonasKey] is List<Zonas> cache)
+            {
+                return cache;
+            }
+
+            var lista = await ZonasControler.Lista(models.db) ?? new List<Zonas>();
+            Session[SessionCajaZonasKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<V_Categoria>> ObtenerCategoriasAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaCategoriasKey] is List<V_Categoria> cache)
+            {
+                return cache;
+            }
+
+            var lista = await V_CategoriaControler.lista(models.db) ?? new List<V_Categoria>();
+            Session[SessionCajaCategoriasKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<Mesas>> ObtenerMesasAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaMesasKey] is List<Mesas> cache)
+            {
+                return cache;
+            }
+
+            var lista = await MesasControler.Lista(models.db) ?? new List<Mesas>();
+            Session[SessionCajaMesasKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<v_productoVenta>> ObtenerProductosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaProductosKey] is List<v_productoVenta> cache)
+            {
+                return cache;
+            }
+
+            var lista = await v_productoVentaControler.Lista(models.db) ?? new List<v_productoVenta>();
+            Session[SessionCajaProductosKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<payment_methods>> ObtenerMetodosPagoAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaMetodosPagoKey] is List<payment_methods> cache)
+            {
+                return cache;
+            }
+
+            var lista = await payment_methodsControler.ListaMetodosDePago(models.db) ?? new List<payment_methods>();
+            Session[SessionCajaMetodosPagoKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<MediosDePagoInternos>> ObtenerMediosPagoInternosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaMediosPagoInternosKey] is List<MediosDePagoInternos> cache)
+            {
+                return cache;
+            }
+
+            var lista = await MediosDePagoInternos_Controler.Lista(models.db) ?? new List<MediosDePagoInternos>();
+            Session[SessionCajaMediosPagoInternosKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<V_R_MediosDePago_MediosDePagoInternos>> ObtenerRelMediosPagoInternosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaRelMediosPagoInternosKey] is List<V_R_MediosDePago_MediosDePagoInternos> cache)
+            {
+                return cache;
+            }
+
+            var lista = await V_R_MediosDePago_MediosDePagoInternosControler.GetAll(models.db) ?? new List<V_R_MediosDePago_MediosDePagoInternos>();
+            Session[SessionCajaRelMediosPagoInternosKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<V_CatagoriaAdicion>> ObtenerAdicionesAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && Session[SessionCajaAdicionesKey] is List<V_CatagoriaAdicion> cache)
+            {
+                return cache;
+            }
+
+            var lista = await V_CatagoriaAdicionControler.Lista(models.db) ?? new List<V_CatagoriaAdicion>();
+            Session[SessionCajaAdicionesKey] = lista;
+            return lista;
+        }
+
+        private async Task<List<ClienteDomicilio>> ObtenerClienteDomiciliosAsync(bool forceRefresh = false)
+        {
+            if (!forceRefresh && models?.clienteDomicilios != null && models.clienteDomicilios.Any())
+            {
+                return models.clienteDomicilios;
+            }
+
+            if (!forceRefresh && Session[SessionCajaClienteDomiciliosKey] is List<ClienteDomicilio> cache)
+            {
+                return cache;
+            }
+
+            var lista = await ClienteDomicilioControler.Lista(models.db) ?? new List<ClienteDomicilio>();
+            Session[SessionCajaClienteDomiciliosKey] = lista;
+            return lista;
+        }
+
+        private async Task PrepararServicioRecienCreadoAsync(int idVenta, string nombreMesa = "")
+        {
+            if (idVenta <= 0)
+            {
+                return;
+            }
+
+            models.IdCuenteClienteActiva = 0;
+            models.IdCuentaActiva = idVenta;
+
+            var ventaCreada = await V_TablaVentasControler.Consultar_Id(models.db, idVenta) ?? new V_TablaVentas { id = idVenta };
+            models.venta = ventaCreada;
+            models.detalleCaja = new List<V_DetalleCaja>();
+            models.v_CuentaClientes = new List<V_CuentaCliente>();
+            models.ventaCuenta = new V_CuentaCliente();
+            models.clienteDomicilioActivo = new ClienteDomicilio();
+            models.cargoDescuentoVentas = new List<CargoDescuentoVentas>();
+            models.AbrirModalDomicilio = false;
+
+            var cuentaNueva = new V_CuentasVenta
+            {
+                id = idVenta,
+                aliasVenta = !string.IsNullOrWhiteSpace(ventaCreada?.aliasVenta) ? ventaCreada.aliasVenta : idVenta.ToString(),
+                efectivoVenta = ventaCreada?.efectivoVenta ?? 0,
+                numeroVenta = ventaCreada?.numeroVenta ?? 0,
+                eliminada = ventaCreada?.eliminada ?? false,
+                total = ventaCreada?.total_A_Pagar ?? 0,
+                idbase = ventaCreada?.idBaseCaja ?? 0,
+                idvendedor = models?.vendedor?.id ?? 0,
+                nombrevendedor = models?.vendedor?.nombreVendedor ?? string.Empty,
+                nombremesa = nombreMesa ?? string.Empty,
+                nombreCD = string.Empty
+            };
+
+            if (models.cuentasMesasVista == null)
+            {
+                models.cuentasMesasVista = new List<V_CuentasVenta>();
+            }
+
+            if (models.cuentas == null)
+            {
+                models.cuentas = new List<V_CuentasVenta>();
+            }
+
+            ActualizarCuentaEnColeccion(models.cuentasMesasVista, cuentaNueva);
+
+            if (models.vendedor.cajaMovil == 1 || ajustes?.meserosCompartidos == true || cuentaNueva.idvendedor == models.vendedor.id)
+            {
+                ActualizarCuentaEnColeccion(models.cuentas, cuentaNueva);
+            }
         }
 
         protected async void Evento_Click(object sender, EventArgs e)
@@ -1023,6 +1628,10 @@ namespace WebApplication
                     await EliminarDetalleCaja(eventArgument);
                     break;
 
+                case "SolicitarAutorizacionDetalle":
+                    await SolicitarAutorizacionDetalle(eventArgument);
+                    break;
+
                 case "GuardarNotaDetalle":
                     await GuardarNotaDetalle(eventArgument);
                     break;
@@ -1104,15 +1713,31 @@ namespace WebApplication
                 return;
             }
 
+            // El catálogo se conserva en Session para agilizar los postbacks normales.
+            // En una actualización solicitada por el cajero se debe omitir ese caché para
+            // reflejar inmediatamente productos, precios y categorías modificados en SQL.
+            await Task.WhenAll(
+                ObtenerProductosAsync(true),
+                ObtenerCategoriasAsync(true));
+
             await IniciarPagina();
-            AlertModerno.Success(this, "Ok", "Configuración actualizada correctamente.", true);
+            AlertModerno.Success(this, "Ok", "Productos y precios actualizados desde la base de datos.", true);
         }
         private async Task NuevoServicio()
         {
-            int idVenta = await TablaVentas_f.NuevaVenta(models.db, models.Sede.porcentaje_propina);
+            var respNuevaVenta = await TablaVentas_f.NuevaVentaDetallada(
+                models.db,
+                models.Sede.porcentaje_propina,
+                models.Sede?.id ?? 0,
+                SessionContextHelper.ResolveBaseCajaId(Session, models));
+
+            int idVenta = respNuevaVenta != null && respNuevaVenta.estado && respNuevaVenta.data != null
+                ? Convert.ToInt32(respNuevaVenta.data)
+                : 0;
+
             if (idVenta <= 0)
             {
-                AlertModerno.Error(this, "Error", "No se cre\u00f3 el servicio.", true, 2000);
+                AlertModerno.Error(this, "Error", respNuevaVenta?.mensaje ?? "No se cre\u00f3 el servicio.", true, 2600);
                 return;
             }
 
@@ -1121,15 +1746,7 @@ namespace WebApplication
             var rvv = await R_VentaVendedor_f.Relacionar_Vendedor_Venta(models.db, idVenta, models.vendedor.id);
             if (rvv)
             {
-                // Actualizar modelos y UI
-                models.IdCuenteClienteActiva = 0;
-                models.IdCuentaActiva = idVenta;
-                await ActualizarColeccionesDeCuentasAsync();
-                models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
-                models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
-                models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
-                models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
-
+                await PrepararServicioRecienCreadoAsync(idVenta);
                 await CargarDATA();
                 AlertModerno.Success(this, "Listo", $"Servicio #{idVenta} creado con \u00e9xito.", true, 2000);
             }
@@ -1252,8 +1869,7 @@ namespace WebApplication
 
 
 
-                models.cuentas = await CargarCuentas();
-                models.cuentasMesasVista = await CargarCuentasMesasVista();
+                await ActualizarCuentaEnColeccionesAsync(idCuenta);
                 await CargarDATA();
 
                 AlertModerno.Success(this, "Ok", "Cuenta actualizada correctamente.", true, 2200);
@@ -1282,15 +1898,21 @@ namespace WebApplication
                     if(mesa != null)
                     {
                         models.IdZonaActiva = mesa.idZona;
-                        models.Mesas = models.MesasLista.Where(x => x.idZona == mesa.idZona).ToList();
+                        models.Mesas = ConstruirMesasVisibles(models.MesasLista, mesa.idZona);
                     }
                 }
                 models.IdCuenteClienteActiva = 0;
                 models.IdCuentaActiva = idCuenta;
-                models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idCuenta);
-                models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
-                models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, idCuenta, 0);
-                models.clienteDomicilioActivo = await CargarClienteDomicilioActivo(idCuenta);
+                var ventaTask = V_TablaVentasControler.Consultar_Id(models.db, idCuenta);
+                var ventaCuentaTask = V_CuentaClienteCotroler.Consultar(models.db, 0);
+                var detalleTask = V_DetalleCajaControler.Lista_IdVenta(models.db, idCuenta, 0);
+                var clienteDomicilioTask = CargarClienteDomicilioActivo(idCuenta);
+                await Task.WhenAll(ventaTask, ventaCuentaTask, detalleTask, clienteDomicilioTask);
+
+                models.venta = ventaTask.Result;
+                models.ventaCuenta = ventaCuentaTask.Result;
+                models.detalleCaja = detalleTask.Result;
+                models.clienteDomicilioActivo = clienteDomicilioTask.Result;
 
                 await CargarDATA();
             }
@@ -1306,7 +1928,7 @@ namespace WebApplication
             if(idZona > 0)
             {
                 models.IdZonaActiva = idZona;
-                models.Mesas = models.MesasLista.Where(x => x.idZona == idZona).ToList();
+                models.Mesas = ConstruirMesasVisibles(models.MesasLista, idZona);
 
                 await CargarDATA();
             }
@@ -1359,10 +1981,19 @@ namespace WebApplication
         }
         private async Task AccionMesa_CrearServicio()
         {
-            int idVenta = await TablaVentas_f.NuevaVenta(models.db, models.Sede.porcentaje_propina);
+            var respNuevaVenta = await TablaVentas_f.NuevaVentaDetallada(
+                models.db,
+                models.Sede.porcentaje_propina,
+                models.Sede?.id ?? 0,
+                SessionContextHelper.ResolveBaseCajaId(Session, models));
+
+            int idVenta = respNuevaVenta != null && respNuevaVenta.estado && respNuevaVenta.data != null
+                ? Convert.ToInt32(respNuevaVenta.data)
+                : 0;
+
             if (idVenta <= 0)
             {
-                AlertModerno.Error(this, "Error", "No se cre\u00f3 el servicio.", true, 2000);
+                AlertModerno.Error(this, "Error", respNuevaVenta?.mensaje ?? "No se cre\u00f3 el servicio.", true, 2600);
                 return;
             }
 
@@ -1408,30 +2039,8 @@ namespace WebApplication
                 return;
             }
 
-            var mesas = await MesasControler.Lista(models.db);
-            if (mesas.Count == 0)
-            {
-                AlertModerno.Warning(this, "Atenci\u00f3n", "No se logr\u00f3 cargar la lista de las mesas.", true, 2200);
-                return;
-            }
-
-            // Actualizar modelos y UI
-            models.IdCuentaActiva = idVenta;
-            models.cuentas = await CargarCuentas();
-            models.cuentasMesasVista = await CargarCuentasMesasVista();
-            models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
-            models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
-            models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
-            models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
-
-            models.MesasLista = new List<Mesas>();
-            models.MesasLista = mesas;
-
-            models.Mesas = new List<Mesas>();
-            models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
-
-
-
+            await PrepararServicioRecienCreadoAsync(idVenta, mesa.nombreMesa);
+            MarcarMesaComoOcupadaEnModelos(models.IdMesaActiva);
             await CargarDATA();
 
             AlertModerno.Success(this, "Listo", $"La mesa {mesa.nombreMesa} se relacion\u00f3 correctamente con la cuenta {idVenta}", true, 2000);
@@ -1478,15 +2087,8 @@ namespace WebApplication
                     }
                 }
 
-                var mesas = await MesasControler.Lista(models.db) ?? new List<Mesas>();
-                models.MesasLista = mesas;
-                models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
-                models.cuentas = await CargarCuentas();
-                models.cuentasMesasVista = await CargarCuentasMesasVista();
-                models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
-                models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
-                models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
-                await CargarDATA();
+                MarcarMesaComoLibreEnModelos(mesa.id);
+                await RecargarVentaActiva(true);
 
                 AlertModerno.Success(this, "OK", $"Mesa {mesa.nombreMesa} liberada correctamente.", true, 1500);
             }
@@ -1495,9 +2097,10 @@ namespace WebApplication
                 AlertModerno.Error(this, "Error", ex.Message, true, 2500);
             }
         }
-        private async Task AccionMesa_AmarrarMesa()
+        private Task AccionMesa_AmarrarMesa()
         {
             ModalHelper.Open(this,mdlCuentas);
+            return Task.CompletedTask;
         }
 
         private async Task AmarrarMesaCuenta(string parametros)
@@ -1542,19 +2145,7 @@ namespace WebApplication
                 return;
             }
 
-            var mesas = await MesasControler.Lista(models.db);
-            if (mesas.Count == 0)
-            {
-                AlertModerno.Warning(this, "Atenci\u00f3n", "No se logr\u00f3 cargar la lista de las mesas.", true, 2200);
-                return;
-            }
-
-            models.MesasLista = new List<Mesas>();
-            models.MesasLista = mesas;
-
-            models.Mesas = new List<Mesas>();
-            models.Mesas = mesas.Where(x => x.idZona == models.IdZonaActiva).ToList();
-
+            MarcarMesaComoOcupadaEnModelos(models.IdMesaActiva);
             await ActualizarColeccionesDeCuentasAsync();
             models.IdCuentaActiva=idCuentaAmarrar;
 
@@ -1702,6 +2293,12 @@ namespace WebApplication
 
         private async Task SeleccionarCuentaCliente(string parametros)
         {
+            if (!MostrarBotonesComandas())
+            {
+                AlertModerno.Warning(this, "Atencion", "La gestion de cuentas por comanda esta desactivada en la configuracion de la base.", true, 2200);
+                return;
+            }
+
             var data = new EventArgumentParser(parametros);
             int idCuentaCliente = data.GetInt("ID");
 
@@ -1711,6 +2308,12 @@ namespace WebApplication
 
         private async Task CrearCuentaCliente(string parametros)
         {
+            if (!MostrarBotonesComandas())
+            {
+                AlertModerno.Warning(this, "Atencion", "La gestion de cuentas por comanda esta desactivada en la configuracion de la base.", true, 2200);
+                return;
+            }
+
             try
             {
                 string nombreCuenta = (parametros ?? string.Empty).Trim();
@@ -1743,7 +2346,7 @@ namespace WebApplication
             {
                 var data = new EventArgumentParser(parametros);
                 int idDetalle = data.GetInt("ID");
-                int cantidad = data.GetInt("CANTIDAD");
+                decimal cantidad = Convert.ToDecimal((data.GetString("CANTIDAD") ?? "0").Replace(".", ","));
 
                 if (idDetalle <= 0 || cantidad <= 0)
                 {
@@ -1767,19 +2370,99 @@ namespace WebApplication
             }
         }
 
+        private async Task SolicitarAutorizacionDetalle(string parametros)
+        {
+            var data = new EventArgumentParser(parametros);
+            var tipo = (data.GetString("TIPO") ?? string.Empty).Trim().ToUpperInvariant();
+            var idDetalle = data.GetInt("ID");
+            var valor = data.GetString("VALOR") ?? string.Empty;
+
+            if ((tipo != "ELIMINAR" && tipo != "EDITAR_PRECIO") || idDetalle <= 0)
+            {
+                AlertModerno.Warning(this, "Atención", "La solicitud de autorización no es válida.", true, 1800);
+                return;
+            }
+
+            var detalle = (models?.detalleCaja ?? new List<V_DetalleCaja>()).FirstOrDefault(x => x.id == idDetalle);
+            if (detalle == null)
+            {
+                AlertModerno.Warning(this, "Atención", "No se encontró el producto solicitado.", true, 1800);
+                return;
+            }
+
+            var claveSupervisorFija = (ajustes?.ClaveSupervisorCaja ?? string.Empty).Trim();
+            var tieneClaveSupervisorFija = !string.IsNullOrWhiteSpace(claveSupervisorFija)
+                && !string.Equals(claveSupervisorFija, "-", StringComparison.OrdinalIgnoreCase);
+            var codigo = tieneClaveSupervisorFija
+                ? claveSupervisorFija
+                : Guid.NewGuid().ToString("N").Substring(0, 4).ToUpperInvariant();
+            var accion = tipo == "ELIMINAR"
+                ? $"permiso para eliminar el producto {detalle.nombreProducto}"
+                : $"permiso para editar el precio del producto {detalle.nombreProducto}";
+            var cajero = models?.vendedor?.nombreVendedor ?? "Cajero";
+
+            // La solicitud debe quedar notificada y registrada incluso cuando exista
+            // una clave fija. Antes se omitía todo el envío en ese caso y la pantalla
+            // saltaba directamente a pedir el código del supervisor.
+            var email = new EmailAutorizacionCajaHelper();
+            var empresa = Convert.ToString(Session["NombreEmpresa"] ?? models?.Sede?.nombreSede ?? "SERINSIS POS");
+            var tipoNotificacion = tipo == "ELIMINAR"
+                ? $"Eliminar Detalle Caja - {cajero}"
+                : $"Editar Precio Detalle Caja - {cajero}";
+            var envio = await email.EnviarAsync(
+                models.db,
+                codigo,
+                accion,
+                detalle.nombreProducto,
+                cajero,
+                empresa,
+                tipoNotificacion);
+            if (!envio.Success)
+            {
+                LimpiarAutorizacionTemporal();
+                AlertModerno.Error(this, "No se envió la autorización", envio.Message, true, 5000);
+                return;
+            }
+
+            Session[SessionCodigoAutorizacion] = codigo;
+            Session[SessionTipoAutorizacion] = tipo;
+            Session[SessionDetalleAutorizacion] = idDetalle;
+            Session[SessionVenceAutorizacion] = DateTime.UtcNow.AddMinutes(10);
+
+            var titulo = tipo == "ELIMINAR" ? "Autorizar eliminación" : "Autorizar cambio de precio";
+            var accionPostback = tipo == "ELIMINAR" ? "EliminarDetalle" : "EditarValorDetalle";
+            var notaJs = tipo == "ELIMINAR" ? ", NOTA: ''" : string.Empty;
+            var valorJs = tipo == "EDITAR_PRECIO"
+                ? ", VALOR: '" + HttpUtility.JavaScriptStringEncode(valor) + "'"
+                : string.Empty;
+            var script = $@"
+(function() {{
+var autorizacionProcesada = false;
+var continuarAutorizacion = function(codigo) {{
+    if (autorizacionProcesada) return;
+    autorizacionProcesada = true;
+    EjecutarAccion('{accionPostback}', BuildArgs({{ ID: {idDetalle}{valorJs}{notaJs}, CODIGO: codigo }}), null);
+}};
+solicitarCodigoSupervisor('{HttpUtility.JavaScriptStringEncode(titulo)}', continuarAutorizacion);
+esperarAprobacionSupervisor(continuarAutorizacion);
+}})();";
+            ScriptManager.RegisterStartupScript(this, GetType(), "AbrirAutorizacionDetalle", script, true);
+        }
+
         private async Task EliminarDetalleCaja(string parametros)
         {
             try
             {
-                if (!PuedeEliminarDetalleCaja())
-                {
-                    AlertModerno.Warning(this, "Atención", "La eliminación de detalle está desactivada en la configuración.", true, 1800);
-                    return;
-                }
-
                 var data = new EventArgumentParser(parametros);
                 int idDetalle = data.GetInt("ID");
                 string nota = data.GetString("NOTA") ?? string.Empty;
+                string codigoSupervisor = data.GetString("CODIGO") ?? string.Empty;
+
+                if (!PuedeEliminarDetalleCaja() && !CodigoSupervisorValido(codigoSupervisor, "ELIMINAR", idDetalle))
+                {
+                    AlertModerno.Warning(this, "Autorización requerida", "El código del supervisor no es válido.", true, 2000);
+                    return;
+                }
 
                 if (idDetalle <= 0)
                 {
@@ -1899,15 +2582,10 @@ namespace WebApplication
         {
             try
             {
-                if (!PuedeEditarDetalleCaja())
-                {
-                    AlertModerno.Warning(this, "Atención", "No tiene permiso para editar el valor del detalle.", true, 1800);
-                    return;
-                }
-
                 var data = new EventArgumentParser(parametros);
                 int idDetalle = data.GetInt("ID");
                 decimal valor = Convert.ToDecimal((data.GetString("VALOR") ?? "0").Replace(".", ","));
+                string codigoSupervisor = data.GetString("CODIGO") ?? string.Empty;
 
                 if (idDetalle <= 0 || valor < 0)
                 {
@@ -1919,6 +2597,26 @@ namespace WebApplication
                 if (detalle == null)
                 {
                     AlertModerno.Error(this, "Error", "No se encontrÃƒÂ³ el detalle a modificar.", true, 1800);
+                    return;
+                }
+
+                var preciosDisponibles = MostrarListadoPreciosDetalle()
+                    ? await V_PreciosControler.ListaPorPresentacion(models.db, detalle.idPresentacion)
+                    : new List<V_Precios>();
+                var tieneListaPrecios = preciosDisponibles != null && preciosDisponibles.Count > 0;
+
+                if (tieneListaPrecios)
+                {
+                    var valorValido = preciosDisponibles.Any(x => x.valorPrecio == valor);
+                    if (!valorValido)
+                    {
+                        AlertModerno.Warning(this, "Atención", "El valor seleccionado no pertenece a la lista de precios configurada.", true, 2000);
+                        return;
+                    }
+                }
+                else if (!PuedeEditarDetalleCaja() && !CodigoSupervisorValido(codigoSupervisor, "EDITAR_PRECIO", idDetalle))
+                {
+                    AlertModerno.Warning(this, "Autorización requerida", "El código del supervisor no es válido.", true, 2000);
                     return;
                 }
 
@@ -1995,6 +2693,12 @@ namespace WebApplication
         {
             try
             {
+                if (!MostrarResumenPropina())
+                {
+                    AlertModerno.Warning(this, "Atencion", "La propina esta desactivada en la configuracion de la base.", true, 2200);
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(parametros))
                 {
                     AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No se recibiÃƒÂ³ informaciÃƒÂ³n de propina.", true, 1800);
@@ -2068,6 +2772,12 @@ namespace WebApplication
         }
         private async Task Comandar()
         {
+            if (!MostrarBotonesComandas())
+            {
+                AlertModerno.Warning(this, "Atencion", "El servicio de comandas esta desactivado en la configuracion de la base.", true, 2200);
+                return;
+            }
+
             if (models.detalleCaja == null || !models.detalleCaja.Any())
             {
                 AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No hay productos cargados para comandar.", true, 1800);
@@ -2113,6 +2823,12 @@ namespace WebApplication
 
         private async Task SolicitarCuenta()
         {
+            if (!MostrarBotonesComandas())
+            {
+                AlertModerno.Warning(this, "Atencion", "El servicio de comandas esta desactivado en la configuracion de la base.", true, 2200);
+                return;
+            }
+
             if (models.IdCuentaActiva <= 0)
             {
                 AlertModerno.Warning(this, "AtenciÃƒÂ³n", "No hay un servicio activo para imprimir la cuenta.", true, 1800);
@@ -2197,11 +2913,17 @@ namespace WebApplication
             models.IdMesaActiva = idMesa > 0 ? idMesa : models.IdMesaActiva;
             models.IdCuentaActiva = idServicio;
             models.IdCuenteClienteActiva = 0;
-            models.venta = await V_TablaVentasControler.Consultar_Id(models.db, idServicio);
-            models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, idServicio, 0);
-            models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, idServicio);
-            models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, 0);
-            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            var ventaTask = V_TablaVentasControler.Consultar_Id(models.db, idServicio);
+            var detalleTask = V_DetalleCajaControler.Lista_IdVenta(models.db, idServicio, 0);
+            var cuentasClienteTask = V_CuentaClienteCotroler.Lista(models.db, false, idServicio);
+            var ventaCuentaTask = V_CuentaClienteCotroler.Consultar(models.db, 0);
+            await Task.WhenAll(ventaTask, detalleTask, cuentasClienteTask, ventaCuentaTask);
+
+            models.venta = ventaTask.Result;
+            models.detalleCaja = detalleTask.Result;
+            models.v_CuentaClientes = cuentasClienteTask.Result;
+            models.ventaCuenta = ventaCuentaTask.Result;
+            models.clienteDomicilios = await ObtenerClienteDomiciliosAsync();
             models.AbrirModalDomicilio = true;
 
             if (models.venta == null || models.venta.id == 0)
@@ -2226,11 +2948,7 @@ namespace WebApplication
                 return new ClienteDomicilio();
             }
 
-            var lista = models?.clienteDomicilios;
-            if (lista == null || !lista.Any())
-            {
-                lista = await ClienteDomicilioControler.Lista(models.db);
-            }
+            var lista = await ObtenerClienteDomiciliosAsync();
 
             return lista?.FirstOrDefault(x => x.id == relacion.idClienteDomicilio) ?? new ClienteDomicilio();
         }
@@ -2280,7 +2998,7 @@ namespace WebApplication
                 return;
             }
 
-            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
+            models.clienteDomicilios = await ObtenerClienteDomiciliosAsync(true);
             models.AbrirModalDomicilio = true;
 
             AlertModerno.Success(this, "OK", resp.mensaje ?? "Cliente guardado correctamente.", true, 1200);
@@ -2342,13 +3060,10 @@ namespace WebApplication
                 await TablaVentasControler.CRUD(models.db, ventaDomicilio, 1);
             }
 
-            models.clienteDomicilios = await ClienteDomicilioControler.Lista(models.db);
-            models.cuentas = await CargarCuentas();
-            models.cuentasMesasVista = await CargarCuentasMesasVista();
             models.AbrirModalDomicilio = false;
 
             AlertModerno.Success(this, "OK", resp.mensaje ?? "Cliente relacionado con la venta.", true, 1200);
-            await CargarDATA();
+            await RecargarVentaActiva(false, true);
 
             ScriptManager.RegisterStartupScript(
                 this,
@@ -2537,13 +3252,34 @@ namespace WebApplication
             AlertModerno.Success(this, "OK", "Domicilio despachado. Se envio a imprimir el ticket del domicilio y la factura.", true, 1700);
         }
 
-        private async Task RecargarVentaActiva()
+        private async Task RecargarVentaActiva(bool recargarColeccionesCompletas = false, bool recargarClienteDomicilios = false)
         {
-            await ActualizarColeccionesDeCuentasAsync();
-            models.venta = await V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
-            models.detalleCaja = await V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
-            models.v_CuentaClientes = await V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
-            models.ventaCuenta = await V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
+            if (recargarColeccionesCompletas)
+            {
+                await ActualizarColeccionesDeCuentasAsync();
+            }
+            else
+            {
+                await ActualizarCuentaEnColeccionesAsync(models.IdCuentaActiva);
+            }
+
+            var ventaTask = V_TablaVentasControler.Consultar_Id(models.db, models.IdCuentaActiva);
+            var detalleTask = V_DetalleCajaControler.Lista_IdVenta(models.db, models.IdCuentaActiva, models.IdCuenteClienteActiva);
+            var cuentasClienteTask = V_CuentaClienteCotroler.Lista(models.db, false, models.IdCuentaActiva);
+            var ventaCuentaTask = V_CuentaClienteCotroler.Consultar(models.db, models.IdCuenteClienteActiva);
+
+            await Task.WhenAll(ventaTask, detalleTask, cuentasClienteTask, ventaCuentaTask);
+
+            models.venta = ventaTask.Result;
+            models.detalleCaja = detalleTask.Result;
+            models.v_CuentaClientes = cuentasClienteTask.Result;
+            models.ventaCuenta = ventaCuentaTask.Result;
+
+            if (recargarClienteDomicilios)
+            {
+                models.clienteDomicilios = await ObtenerClienteDomiciliosAsync(true);
+            }
+
             models.clienteDomicilioActivo = await CargarClienteDomicilioActivo(models.IdCuentaActiva);
             await CargarDATA();
         }

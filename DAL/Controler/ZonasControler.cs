@@ -14,7 +14,11 @@ namespace DAL.Controler
             try
             {
                 var cn = new SqlAutoDAL();
-                return await cn.ConsultarLista<Zonas>(db);
+                var sql = @"
+SELECT *
+FROM Zonas
+ORDER BY id;";
+                return await cn.EjecutarSQLLista<Zonas>(db, sql);
             }
             catch (Exception ex)
             {

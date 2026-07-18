@@ -16,7 +16,6 @@ namespace DAL.Funciones
             {
                 var cuenta = new CuentaCliente { 
                     id=0,
-                    fecha=DateTime.Now,
                  idVenta=idventa,
                  nombreCuenta=nombre,
                  preCuenta=false,

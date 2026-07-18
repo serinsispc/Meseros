@@ -18,11 +18,16 @@ namespace DAL.Controler
             try
             {
                 var auto = new SqlAutoDAL();
-
-                return await auto.ConsultarLista<v_productoVenta>(
-                    db,
-                    x => x.estadoProducto == 1
-                );
+                var sql = @"
+SELECT id, idTipoMedida, idCategoria, impuesto_id, nombreCategoria, visible, guidProducto, codigoProducto,
+       nombreProducto, descripcionProducto, letraTipoMedida, nombreTipoPresentacion, costo_mas_impuesto,
+       porcentaje_impuesto, precioVenta, inventarioActual, idPresentacion, idTipoPresentacion, insumo,
+       contenidoPresentacion, estadoInventario, estadoProducto, estadoPresentacion, gramera, inventarioMinimo,
+       inventarioInicial
+FROM v_productoVenta
+WHERE estadoProducto = 1
+ORDER BY idCategoria, nombreProducto, idPresentacion;";
+                return await auto.EjecutarSQLLista<v_productoVenta>(db, sql);
             }
             catch (Exception ex)
             {
