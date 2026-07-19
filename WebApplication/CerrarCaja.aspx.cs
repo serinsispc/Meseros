@@ -34,7 +34,9 @@ namespace WebApplication
         {
             // cargarmos el DBConexion
             string dbJson = Session["DBConexion"]?.ToString();
-            ajustes = JsonConvert.DeserializeObject<DBConexion>(dbJson);
+            ajustes = string.IsNullOrWhiteSpace(dbJson)
+                ? null
+                : JsonConvert.DeserializeObject<DBConexion>(dbJson);
 
             if (!IsPostBack)
             {
@@ -323,16 +325,44 @@ WHERE id = {baseCaja.id}";
             }
 
             var observacion = ObtenerArgumento(eventArgument, "OBS");
+            var idUsuarioCierre = ResolverIdUsuarioCaja();
+            if (idUsuarioCierre <= 0)
+            {
+                AlertModerno.Error(this, "Error", "No se encontró el usuario de caja que realiza el cierre.", true);
+                return;
+            }
 
-            baseCaja.estadoBase = "CERRADA";
-            baseCaja.idUsuarioCierre = models.vendedor?.id;
+            var fechaCierre = DateTime.Now;
+            var baseParaCerrar = new BaseCaja
+            {
+                id = baseCaja.id,
+                fechaApertura = baseCaja.fechaApertura,
+                idUsuarioApertura = baseCaja.idUsuarioApertura,
+                valorBase = baseCaja.valorBase,
+                fechaCierre = fechaCierre,
+                idUsuarioCierre = idUsuarioCierre,
+                estadoBase = "CERRADA",
+                idSedeBAse = baseCaja.idSedeBAse
+            };
 
-            var resp = await BaseCajaControler.CRUD(db, baseCaja, 1);
+            var resp = await BaseCajaControler.CRUD(db, baseParaCerrar, 1);
             if (!resp)
             {
                 AlertModerno.Error(this, "Error", "No fue posible cerrar la caja. Verifique e intente nuevamente.", true);
                 return;
             }
+
+            var baseCerrada = await BaseCajaControler.ConsultarPorId(db, baseCaja.id);
+            if (baseCerrada == null
+                || !string.Equals(baseCerrada.estadoBase, "CERRADA", StringComparison.OrdinalIgnoreCase)
+                || !baseCerrada.fechaCierre.HasValue
+                || !baseCerrada.idUsuarioCierre.HasValue)
+            {
+                AlertModerno.Error(this, "Error", "La base de datos no confirmó todos los datos del cierre de caja.", true);
+                return;
+            }
+
+            baseCaja = baseCerrada;
 
             lblEstadoBase.InnerText = baseCaja.estadoBase ?? "-";
             lblFechaCierre.InnerText = baseCaja.fechaCierre.HasValue ? baseCaja.fechaCierre.Value.ToString("yyyy-MM-dd hh:mm tt") : "Pendiente";
@@ -390,6 +420,27 @@ WHERE id = {baseCaja.id}";
             });";
 
             System.Web.UI.ScriptManager.RegisterStartupScript(this, GetType(), Guid.NewGuid().ToString("N"), script, true);
+        }
+
+        private int ResolverIdUsuarioCaja()
+        {
+            var usuarioCajaJson = Session[SessionContextHelper.UsuarioCajaKey]?.ToString();
+            if (!string.IsNullOrWhiteSpace(usuarioCajaJson))
+            {
+                try
+                {
+                    var usuarioCaja = JsonConvert.DeserializeObject<R_VendedorUsuario>(usuarioCajaJson);
+                    if (usuarioCaja != null && usuarioCaja.idUSuario > 0)
+                    {
+                        return usuarioCaja.idUSuario;
+                    }
+                }
+                catch
+                {
+                }
+            }
+
+            return baseCaja?.idUsuarioApertura ?? 0;
         }
 
 

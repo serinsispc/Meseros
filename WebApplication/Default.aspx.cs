@@ -277,19 +277,22 @@ namespace WebApplication
                 return;
             }
 
+            var fechaApertura = DateTime.Now;
             var baseNueva = await BaseCajaControler.AperturarBase(db, new BaseCaja
             {
                 id = 0,
+                fechaApertura = fechaApertura,
                 idUsuarioApertura = usuarioCaja.idUSuario,
                 valorBase = Convert.ToInt32(valorBase),
-                idUsuarioCierre = usuarioCaja.idUSuario,
+                fechaCierre = null,
+                idUsuarioCierre = null,
                 estadoBase = "ACTIVA",
                 idSedeBAse = models.Sede?.id ?? 1
             }, 0);
 
-            if (baseNueva == null)
+            if (!EsBaseAperturadaValida(baseNueva, usuarioCaja.idUSuario))
             {
-                AlertModerno.Error(this, "Error", "No fue posible aperturar la caja. Verifique e intente nuevamente.", true);
+                AlertModerno.Error(this, "Error", "La apertura no quedó completa en la base de datos. Verifique usuario, sede, fecha y valor base.", true);
                 AbrirModalBase();
                 return;
             }
@@ -332,6 +335,17 @@ namespace WebApplication
             var respCajon = await AperturarCajonRequestHelper.EnviarAsync(Session["db"].ToString(), Session, models);
 
             AlertModerno.SuccessGoTo(this, "Ok", mensaje, "~/caja.aspx", false, 1800);
+        }
+
+        private static bool EsBaseAperturadaValida(BaseCaja baseCaja, int idUsuarioApertura)
+        {
+            return baseCaja != null
+                && baseCaja.id > 0
+                && baseCaja.fechaApertura > DateTime.MinValue
+                && baseCaja.idUsuarioApertura == idUsuarioApertura
+                && baseCaja.valorBase > 0
+                && baseCaja.idSedeBAse > 0
+                && string.Equals(baseCaja.estadoBase, "ACTIVA", StringComparison.OrdinalIgnoreCase);
         }
 
         private void ConfigurarModalInicioTurno()

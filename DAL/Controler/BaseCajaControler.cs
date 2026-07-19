@@ -24,6 +24,24 @@ namespace DAL.Controler
             }
         }
 
+        public static async Task<BaseCaja> ConsultarPorId(string db, int id)
+        {
+            if (string.IsNullOrWhiteSpace(db) || id <= 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                var cn = new SqlAutoDAL();
+                return await cn.ConsultarUno<BaseCaja>(db, x => x.id == id);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public static async Task<BaseCaja> AperturarBase(string db, BaseCaja baseCaja, int funcion)
         {
             try
