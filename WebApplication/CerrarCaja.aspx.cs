@@ -92,9 +92,11 @@ namespace WebApplication
 
             var ventasValidas = ventas.Where(x => !EsVentaAnulada(x)).ToList();
             var totalIngresos = ventasValidas.Sum(x => x.total_A_Pagar);
-            var totalEfectivo = ventasValidas.Sum(x => x.abonoEfectivo);
+            var ventasEfectivo = ObtenerTotalPagoInterno("EFECTIVO", ventasValidas.Sum(x => x.abonoEfectivo));
+            var totalEfectivo = ventasEfectivo;
             var ventasTarjeta = ObtenerTotalPagosNoEfectivo(ventasValidas.Sum(x => x.abonoTarjeta));
             var ventasCredito = ventasValidas.Sum(x => x.totalPendienteVenta);
+            totalIngresos = CompletarTotalIngresos(totalIngresos, ventasEfectivo, ventasTarjeta, ventasCredito);
             var propinasTurno = ventasValidas.Sum(x => x.propina);
             var totalEgresos = 0m;
             var producido = totalIngresos - totalEgresos;
@@ -112,7 +114,7 @@ namespace WebApplication
             lblTotalEfectivo.InnerText = FormatearMoneda(totalEfectivo);
             lblEfectivoMasBase.InnerText = FormatearMoneda(baseCaja.valorBase + totalEfectivo);
             lblVentasTarjeta.InnerText = FormatearMoneda(ventasTarjeta);
-            lblVentasEfectivo.InnerText = FormatearMoneda(totalEfectivo);
+            lblVentasEfectivo.InnerText = FormatearMoneda(ventasEfectivo);
             lblVentasTargeta2.InnerText = FormatearMoneda(ventasTarjeta);
             lblVentasCredito.InnerText = FormatearMoneda(ventasCredito);
             lblPropinasTurno.InnerText = FormatearMoneda(propinasTurno);
@@ -170,11 +172,15 @@ WHERE id = {baseCaja.id}";
             var ventasValidas = (ventas ?? new List<V_TablaVentas>()).Where(x => !EsVentaAnulada(x)).ToList();
             var propinasTurno = ventasValidas.Sum(x => x.propina);
             var totalEfectivo = turno.totalEfectivo;
-            var ventasEfectivo = turno.ventasEfectivo;
-            var ventasTarjeta = turno.ventasTargeta;
+            var ventasEfectivo = ObtenerTotalPagoInterno("EFECTIVO", turno.ventasEfectivo);
+            var ventasTarjeta = ObtenerTotalPagosNoEfectivo(turno.ventasTargeta);
             var efectivoMasBase = turno.efectivoMasBase;
-            var totalIngresos = turno.totalIngresos;
+            var totalIngresos = CompletarTotalIngresos(turno.totalIngresos, ventasEfectivo, ventasTarjeta, turno.ventasCredito);
             var producido = turno.producido;
+            if (turno.totalIngresos <= 0m && totalIngresos > 0m)
+            {
+                producido = totalIngresos - turno.totalEgresos;
+            }
 
             lblValorBase.InnerText = FormatearMoneda(turno.valorBase);
             lblTotalIngresos.InnerText = FormatearMoneda(totalIngresos);
@@ -751,6 +757,25 @@ WHERE id = {baseCaja.id}";
             return pagosInternosTurno
                 .Where(x => !string.Equals(x.nombreMPI, "EFECTIVO", StringComparison.OrdinalIgnoreCase))
                 .Sum(x => x.total);
+        }
+
+        private decimal CompletarTotalIngresos(decimal totalVista, decimal ventasEfectivo, decimal ventasNoEfectivo, decimal ventasCredito)
+        {
+            if (totalVista > 0m)
+            {
+                return totalVista;
+            }
+
+            // Algunas versiones de V_TurnosCaja no reflejan PagosVenta aunque el
+            // procedimiento de pagos internos sí los reporte. En ese caso usamos
+            // el mismo desglose visible en la parte inferior de esta página.
+            var totalPagosInternos = pagosInternosTurno?.Sum(x => x.total) ?? 0m;
+            if (totalPagosInternos > 0m)
+            {
+                return totalPagosInternos + Math.Max(0m, ventasCredito);
+            }
+
+            return ventasEfectivo + ventasNoEfectivo + Math.Max(0m, ventasCredito);
         }
 
 
