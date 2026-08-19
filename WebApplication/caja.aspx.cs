@@ -55,6 +55,14 @@ namespace WebApplication
         private const string SessionCajaRelMediosPagoInternosKey = "Caja_RelMediosPagoInternos";
         private const string SessionCajaAdicionesKey = "Caja_Adiciones";
         private const string SessionCajaClienteDomiciliosKey = "Caja_ClienteDomicilios";
+        private const string SessionUltimaVentaCreadaKey = "Caja_UltimaVentaCreada";
+        private const string SessionUltimaVentaCreadaUtcKey = "Caja_UltimaVentaCreadaUtc";
+        private const string SessionUltimaVentaCreadaTokenKey = "Caja_UltimaVentaCreadaToken";
+        private const string SessionUltimaVentaMesaCreadaKey = "Caja_UltimaVentaMesaCreada";
+        private const string SessionUltimaVentaMesaIdKey = "Caja_UltimaVentaMesaId";
+        private const string SessionUltimaVentaMesaCreadaUtcKey = "Caja_UltimaVentaMesaCreadaUtc";
+        private const string SessionUltimaVentaMesaCreadaTokenKey = "Caja_UltimaVentaMesaCreadaToken";
+        private static readonly TimeSpan VentanaProteccionCreacion = TimeSpan.FromMinutes(2);
         private const string PermisoEditarDetalleVenta = "EDITAR DETALLE VENTA";
         private const string PermisoEliminarDetalleVenta = "ELIMINAR DETALLE VENTA";
         protected MenuViewModels models = new MenuViewModels();
@@ -1556,7 +1564,7 @@ order by nombrePrecio, id;";
                     break;
 
                 case "NuevoServicio":
-                    await NuevoServicio();
+                    await NuevoServicio(eventArgument);
                     break;
 
                 case "AperturarCajon":
@@ -1584,7 +1592,7 @@ order by nombrePrecio, id;";
                     break;
 
                 case "AccionMesa_CrearServicio":
-                    await AccionMesa_CrearServicio();
+                    await AccionMesa_CrearServicio(eventArgument);
                     break;
 
                 case "AccionMesa_AmarrarMesa":
@@ -1723,8 +1731,73 @@ order by nombrePrecio, id;";
             await IniciarPagina();
             AlertModerno.Success(this, "Ok", "Productos y precios actualizados desde la base de datos.", true);
         }
-        private async Task NuevoServicio()
+
+        private int ObtenerVentaRecienteDeSession(
+            string ventaKey,
+            string fechaKey,
+            string tokenKey,
+            string tokenEsperado,
+            string contextoKey = null,
+            int contextoEsperado = 0)
         {
+            if (!(Session[ventaKey] is int idVenta) || idVenta <= 0 ||
+                !(Session[fechaKey] is DateTime fechaUtc) ||
+                DateTime.UtcNow - fechaUtc > VentanaProteccionCreacion)
+            {
+                return 0;
+            }
+
+            var tokenGuardado = Convert.ToString(Session[tokenKey] ?? string.Empty);
+            if (!string.IsNullOrWhiteSpace(tokenEsperado) &&
+                !string.Equals(tokenGuardado, tokenEsperado, StringComparison.Ordinal))
+            {
+                return 0;
+            }
+
+            if (!string.IsNullOrWhiteSpace(contextoKey) &&
+                (!(Session[contextoKey] is int contextoGuardado) || contextoGuardado != contextoEsperado))
+            {
+                return 0;
+            }
+
+            return idVenta;
+        }
+
+        private void RegistrarVentaRecienteEnSession(
+            string ventaKey,
+            string fechaKey,
+            int idVenta,
+            string tokenKey,
+            string token,
+            string contextoKey = null,
+            int contexto = 0)
+        {
+            Session[ventaKey] = idVenta;
+            Session[fechaKey] = DateTime.UtcNow;
+            Session[tokenKey] = token ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(contextoKey))
+            {
+                Session[contextoKey] = contexto;
+            }
+        }
+
+        private async Task NuevoServicio(string tokenSolicitud)
+        {
+            int idVentaReutilizable = ObtenerVentaRecienteDeSession(
+                SessionUltimaVentaCreadaKey,
+                SessionUltimaVentaCreadaUtcKey,
+                SessionUltimaVentaCreadaTokenKey,
+                tokenSolicitud);
+
+            if (idVentaReutilizable > 0)
+            {
+                await PrepararServicioRecienCreadoAsync(idVentaReutilizable);
+                await CargarDATA();
+                AlertModerno.Warning(this, "Atención", $"La solicitud anterior ya había creado el servicio #{idVentaReutilizable}. Se recuperó esa misma cuenta para evitar duplicados.", true, 2800);
+                return;
+            }
+
             var respNuevaVenta = await TablaVentas_f.NuevaVentaDetallada(
                 models.db,
                 models.Sede.porcentaje_propina,
@@ -1740,6 +1813,13 @@ order by nombrePrecio, id;";
                 AlertModerno.Error(this, "Error", respNuevaVenta?.mensaje ?? "No se cre\u00f3 el servicio.", true, 2600);
                 return;
             }
+
+            RegistrarVentaRecienteEnSession(
+                SessionUltimaVentaCreadaKey,
+                SessionUltimaVentaCreadaUtcKey,
+                idVenta,
+                SessionUltimaVentaCreadaTokenKey,
+                tokenSolicitud);
 
 
             // amarro venta con vendedor (uso session idvendedor si existe)
@@ -1979,8 +2059,24 @@ order by nombrePrecio, id;";
                 AlertModerno.Error(this, "Error", ex.Message, true, 3000);
             }
         }
-        private async Task AccionMesa_CrearServicio()
+        private async Task AccionMesa_CrearServicio(string tokenSolicitud)
         {
+            int idVentaReutilizable = ObtenerVentaRecienteDeSession(
+                SessionUltimaVentaMesaCreadaKey,
+                SessionUltimaVentaMesaCreadaUtcKey,
+                SessionUltimaVentaMesaCreadaTokenKey,
+                tokenSolicitud,
+                SessionUltimaVentaMesaIdKey,
+                models.IdMesaActiva);
+
+            if (idVentaReutilizable > 0)
+            {
+                await PrepararServicioRecienCreadoAsync(idVentaReutilizable);
+                await CargarDATA();
+                AlertModerno.Warning(this, "Atención", $"La solicitud anterior ya había creado el servicio #{idVentaReutilizable}. Se recuperó esa misma cuenta para evitar duplicados.", true, 2800);
+                return;
+            }
+
             var respNuevaVenta = await TablaVentas_f.NuevaVentaDetallada(
                 models.db,
                 models.Sede.porcentaje_propina,
@@ -1996,6 +2092,15 @@ order by nombrePrecio, id;";
                 AlertModerno.Error(this, "Error", respNuevaVenta?.mensaje ?? "No se cre\u00f3 el servicio.", true, 2600);
                 return;
             }
+
+            RegistrarVentaRecienteEnSession(
+                SessionUltimaVentaMesaCreadaKey,
+                SessionUltimaVentaMesaCreadaUtcKey,
+                idVenta,
+                SessionUltimaVentaMesaCreadaTokenKey,
+                tokenSolicitud,
+                SessionUltimaVentaMesaIdKey,
+                models.IdMesaActiva);
 
 
             // amarro venta con vendedor (uso session idvendedor si existe)

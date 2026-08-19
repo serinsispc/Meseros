@@ -187,6 +187,12 @@ window.CajaConfig = window.CajaConfig || {};
         if (busy) return;
         busy = true;
 
+        // Identifica de forma estable este POST. Si la red o el navegador
+        // reintentan la misma solicitud, el servidor puede reconocerla.
+        if ((accion === "NuevoServicio" || accion === "AccionMesa_CrearServicio") && !argumento) {
+            argumento = "REQ:" + Date.now().toString(36) + ":" + Math.random().toString(36).slice(2);
+        }
+
         if (window.CajaViewport && typeof window.CajaViewport.guardarEstadoScroll === "function") {
             window.CajaViewport.guardarEstadoScroll();
         }
@@ -232,9 +238,10 @@ window.CajaConfig = window.CajaConfig || {};
             });
         });
 
-        setTimeout(function () {
-            busy = false;
-        }, 7000);
+        // No liberar el bloqueo por tiempo. En una caida o respuesta lenta el
+        // postback anterior puede seguir ejecutandose en el servidor; permitir
+        // otro clic generaba varias ventas vacias encoladas. La nueva pagina
+        // vuelve a inicializar este script y restablece el estado naturalmente.
     };
 
     window.BuildArgs = function (obj) {
